@@ -96,13 +96,3 @@ The system leverages the Laravel framework for the backend to ensure secure, sca
 * Gamification features (badges, progress tracking)
 
 ---
-
-## 📅 Timeline (Example)
-
-| Phase                | Duration  | Description                           |
-| -------------------- | --------- | ------------------------------------- |
-| Planning & Research  | 1 week    | Requirements gathering, UI sketching  |
-| Backend Development  | 2–3 weeks | User auth, course & assignment models |
-| Frontend Development | 2–3 weeks | React components, API integration     |
-| Testing & Debugging  | 1 week    | Functional & security testing         |
-| Finalization         | 1 week    | Documentation, presentation prep      |
