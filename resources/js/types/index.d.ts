@@ -41,3 +41,20 @@ export interface User {
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
 }
+
+export interface Course {
+    id: number;
+    name: string;
+    description: string;
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
+}
+
+export interface PageProps<T extends Record<string, unknown> = Record<string, unknown>> extends T {
+    auth: Auth;
+}
+
+export interface CoursesPageProps extends PageProps {
+    courses: Course[];
+}

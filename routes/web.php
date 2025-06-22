@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Courses\CourseController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -7,9 +8,7 @@ Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
 
-Route::get('courses', function () {
-    return Inertia::render('Courses/Index');
-})->name('courses');
+Route::get('courses', [CourseController::class, 'index'])->name('courses');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
