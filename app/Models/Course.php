@@ -4,120 +4,96 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Course extends Model
 {
-    /** @use HasFactory<\Database\Factories\CourseFactory> */
     use HasFactory;
 
-    const STATUS_DRAFT = 'draft';
-    const STATUS_PUBLISHED = 'published';
-    const STATUS_ARCHIVED = 'archived';
-
     protected $fillable = [
-        'title',
+        'name',
         'description',
-        'short_description',
-        'slug',
-        'course_code',
-        'instructor_id',
-        'category_id',
-        'cover_image',
-        'status',
-        'start_date',
-        'end_date',
-        'max_students',
-        'difficulty_level',
-        'language',
-        'price',
-        'is_free',
-        'requirements',
-        'what_you_will_learn',
+        'created_by',
+        'image',
+        'background_color',
+        'status'
     ];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'is_free' => 'boolean',
-        'requirements' => 'array',
-        'what_you_will_learn' => 'array',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
+    // Status constants
+    const STATUS_PUBLISHED = 'published';
+    const STATUS_ARCHIVED = 'archived';
+
     // Relationships
-    public function instructor(): BelongsTo
+    public function creator()
     {
-        return $this->belongsTo(User::class, 'instructor_id');
+        return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function category(): BelongsTo
+    public function enrollments()
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsToMany(User::class, 'course_enrollments')
+                    ->withPivot('enrolled_as')
+                    ->withTimestamps();
     }
 
-    public function enrollments(): HasMany
+    public function modules()
     {
-        return $this->hasMany(Enrollment::class);
+        return $this->hasMany(CourseModule::class);
     }
 
-    public function students(): BelongsToMany
+    public function assessments()
     {
-        return $this->belongsToMany(User::class, 'enrollments');
+        return $this->hasMany(Assessment::class);
     }
 
-    public function materials(): HasMany
-    {
-        return $this->hasMany(CourseMaterial::class);
-    }
-
-    public function assignments(): HasMany
-    {
-        return $this->hasMany(Assignment::class);
-    }
-
-    public function quizzes(): HasMany
-    {
-        return $this->hasMany(Quiz::class);
-    }
-
-    public function announcements(): HasMany
+    public function announcements()
     {
         return $this->hasMany(Announcement::class);
     }
 
-    public function grades(): HasMany
-    {
-        return $this->hasMany(Grade::class);
-    }
-
     // Helper methods
-    public function isDraft(): bool
+    public function enroll(User $user, string $role = 'student'): void
     {
-        return $this->status === self::STATUS_DRAFT;
-    }
-
-    public function isPublished(): bool
-    {
-        return $this->status === self::STATUS_PUBLISHED;
-    }
-
-    public function isArchived(): bool
-    {
-        return $this->status === self::STATUS_ARCHIVED;
-    }
-
-    public function getEnrolledStudentsCount(): int
-    {
-        return $this->enrollments()->count();
-    }
-
-    public function hasSpaceForEnrollment(): bool
-    {
-        if (!$this->max_students) {
-            return true;
+        if ($this->enrollments()->where('user_id', $user->id)->exists()) {
+            throw new \Exception('User already enrolled');
         }
-        return $this->getEnrolledStudentsCount() < $this->max_students;
+
+        $privilege = 'student';
+
+        if ($user->role === 'admin') {
+            $privilege = 'admin';
+        } elseif ($this->created_by === $user->id) {
+            $privilege = 'instructor';
+        }
+
+        $this->enrollments()->attach($user->id, ['enrolled_as' => $privilege]);
+    }
+
+    public function unenroll(User $user): void
+    {
+        if (!$this->enrollments()->where('user_id', $user->id)->exists()) {
+            throw new \Exception('User not enrolled');
+        }
+
+        $this->enrollments()->detach($user->id);
+    }
+
+    public function getInstructors()
+    {
+        return $this->enrollments()
+                    ->wherePivot('enrolled_as', 'instructor')
+                    ->get();
+    }
+
+    // Scope for user privileges
+    public function scopeWithUserPrivilege($query, $userId)
+    {
+        return $query->with(['enrollments' => function($q) use ($userId) {
+            $q->where('user_id', $userId);
+        }]);
     }
 }
