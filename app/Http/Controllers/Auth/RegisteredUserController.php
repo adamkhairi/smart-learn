@@ -32,14 +32,20 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:'.User::class,
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $user = User::create([
             'name' => $request->name,
+            'username' => $request->username,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => 'student', // Default role for new registrations
+            'is_active' => true,
+            'is_email_registered' => true,
+            'photo' => 'https://www.w3schools.com/howto/img_avatar.png', // Default avatar
         ]);
 
         event(new Registered($user));

@@ -8,15 +8,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Hash;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
-
-    const ROLE_ADMIN = 'admin';
-    const ROLE_TEACHER = 'teacher';
-    const ROLE_STUDENT = 'student';
+    use HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -24,13 +22,17 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'username',
         'name',
         'email',
         'password',
+        'photo',
+        'mobile',
         'role',
-        'profile_picture',
-        'bio',
-        'phone',
+        'is_active',
+        'is_email_registered',
+        'code',
+        'last_seen_at',
     ];
 
     /**
@@ -41,6 +43,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'password_reset_token',
+        'invalidated_tokens',
     ];
 
     /**
@@ -53,58 +57,184 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_seen_at' => 'datetime',
+            'password_changed_at' => 'datetime',
+            'password_reset_validity' => 'datetime',
+            'is_active' => 'boolean',
+            'is_email_registered' => 'boolean',
+            'invalidated_tokens' => 'array',
         ];
     }
 
-    // Role helper methods
-    public function isAdmin(): bool
+    /**
+     * Get the user's enrollments.
+     */
+    public function enrollments(): BelongsToMany
     {
-        return $this->role === self::ROLE_ADMIN;
+        return $this->belongsToMany(Course::class, 'enrollments')
+                    ->withPivot('enrolled_as', 'created_at')
+                    ->withTimestamps();
     }
 
-    public function isTeacher(): bool
+    /**
+     * Get assignments owned by this user.
+     */
+    public function assignments(): HasMany
     {
-        return $this->role === self::ROLE_TEACHER;
+        return $this->hasMany(Assignment::class, 'owner_id');
     }
 
-    public function isStudent(): bool
+    /**
+     * Get articles created by this user.
+     */
+    public function articles(): HasMany
     {
-        return $this->role === self::ROLE_STUDENT;
+        return $this->hasMany(Article::class, 'created_by');
     }
 
-    // Relationships
+    /**
+     * Get users that this user follows.
+     */
+    public function follows(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'follows', 'user_id', 'follows_id')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Get users that follow this user.
+     */
+    public function followers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'follows', 'follows_id', 'user_id')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Get likes by this user.
+     */
+    public function likes(): HasMany
+    {
+        return $this->hasMany(Like::class);
+    }
+
+    /**
+     * Get views by this user.
+     */
+    public function views(): HasMany
+    {
+        return $this->hasMany(View::class);
+    }
+
+    /**
+     * Get bookmarks by this user.
+     */
+    public function bookmarks(): HasMany
+    {
+        return $this->hasMany(Bookmark::class);
+    }
+
+    /**
+     * Get comments by this user.
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    /**
+     * Get courses created by this user.
+     */
     public function createdCourses(): HasMany
     {
-        return $this->hasMany(Course::class, 'instructor_id');
+        return $this->hasMany(Course::class, 'created_by');
     }
 
-    public function enrollments(): HasMany
+    /**
+     * Get notifications for this user.
+     */
+    public function notifications(): HasMany
     {
-        return $this->hasMany(Enrollment::class);
+        return $this->hasMany(Notification::class);
     }
 
-    public function enrolledCourses(): BelongsToMany
+    /**
+     * Get submissions by this user.
+     */
+    public function submissions(): HasMany
     {
-        return $this->belongsToMany(Course::class, 'enrollments');
+        return $this->hasMany(Submission::class);
     }
 
-    public function assignmentSubmissions(): HasMany
+    /**
+     * Get achievements by this user.
+     */
+    public function achievements(): HasMany
     {
-        return $this->hasMany(AssignmentSubmission::class);
+        return $this->hasMany(Achievement::class);
     }
 
-    public function quizAttempts(): HasMany
+    /**
+     * Check if user has a specific role.
+     */
+    public function hasRole(string $role): bool
     {
-        return $this->hasMany(QuizAttempt::class);
+        return $this->role === $role;
     }
 
-    public function grades(): HasMany
+    /**
+     * Check if user is an admin.
+     */
+    public function isAdmin(): bool
     {
-        return $this->hasMany(Grade::class);
+        return $this->hasRole('admin');
     }
 
-    public function announcements(): HasMany
+    /**
+     * Check if user is an instructor.
+     */
+    public function isInstructor(): bool
     {
-        return $this->hasMany(Announcement::class, 'author_id');
+        return $this->hasRole('instructor');
+    }
+
+    /**
+     * Check if user is a student.
+     */
+    public function isStudent(): bool
+    {
+        return $this->hasRole('student');
+    }
+
+    /**
+     * Get the default photo URL.
+     */
+    public function getPhotoUrlAttribute(): string
+    {
+        return $this->photo ?: 'https://www.w3schools.com/howto/img_avatar.png';
+    }
+
+    /**
+     * Verify password.
+     */
+    public function verifyPassword(string $password): bool
+    {
+        return Hash::check($password, $this->password);
+    }
+
+    /**
+     * Scope to get active users.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope to get users by role.
+     */
+    public function scopeRole($query, string $role)
+    {
+        return $query->where('role', $role);
     }
 }

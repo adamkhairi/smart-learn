@@ -5,89 +5,82 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Announcement extends Model
 {
-    /** @use HasFactory<\Database\Factories\AnnouncementFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-    const PRIORITY_LOW = 'low';
-    const PRIORITY_NORMAL = 'normal';
-    const PRIORITY_HIGH = 'high';
-    const PRIORITY_URGENT = 'urgent';
-
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
-        'course_id',
-        'author_id',
         'title',
         'content',
-        'priority',
-        'is_published',
-        'is_pinned',
-        'scheduled_for',
-        'expires_at',
-        'send_notification',
-        'notification_sent_at',
+        'course_id',
+        'created_by',
+        'is_urgent',
     ];
 
-    protected $casts = [
-        'is_published' => 'boolean',
-        'is_pinned' => 'boolean',
-        'send_notification' => 'boolean',
-        'scheduled_for' => 'datetime',
-        'expires_at' => 'datetime',
-        'notification_sent_at' => 'datetime',
-    ];
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_urgent' => 'boolean',
+        ];
+    }
 
-    // Relationships
+    /**
+     * Get the course this announcement belongs to.
+     */
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
     }
 
-    public function author(): BelongsTo
+    /**
+     * Get the user who created this announcement.
+     */
+    public function creator(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'author_id');
+        return $this->belongsTo(User::class, 'created_by');
     }
 
-    // Helper methods
-    public function isScheduled(): bool
-    {
-        return $this->scheduled_for && $this->scheduled_for > now();
-    }
-
-    public function isExpired(): bool
-    {
-        return $this->expires_at && $this->expires_at < now();
-    }
-
-    public function isActive(): bool
-    {
-        return $this->is_published && !$this->isExpired() && !$this->isScheduled();
-    }
-
-    public function isPriorityHigh(): bool
-    {
-        return in_array($this->priority, [self::PRIORITY_HIGH, self::PRIORITY_URGENT]);
-    }
-
+    /**
+     * Check if announcement is urgent.
+     */
     public function isUrgent(): bool
     {
-        return $this->priority === self::PRIORITY_URGENT;
+        return $this->is_urgent === true;
     }
 
-    public function publish(): void
+    /**
+     * Scope to get urgent announcements.
+     */
+    public function scopeUrgent($query)
     {
-        $this->update(['is_published' => true]);
+        return $query->where('is_urgent', true);
     }
 
-    public function pin(): void
+    /**
+     * Scope to get announcements for a specific course.
+     */
+    public function scopeForCourse($query, int $courseId)
     {
-        $this->update(['is_pinned' => true]);
+        return $query->where('course_id', $courseId);
     }
 
-    public function unpin(): void
+    /**
+     * Scope to get recent announcements.
+     */
+    public function scopeRecent($query, int $days = 7)
     {
-        $this->update(['is_pinned' => false]);
+        return $query->where('created_at', '>=', now()->subDays($days));
     }
 }

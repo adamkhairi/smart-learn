@@ -4,95 +4,223 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Course extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'name',
         'description',
         'created_by',
         'image',
         'background_color',
-        'status'
+        'status',
+        'files',
     ];
 
-    protected $casts = [
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'files' => 'array',
+        ];
+    }
 
-    // Status constants
-    const STATUS_PUBLISHED = 'published';
-    const STATUS_ARCHIVED = 'archived';
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
 
-    // Relationships
-    public function creator()
+        static::creating(function ($course) {
+            if (empty($course->background_color)) {
+                $course->background_color = '#' . str_pad(dechex(mt_rand(0, 0xFFFFFF)), 6, '0', STR_PAD_LEFT);
+            }
+        });
+    }
+
+    /**
+     * Get the user who created this course.
+     */
+    public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function enrollments()
+    /**
+     * Get the users enrolled in this course.
+     */
+    public function enrolledUsers(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'course_enrollments')
-                    ->withPivot('enrolled_as')
+        return $this->belongsToMany(User::class, 'enrollments')
+                    ->withPivot('enrolled_as', 'created_at')
                     ->withTimestamps();
     }
 
-    public function modules()
+    /**
+     * Get the course modules.
+     */
+    public function modules(): HasMany
     {
         return $this->hasMany(CourseModule::class);
     }
 
-    public function assessments()
+    /**
+     * Get the assessments for this course.
+     */
+    public function assessments(): HasMany
     {
         return $this->hasMany(Assessment::class);
     }
 
-    public function announcements()
+    /**
+     * Get the assignments for this course.
+     */
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(Assignment::class);
+    }
+
+    /**
+     * Get the exams for this course.
+     */
+    public function exams(): HasMany
+    {
+        return $this->hasMany(Exam::class);
+    }
+
+    /**
+     * Get the announcements for this course.
+     */
+    public function announcements(): HasMany
     {
         return $this->hasMany(Announcement::class);
     }
 
-    // Helper methods
-    public function enroll(User $user, string $role = 'student'): void
+    /**
+     * Get the discussions for this course.
+     */
+    public function discussions(): HasMany
     {
-        if ($this->enrollments()->where('user_id', $user->id)->exists()) {
-            throw new \Exception('User already enrolled');
+        return $this->hasMany(Discussion::class);
+    }
+
+    /**
+     * Get the grades summary for this course.
+     */
+    public function gradesSummaries(): HasMany
+    {
+        return $this->hasMany(GradesSummary::class);
+    }
+
+    /**
+     * Enroll a user in this course.
+     */
+    public function enroll(int $userId, string $role = 'student'): void
+    {
+        if ($this->enrolledUsers()->where('user_id', $userId)->exists()) {
+            throw new \Exception('User is already enrolled in this course');
         }
 
         $privilege = 'student';
 
-        if ($user->role === 'admin') {
+        if ($role === 'admin') {
             $privilege = 'admin';
-        } elseif ($this->created_by === $user->id) {
+        }
+
+        if ($this->created_by === $userId) {
             $privilege = 'instructor';
         }
 
-        $this->enrollments()->attach($user->id, ['enrolled_as' => $privilege]);
+        $this->enrolledUsers()->attach($userId, ['enrolled_as' => $privilege]);
     }
 
-    public function unenroll(User $user): void
+    /**
+     * Unenroll a user from this course.
+     */
+    public function unenroll(int $userId): void
     {
-        if (!$this->enrollments()->where('user_id', $user->id)->exists()) {
-            throw new \Exception('User not enrolled');
+        if (!$this->enrolledUsers()->where('user_id', $userId)->exists()) {
+            throw new \Exception('User is not enrolled in this course');
         }
 
-        $this->enrollments()->detach($user->id);
+        $this->enrolledUsers()->detach($userId);
     }
 
+    /**
+     * Get instructors for this course.
+     */
     public function getInstructors()
     {
-        return $this->enrollments()
+        return $this->enrolledUsers()
                     ->wherePivot('enrolled_as', 'instructor')
                     ->get();
     }
 
-    // Scope for user privileges
-    public function scopeWithUserPrivilege($query, $userId)
+    /**
+     * Get students for this course.
+     */
+    public function getStudents()
     {
-        return $query->with(['enrollments' => function($q) use ($userId) {
+        return $this->enrolledUsers()
+                    ->wherePivot('enrolled_as', 'student')
+                    ->get();
+    }
+
+    /**
+     * Check if course is published.
+     */
+    public function isPublished(): bool
+    {
+        return $this->status === 'published';
+    }
+
+    /**
+     * Check if course is archived.
+     */
+    public function isArchived(): bool
+    {
+        return $this->status === 'archived';
+    }
+
+    /**
+     * Scope to get published courses.
+     */
+    public function scopePublished($query)
+    {
+        return $query->where('status', 'published');
+    }
+
+    /**
+     * Scope to get archived courses.
+     */
+    public function scopeArchived($query)
+    {
+        return $query->where('status', 'archived');
+    }
+
+    /**
+     * Scope to get courses for a specific user with their privilege.
+     */
+    public function scopeWithUserPrivilege($query, int $userId)
+    {
+        return $query->with(['enrolledUsers' => function ($q) use ($userId) {
             $q->where('user_id', $userId);
         }]);
     }

@@ -5,107 +5,147 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Grade extends Model
 {
-    /** @use HasFactory<\Database\Factories\GradeFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-    const TYPE_ASSIGNMENT = 'assignment';
-    const TYPE_QUIZ = 'quiz';
-    const TYPE_PARTICIPATION = 'participation';
-    const TYPE_FINAL = 'final';
-
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
-        'user_id',
-        'course_id',
-        'assignment_id',
-        'quiz_id',
-        'gradeable_type',
-        'gradeable_id',
-        'points_earned',
-        'max_points',
-        'percentage',
-        'letter_grade',
-        'feedback',
-        'graded_by',
+        'grades_summary_id',
+        'student_id',
+        'assessment_id',
+        'score',
+        'max_score',
+        'weight',
+        'type',
+        'title',
         'graded_at',
-        'is_published',
-        'late_penalty_applied',
-        'bonus_points',
     ];
 
-    protected $casts = [
-        'points_earned' => 'decimal:2',
-        'max_points' => 'decimal:2',
-        'percentage' => 'decimal:2',
-        'graded_at' => 'datetime',
-        'is_published' => 'boolean',
-        'late_penalty_applied' => 'decimal:2',
-        'bonus_points' => 'decimal:2',
-    ];
-
-    // Relationships
-    public function user(): BelongsTo
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected function casts(): array
     {
-        return $this->belongsTo(User::class);
+        return [
+            'score' => 'float',
+            'max_score' => 'float',
+            'weight' => 'float',
+            'graded_at' => 'datetime',
+        ];
     }
 
-    public function course(): BelongsTo
+    /**
+     * Get the grades summary this grade belongs to.
+     */
+    public function gradesSummary(): BelongsTo
     {
-        return $this->belongsTo(Course::class);
+        return $this->belongsTo(GradesSummary::class);
     }
 
-    public function assignment(): BelongsTo
+    /**
+     * Get the student this grade belongs to.
+     */
+    public function student(): BelongsTo
     {
-        return $this->belongsTo(Assignment::class);
+        return $this->belongsTo(User::class, 'student_id');
     }
 
-    public function quiz(): BelongsTo
+    /**
+     * Get the assessment this grade is for.
+     */
+    public function assessment(): BelongsTo
     {
-        return $this->belongsTo(Quiz::class);
+        return $this->belongsTo(Assessment::class);
     }
 
-    public function gradedBy(): BelongsTo
+    /**
+     * Calculate the percentage score.
+     */
+    public function getPercentageAttribute(): float
     {
-        return $this->belongsTo(User::class, 'graded_by');
-    }
-
-    public function gradeable()
-    {
-        return $this->morphTo();
-    }
-
-    // Helper methods
-    public function calculatePercentage(): float
-    {
-        if ($this->max_points <= 0) {
+        if ($this->max_score == 0) {
             return 0;
         }
-        return ($this->points_earned / $this->max_points) * 100;
+
+        return ($this->score / $this->max_score) * 100;
     }
 
-    public function calculateLetterGrade(): string
+    /**
+     * Calculate the weighted score.
+     */
+    public function getWeightedScoreAttribute(): float
     {
-        $percentage = $this->percentage ?? $this->calculatePercentage();
-
-        if ($percentage >= 97) return 'A+';
-        if ($percentage >= 93) return 'A';
-        if ($percentage >= 90) return 'A-';
-        if ($percentage >= 87) return 'B+';
-        if ($percentage >= 83) return 'B';
-        if ($percentage >= 80) return 'B-';
-        if ($percentage >= 77) return 'C+';
-        if ($percentage >= 73) return 'C';
-        if ($percentage >= 70) return 'C-';
-        if ($percentage >= 67) return 'D+';
-        if ($percentage >= 63) return 'D';
-        if ($percentage >= 60) return 'D-';
-        return 'F';
+        return ($this->score / $this->max_score) * $this->weight;
     }
 
+    /**
+     * Get the letter grade.
+     */
+    public function getLetterGradeAttribute(): string
+    {
+        $percentage = $this->percentage;
+
+        if ($percentage < 60) return 'F';
+        if ($percentage < 67) return 'D';
+        if ($percentage < 76) return 'C';
+        if ($percentage < 89) return 'B';
+        return 'A';
+    }
+
+    /**
+     * Check if grade is passing.
+     */
     public function isPassing(): bool
     {
         return $this->percentage >= 60;
+    }
+
+    /**
+     * Scope to get grades for a specific student.
+     */
+    public function scopeForStudent($query, int $studentId)
+    {
+        return $query->where('student_id', $studentId);
+    }
+
+    /**
+     * Scope to get grades for a specific assessment.
+     */
+    public function scopeForAssessment($query, int $assessmentId)
+    {
+        return $query->where('assessment_id', $assessmentId);
+    }
+
+    /**
+     * Scope to get grades by type.
+     */
+    public function scopeByType($query, string $type)
+    {
+        return $query->where('type', $type);
+    }
+
+    /**
+     * Scope to get passing grades.
+     */
+    public function scopePassing($query)
+    {
+        return $query->whereRaw('(score / max_score) * 100 >= 60');
+    }
+
+    /**
+     * Scope to get failing grades.
+     */
+    public function scopeFailing($query)
+    {
+        return $query->whereRaw('(score / max_score) * 100 < 60');
     }
 }

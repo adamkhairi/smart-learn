@@ -6,89 +6,158 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Carbon\Carbon;
 
 class Assignment extends Model
 {
-    /** @use HasFactory<\Database\Factories\AssignmentFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-    const TYPE_ESSAY = 'essay';
-    const TYPE_FILE_UPLOAD = 'file_upload';
-    const TYPE_TEXT = 'text';
-    const TYPE_URL = 'url';
-
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
-        'course_id',
+        'assignment_type',
         'title',
-        'description',
-        'instructions',
-        'type',
-        'max_points',
-        'due_date',
-        'available_from',
-        'available_until',
-        'is_published',
-        'allow_late_submission',
-        'late_penalty_percentage',
-        'max_file_size_mb',
-        'allowed_file_types',
-        'max_attempts',
-        'show_grades_immediately',
+        'total_points',
+        'status',
+        'visibility',
+        'started_at',
+        'expired_at',
+        'course_id',
+        'created_by',
+        'questions',
     ];
 
-    protected $casts = [
-        'due_date' => 'datetime',
-        'available_from' => 'datetime',
-        'available_until' => 'datetime',
-        'is_published' => 'boolean',
-        'allow_late_submission' => 'boolean',
-        'late_penalty_percentage' => 'decimal:2',
-        'max_file_size_mb' => 'integer',
-        'allowed_file_types' => 'array',
-        'max_attempts' => 'integer',
-        'show_grades_immediately' => 'boolean',
-    ];
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'started_at' => 'datetime',
+            'expired_at' => 'datetime',
+            'total_points' => 'integer',
+            'visibility' => 'boolean',
+            'questions' => 'array',
+        ];
+    }
 
-    // Relationships
+    /**
+     * Get the user who created this assignment.
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the course this assignment belongs to.
+     */
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
     }
 
+    /**
+     * Get the submissions for this assignment.
+     */
     public function submissions(): HasMany
     {
-        return $this->hasMany(AssignmentSubmission::class);
+        return $this->hasMany(Submission::class);
     }
 
-    public function grades(): HasMany
+    /**
+     * Get the assignment status based on current time.
+     */
+    public function getStatusAttribute(): string
     {
-        return $this->hasMany(Grade::class);
-    }
+        $now = Carbon::now();
 
-    // Helper methods
-    public function isAvailable(): bool
-    {
-        $now = now();
-        return $this->is_published &&
-               (!$this->available_from || $now >= $this->available_from) &&
-               (!$this->available_until || $now <= $this->available_until);
-    }
-
-    public function isOverdue(): bool
-    {
-        return $this->due_date && now() > $this->due_date;
-    }
-
-    public function getDaysUntilDue(): int
-    {
-        if (!$this->due_date) {
-            return 0;
+        if ($now->lt($this->started_at)) {
+            return 'coming-soon';
+        } elseif ($now->gt($this->expired_at)) {
+            return 'ended';
+        } else {
+            return 'open';
         }
-        return now()->diffInDays($this->due_date, false);
     }
 
-    public function getSubmissionFor(User $user): ?AssignmentSubmission
+    /**
+     * Check if assignment is open for submissions.
+     */
+    public function isOpen(): bool
     {
-        return $this->submissions()->where('user_id', $user->id)->latest()->first();
+        return $this->getStatusAttribute() === 'open';
+    }
+
+    /**
+     * Check if assignment is ended.
+     */
+    public function isEnded(): bool
+    {
+        return $this->getStatusAttribute() === 'ended';
+    }
+
+    /**
+     * Check if assignment is coming soon.
+     */
+    public function isComingSoon(): bool
+    {
+        return $this->getStatusAttribute() === 'coming-soon';
+    }
+
+    /**
+     * Check if assignment is visible.
+     */
+    public function isVisible(): bool
+    {
+        return $this->visibility === true;
+    }
+
+    /**
+     * Scope to get open assignments.
+     */
+    public function scopeOpen($query)
+    {
+        $now = Carbon::now();
+        return $query->where('started_at', '<=', $now)
+                    ->where('expired_at', '>', $now);
+    }
+
+    /**
+     * Scope to get ended assignments.
+     */
+    public function scopeEnded($query)
+    {
+        return $query->where('expired_at', '<', Carbon::now());
+    }
+
+    /**
+     * Scope to get coming soon assignments.
+     */
+    public function scopeComingSoon($query)
+    {
+        return $query->where('started_at', '>', Carbon::now());
+    }
+
+    /**
+     * Scope to get visible assignments.
+     */
+    public function scopeVisible($query)
+    {
+        return $query->where('visibility', true);
+    }
+
+    /**
+     * Scope to get assignments for a specific course.
+     */
+    public function scopeForCourse($query, int $courseId)
+    {
+        return $query->where('course_id', $courseId);
     }
 }
