@@ -1,4 +1,4 @@
-## 📘 Project Summary: Learning Management System (LMS)
+## 📘 Project : Learning Management System ( SmartLearn )
 
 ### Project Title
 
@@ -15,6 +15,43 @@ SmartLearn is a web-based Learning Management System (LMS) designed to facilitat
 The system leverages the Laravel framework for the backend to ensure secure, scalable, and efficient data management, and ReactJS for the frontend to provide a responsive, interactive user experience.
 
 ---
+
+## 🚀 Local Development Setup
+
+Follow these steps to get SmartLearn running on your machine.
+
+```bash
+# 1. Clone the repository
+$ git clone https://github.com/adamkhairi/smart-learn.git
+$ cd smart-learn
+
+# 2. Install PHP dependencies
+$ composer install --prefer-dist --no-interaction
+
+# 3. Copy environment configuration and generate application key
+$ cp .env.example .env
+$ php artisan key:generate
+
+# 4. Configure your database credentials in the .env file
+#    (SQLite is enabled by default; you can also use MySQL/PostgreSQL)
+
+# 5. Install JavaScript dependencies and build assets
+$ npm install
+$ npm run build  # or `npm run build` for production
+
+# 6. Run database migrations (and optional seeders)
+$ php artisan migrate:fresh --seed
+
+# 7. Start the local development server
+$ composer run dev
+# or
+$ php artisan serve
+
+# 8. Visit the app
+Open http://localhost:8000 in your browser.
+```
+
+> Tip: Use `php artisan test` to run the PHPUnit/Pest test suites and ensure everything works as expected.
 
 ## 🧩 Project Objectives
 
@@ -95,7 +132,6 @@ The system leverages the Laravel framework for the backend to ensure secure, sca
 * Certificate generation upon course completion
 * Gamification features (badges, progress tracking)
 
----
 Laravel 12.0.0
 React 19.0.0
 Tailwind CSS 4.0.0
