@@ -25,6 +25,7 @@ class LMSSeeder extends Seeder
         // Create Users
         $admin = User::create([
             'name' => 'System Admin',
+            'username' => 'admin',
             'email' => 'admin@smartlearn.com',
             'password' => Hash::make('password'),
             'role' => User::ROLE_ADMIN,
@@ -33,6 +34,7 @@ class LMSSeeder extends Seeder
 
         $teacher1 = User::create([
             'name' => 'Dr. Sarah Johnson',
+            'username' => 'sarah_johnson',
             'email' => 'sarah.johnson@smartlearn.com',
             'password' => Hash::make('password'),
             'role' => User::ROLE_TEACHER,
@@ -41,6 +43,7 @@ class LMSSeeder extends Seeder
 
         $teacher2 = User::create([
             'name' => 'Prof. Michael Chen',
+            'username' => 'michael_chen',
             'email' => 'michael.chen@smartlearn.com',
             'password' => Hash::make('password'),
             'role' => User::ROLE_TEACHER,
@@ -51,6 +54,7 @@ class LMSSeeder extends Seeder
         for ($i = 1; $i <= 10; $i++) {
             $students[] = User::create([
                 'name' => "Student $i",
+                'username' => "student_$i",
                 'email' => "student$i@example.com",
                 'password' => Hash::make('password'),
                 'role' => User::ROLE_STUDENT,

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+
             $table->string('photo')->nullable()->default('https://www.w3schools.com/howto/img_avatar.png');
             $table->string('mobile')->nullable();
             $table->enum('role', ['admin', 'student', 'instructor'])->default('student');
@@ -25,10 +26,6 @@ return new class extends Migration
             $table->boolean('is_email_registered')->default(false);
             $table->integer('code')->nullable();
             $table->timestamp('last_seen_at')->nullable();
-            $table->timestamp('password_changed_at')->nullable();
-            $table->string('password_reset_token')->nullable();
-            $table->timestamp('password_reset_validity')->nullable();
-            $table->json('invalidated_tokens')->nullable();
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();
@@ -37,6 +34,21 @@ return new class extends Migration
             $table->index(['name', 'username']);
             $table->index('role');
             $table->index('is_active');
+        });
+
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
+
+        Schema::create('sessions', function (Blueprint $table) {
+            $table->string('id')->primary();
+            $table->foreignId('user_id')->nullable()->index();
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->longText('payload');
+            $table->integer('last_activity')->index();
         });
     }
 

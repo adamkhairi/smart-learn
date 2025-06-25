@@ -43,8 +43,6 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'password_reset_token',
-        'invalidated_tokens',
     ];
 
     /**
@@ -58,11 +56,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'last_seen_at' => 'datetime',
-            'password_changed_at' => 'datetime',
-            'password_reset_validity' => 'datetime',
             'is_active' => 'boolean',
-            'is_email_registered' => 'boolean',
-            'invalidated_tokens' => 'array',
         ];
     }
 
@@ -71,7 +65,7 @@ class User extends Authenticatable
      */
     public function enrollments(): BelongsToMany
     {
-        return $this->belongsToMany(Course::class, 'enrollments')
+        return $this->belongsToMany(Course::class, 'course_user_enrollments')
                     ->withPivot('enrolled_as', 'created_at')
                     ->withTimestamps();
     }
@@ -236,5 +230,36 @@ class User extends Authenticatable
     public function scopeRole($query, string $role)
     {
         return $query->where('role', $role);
+    }
+
+    /**
+     * Generate username from name if not provided.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($user) {
+            if (empty($user->username)) {
+                $user->username = self::generateUsername($user->name);
+            }
+        });
+    }
+
+    /**
+     * Generate a unique username from the given name.
+     */
+    private static function generateUsername(string $name): string
+    {
+        $baseUsername = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $name));
+        $username = $baseUsername;
+        $counter = 1;
+
+        while (static::where('username', $username)->exists()) {
+            $username = $baseUsername . $counter;
+            $counter++;
+        }
+
+        return $username;
     }
 }

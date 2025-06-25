@@ -35,20 +35,117 @@ export interface User {
     id: number;
     name: string;
     email: string;
-    avatar?: string;
+    username?: string;
+    photo?: string;
+    mobile?: string;
+    role: 'admin' | 'instructor' | 'student';
+    is_active: boolean;
+    is_email_registered: boolean;
+    last_seen_at?: string;
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;
-    [key: string]: unknown; // This allows for additional properties...
+    pivot?: {
+        enrolled_as: 'student' | 'instructor' | 'admin';
+        created_at: string;
+        updated_at: string;
+    };
+    [key: string]: unknown;
 }
 
 export interface Course {
     id: number;
     name: string;
-    description: string;
+    description?: string;
+    created_by?: number;
+    image?: string;
+    background_color?: string;
+    status: 'published' | 'archived';
+    files?: any[];
     created_at: string;
     updated_at: string;
+    creator?: User;
+    enrolled_users?: User[];
+    modules?: CourseModule[];
+    assignments?: Assignment[];
+    assessments?: Assessment[];
+    announcements?: Announcement[];
+    discussions?: Discussion[];
     [key: string]: unknown;
+}
+
+export interface CourseModule {
+    id: number;
+    course_id: number;
+    title: string;
+    description?: string;
+    order: number;
+    created_at: string;
+    updated_at: string;
+    items?: CourseModuleItem[];
+}
+
+export interface CourseModuleItem {
+    id: number;
+    course_module_id: number;
+    title: string;
+    type: 'lecture' | 'assignment' | 'quiz' | 'file';
+    content?: string;
+    file_path?: string;
+    order: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Assignment {
+    id: number;
+    course_id: number;
+    title: string;
+    description?: string;
+    due_date?: string;
+    points?: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Assessment {
+    id: number;
+    course_id: number;
+    title: string;
+    description?: string;
+    type: 'quiz' | 'exam' | 'project';
+    duration?: number;
+    total_points?: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Announcement {
+    id: number;
+    course_id: number;
+    title: string;
+    content: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Discussion {
+    id: number;
+    course_id: number;
+    title: string;
+    content: string;
+    created_by: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface UserEnrollment {
+    id: number;
+    user_id: number;
+    course_id: number;
+    enrolled_as: 'student' | 'instructor' | 'admin';
+    created_at: string;
+    updated_at: string;
 }
 
 export interface PageProps<T extends Record<string, unknown> = Record<string, unknown>> extends T {
@@ -57,4 +154,19 @@ export interface PageProps<T extends Record<string, unknown> = Record<string, un
 
 export interface CoursesPageProps extends PageProps {
     courses: Course[];
+    userRole: string;
+}
+
+export interface CourseShowPageProps extends PageProps {
+    course: Course;
+    userEnrollment?: UserEnrollment;
+    userRole: string;
+}
+
+export interface CourseCreatePageProps extends PageProps {
+    //
+}
+
+export interface CourseEditPageProps extends PageProps {
+    course: Course;
 }

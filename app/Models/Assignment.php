@@ -48,6 +48,27 @@ class Assignment extends Model
     }
 
     /**
+     * Add appends for React component compatibility.
+     */
+    protected $appends = ['points', 'due_date'];
+
+    /**
+     * Get points (alias for total_points).
+     */
+    public function getPointsAttribute(): int
+    {
+        return $this->total_points;
+    }
+
+    /**
+     * Get due_date (alias for expired_at).
+     */
+    public function getDueDateAttribute()
+    {
+        return $this->expired_at;
+    }
+
+    /**
      * Get the user who created this assignment.
      */
     public function creator(): BelongsTo

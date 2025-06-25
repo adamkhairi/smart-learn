@@ -32,9 +32,12 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:'.User::class,
+            'username' => 'required|string|max:255|unique:'.User::class.'|regex:/^[a-zA-Z0-9_]+$/',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ], [
+            'username.unique' => 'This username is already taken.',
+            'username.regex' => 'Username can only contain letters, numbers, and underscores.',
         ]);
 
         $user = User::create([
@@ -42,10 +45,6 @@ class RegisteredUserController extends Controller
             'username' => $request->username,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'student', // Default role for new registrations
-            'is_active' => true,
-            'is_email_registered' => true,
-            'photo' => 'https://www.w3schools.com/howto/img_avatar.png', // Default avatar
         ]);
 
         event(new Registered($user));

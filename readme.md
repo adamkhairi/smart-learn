@@ -96,3 +96,8 @@ The system leverages the Laravel framework for the backend to ensure secure, sca
 * Gamification features (badges, progress tracking)
 
 ---
+Laravel 12.0.0
+React 19.0.0
+Tailwind CSS 4.0.0
+InertiaJS 2.0.0
+SQLite (For now)
