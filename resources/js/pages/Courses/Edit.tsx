@@ -52,7 +52,7 @@ function Edit({ course }: CourseEditPageProps) {
                     <Button variant="ghost" size="sm" asChild>
                         <Link href={`/courses/${course.id}`}>
                             <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Course
+                            Back
                         </Link>
                     </Button>
                     <div>
@@ -63,7 +63,7 @@ function Edit({ course }: CourseEditPageProps) {
                     </div>
                 </div>
 
-                <Card className="max-w-2xl">
+                <Card className="w-full">
                     <CardHeader>
                         <CardTitle>Course Information</CardTitle>
                         <CardDescription>
@@ -71,118 +71,178 @@ function Edit({ course }: CourseEditPageProps) {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* Course Name */}
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Course Name *</Label>
-                                <Input
-                                    id="name"
-                                    type="text"
-                                    value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
-                                    placeholder="Enter course name"
-                                    className={errors.name ? 'border-red-500' : ''}
-                                />
-                                {errors.name && (
-                                    <p className="text-sm text-red-500">{errors.name}</p>
-                                )}
-                            </div>
+                        <form onSubmit={handleSubmit} className="space-y-8">
+                            {/* Basic Information Section */}
+                            <div className="space-y-6">
+                                <div className="border-b pb-4">
+                                    <h3 className="text-lg font-medium">Basic Information</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Essential details about your course
+                                    </p>
+                                </div>
 
-                            {/* Course Description */}
-                            <div className="space-y-2">
-                                <Label htmlFor="description">Description</Label>
-                                <Textarea
-                                    id="description"
-                                    value={data.description}
-                                    onChange={(e) => setData('description', e.target.value)}
-                                    placeholder="Describe your course..."
-                                    rows={4}
-                                    className={errors.description ? 'border-red-500' : ''}
-                                />
-                                {errors.description && (
-                                    <p className="text-sm text-red-500">{errors.description}</p>
-                                )}
-                            </div>
-
-                            {/* Course Image */}
-                            <div className="space-y-2">
-                                <Label htmlFor="image">Course Image</Label>
-                                {course.image && (
-                                    <div className="mb-4">
-                                        <img
-                                            src={`/storage/${course.image}`}
-                                            alt="Current course image"
-                                            className="w-32 h-20 object-cover rounded border"
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {/* Course Name */}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="name">Course Name *</Label>
+                                        <Input
+                                            id="name"
+                                            type="text"
+                                            value={data.name}
+                                            onChange={(e) => setData('name', e.target.value)}
+                                            placeholder="Enter course name"
+                                            className={errors.name ? 'border-red-500' : ''}
                                         />
-                                        <p className="text-xs text-muted-foreground mt-1">Current image</p>
+                                        {errors.name && (
+                                            <p className="text-sm text-red-500">{errors.name}</p>
+                                        )}
                                     </div>
-                                )}
-                                <div className="flex items-center gap-4">
-                                    <Input
-                                        id="image"
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageChange}
-                                        className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
-                                    />
-                                    <Upload className="h-4 w-4 text-muted-foreground" />
+
+                                    {/* Course Status */}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="status">Status *</Label>
+                                        <Select
+                                            value={data.status}
+                                            onValueChange={(value) => setData('status', value as 'published' | 'archived')}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="published">Published</SelectItem>
+                                                <SelectItem value="archived">Archived</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        {errors.status && (
+                                            <p className="text-sm text-red-500">{errors.status}</p>
+                                        )}
+                                    </div>
                                 </div>
-                                {errors.image && (
-                                    <p className="text-sm text-red-500">{errors.image}</p>
-                                )}
-                                <p className="text-xs text-muted-foreground">
-                                    Recommended size: 1200x630px. Max file size: 2MB.
-                                </p>
-                            </div>
 
-                            {/* Background Color */}
-                            <div className="space-y-2">
-                                <Label htmlFor="background_color">Background Color</Label>
-                                <div className="flex items-center gap-2">
-                                    <Input
-                                        id="background_color"
-                                        type="color"
-                                        value={data.background_color}
-                                        onChange={(e) => setData('background_color', e.target.value)}
-                                        className="w-16 h-10 p-1 border rounded"
+                                {/* Course Description */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="description">Description</Label>
+                                    <Textarea
+                                        id="description"
+                                        value={data.description}
+                                        onChange={(e) => setData('description', e.target.value)}
+                                        placeholder="Describe your course objectives, target audience, and what students will learn..."
+                                        rows={8}
+                                        className={errors.description ? 'border-red-500' : ''}
                                     />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={generateRandomColor}
-                                    >
-                                        <Palette className="mr-2 h-4 w-4" />
-                                        Random
-                                    </Button>
+                                    {errors.description && (
+                                        <p className="text-sm text-red-500">{errors.description}</p>
+                                    )}
                                 </div>
-                                {errors.background_color && (
-                                    <p className="text-sm text-red-500">{errors.background_color}</p>
-                                )}
                             </div>
 
-                            {/* Course Status */}
-                            <div className="space-y-2">
-                                <Label htmlFor="status">Status *</Label>
-                                <Select
-                                    value={data.status}
-                                    onValueChange={(value) => setData('status', value as 'published' | 'archived')}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="published">Published</SelectItem>
-                                        <SelectItem value="archived">Archived</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {errors.status && (
-                                    <p className="text-sm text-red-500">{errors.status}</p>
-                                )}
+                            {/* Visual Customization Section */}
+                            <div className="space-y-6">
+                                <div className="border-b pb-4">
+                                    <h3 className="text-lg font-medium">Visual Customization</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Customize the appearance of your course
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    {/* Course Image */}
+                                    <div className="space-y-4">
+                                        <Label htmlFor="image">Course Image</Label>
+
+                                        {/* Current Image Preview */}
+                                        {course.image && (
+                                            <div className="relative">
+                                                <img
+                                                    src={`/storage/${course.image}`}
+                                                    alt="Current course image"
+                                                    className="w-full h-32 object-cover rounded-lg border"
+                                                />
+                                                <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                                                    Current
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* File Upload */}
+                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+                                            <div className="text-center">
+                                                <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                                                <div className="mt-2">
+                                                    <Input
+                                                        id="image"
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={handleImageChange}
+                                                        className="hidden"
+                                                    />
+                                                    <label
+                                                        htmlFor="image"
+                                                        className="cursor-pointer text-sm font-medium text-primary hover:text-primary/80"
+                                                    >
+                                                        Choose new image
+                                                    </label>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    PNG, JPG, GIF up to 2MB<br/>
+                                                    Recommended: 1200x630px
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {errors.image && (
+                                            <p className="text-sm text-red-500">{errors.image}</p>
+                                        )}
+                                    </div>
+
+                                    {/* Background Color */}
+                                    <div className="space-y-4">
+                                        <Label htmlFor="background_color">Background Color</Label>
+
+                                        <div className="space-y-4">
+                                            {/* Color Preview */}
+                                            <div
+                                                className="w-full h-20 rounded-lg border shadow-sm"
+                                                style={{ backgroundColor: data.background_color || '#f3f4f6' }}
+                                            />
+
+                                            {/* Color Controls */}
+                                            <div className="flex items-center gap-3">
+                                                <Input
+                                                    id="background_color"
+                                                    type="color"
+                                                    value={data.background_color}
+                                                    onChange={(e) => setData('background_color', e.target.value)}
+                                                    className="w-16 h-10 p-1 border rounded cursor-pointer"
+                                                />
+                                                <Input
+                                                    type="text"
+                                                    value={data.background_color}
+                                                    onChange={(e) => setData('background_color', e.target.value)}
+                                                    placeholder="#000000"
+                                                    className="font-mono text-sm"
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={generateRandomColor}
+                                                >
+                                                    <Palette className="mr-2 h-4 w-4" />
+                                                    Random
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {errors.background_color && (
+                                            <p className="text-sm text-red-500">{errors.background_color}</p>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Submit Button */}
-                            <div className="flex items-center gap-4 pt-4">
+                            {/* Submit Actions */}
+                            <div className="flex items-center gap-4 pt-6 border-t">
                                 <Button type="submit" disabled={processing}>
                                     <Save className="mr-2 h-4 w-4" />
                                     {processing ? 'Saving...' : 'Save Changes'}

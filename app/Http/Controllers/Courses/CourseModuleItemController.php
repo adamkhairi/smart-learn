@@ -1,0 +1,268 @@
+<?php
+
+namespace App\Http\Controllers\Courses;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Courses\CourseModuleItemRequest;
+use App\Models\Course;
+use App\Models\CourseModule;
+use App\Models\CourseModuleItem;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class CourseModuleItemController extends Controller
+{
+    /**
+     * Show the form for creating a new module item.
+     */
+    public function create(Course $course, CourseModule $module): Response
+    {
+        $this->authorize('update', $course);
+
+        // Ensure the module belongs to the course
+        if ($module->course_id !== $course->id) {
+            abort(404);
+        }
+
+        // Get the next order number
+        $nextOrder = $module->moduleItems()->max('order') + 1;
+
+        return Inertia::render('Courses/Modules/Items/Create', [
+            'course' => $course,
+            'module' => $module,
+            'nextOrder' => $nextOrder,
+        ]);
+    }
+
+    /**
+     * Store a newly created module item.
+     */
+    public function store(CourseModuleItemRequest $request, Course $course, CourseModule $module)
+    {
+        $this->authorize('update', $course);
+
+        // Ensure the module belongs to the course
+        if ($module->course_id !== $course->id) {
+            abort(404);
+        }
+
+        $validated = $request->validated();
+        $validated['course_module_id'] = $module->id;
+
+        // If no order specified, set it to the end
+        if (!isset($validated['order'])) {
+            $validated['order'] = $module->moduleItems()->max('order') + 1;
+        }
+
+        // Handle file upload for document type
+        if ($request->hasFile('file') && $validated['type'] === 'document') {
+            $path = $request->file('file')->store('modules/documents', 'public');
+            $validated['url'] = $path;
+        }
+
+        $item = CourseModuleItem::create($validated);
+
+        return redirect()->route('courses.modules.show', [$course, $module])
+            ->with('success', 'Module item created successfully!');
+    }
+
+    /**
+     * Display the specified module item.
+     */
+    public function show(Course $course, CourseModule $module, CourseModuleItem $item): Response
+    {
+        $this->authorize('view', $course);
+
+        // Ensure the hierarchy is correct
+        if ($module->course_id !== $course->id || $item->course_module_id !== $module->id) {
+            abort(404);
+        }
+
+        return Inertia::render('Courses/Modules/Items/Show', [
+            'course' => $course,
+            'module' => $module,
+            'item' => $item,
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified module item.
+     */
+    public function edit(Course $course, CourseModule $module, CourseModuleItem $item): Response
+    {
+        $this->authorize('update', $course);
+
+        // Ensure the hierarchy is correct
+        if ($module->course_id !== $course->id || $item->course_module_id !== $module->id) {
+            abort(404);
+        }
+
+        return Inertia::render('Courses/Modules/Items/Edit', [
+            'course' => $course,
+            'module' => $module,
+            'item' => $item,
+        ]);
+    }
+
+    /**
+     * Update the specified module item.
+     */
+    public function update(CourseModuleItemRequest $request, Course $course, CourseModule $module, CourseModuleItem $item)
+    {
+        $this->authorize('update', $course);
+
+        // Ensure the hierarchy is correct
+        if ($module->course_id !== $course->id || $item->course_module_id !== $module->id) {
+            abort(404);
+        }
+
+        $validated = $request->validated();
+
+        // Handle order changes
+        if (isset($validated['order']) && $validated['order'] !== $item->order) {
+            $this->reorderItems($module, $item, $validated['order']);
+        }
+
+        // Handle file upload for document type
+        if ($request->hasFile('file') && $validated['type'] === 'document') {
+            // Delete old file if exists
+            if ($item->url && $item->type === 'document') {
+                Storage::disk('public')->delete($item->url);
+            }
+
+            $path = $request->file('file')->store('modules/documents', 'public');
+            $validated['url'] = $path;
+        }
+
+        $item->update($validated);
+
+        return redirect()->route('courses.modules.show', [$course, $module])
+            ->with('success', 'Module item updated successfully!');
+    }
+
+    /**
+     * Remove the specified module item.
+     */
+    public function destroy(Course $course, CourseModule $module, CourseModuleItem $item)
+    {
+        $this->authorize('update', $course);
+
+        // Ensure the hierarchy is correct
+        if ($module->course_id !== $course->id || $item->course_module_id !== $module->id) {
+            abort(404);
+        }
+
+        // Delete associated file if exists
+        if ($item->url && $item->type === 'document') {
+            Storage::disk('public')->delete($item->url);
+        }
+
+        $item->delete();
+
+        // Reorder remaining items
+        $this->reorderRemainingItems($module);
+
+        return redirect()->route('courses.modules.show', [$course, $module])
+            ->with('success', 'Module item deleted successfully!');
+    }
+
+    /**
+     * Update the order of module items.
+     */
+    public function updateOrder(Request $request, Course $course, CourseModule $module)
+    {
+        $this->authorize('update', $course);
+
+        // Ensure the module belongs to the course
+        if ($module->course_id !== $course->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|exists:course_module_items,id',
+            'items.*.order' => 'required|integer|min:1',
+        ]);
+
+        foreach ($validated['items'] as $itemData) {
+            CourseModuleItem::where('id', $itemData['id'])
+                ->where('course_module_id', $module->id)
+                ->update(['order' => $itemData['order']]);
+        }
+
+        return back()->with('success', 'Item order updated successfully!');
+    }
+
+    /**
+     * Duplicate a module item.
+     */
+    public function duplicate(Course $course, CourseModule $module, CourseModuleItem $item)
+    {
+        $this->authorize('update', $course);
+
+        // Ensure the hierarchy is correct
+        if ($module->course_id !== $course->id || $item->course_module_id !== $module->id) {
+            abort(404);
+        }
+
+        $newItem = $item->replicate();
+        $newItem->title = $item->title . ' (Copy)';
+        $newItem->order = $module->moduleItems()->max('order') + 1;
+
+        // Handle file duplication for documents
+        if ($item->type === 'document' && $item->url) {
+            $originalPath = $item->url;
+            $extension = pathinfo($originalPath, PATHINFO_EXTENSION);
+            $filename = pathinfo($originalPath, PATHINFO_FILENAME);
+            $newPath = "modules/documents/{$filename}_copy.{$extension}";
+
+            if (Storage::disk('public')->exists($originalPath)) {
+                Storage::disk('public')->copy($originalPath, $newPath);
+                $newItem->url = $newPath;
+            }
+        }
+
+        $newItem->save();
+
+        return redirect()->route('courses.modules.items.edit', [$course, $module, $newItem])
+            ->with('success', 'Module item duplicated successfully!');
+    }
+
+    /**
+     * Reorder items when changing an item's order.
+     */
+    private function reorderItems(CourseModule $module, CourseModuleItem $item, int $newOrder): void
+    {
+        $oldOrder = $item->order;
+
+        if ($newOrder > $oldOrder) {
+            // Moving down: decrease order of items between old and new position
+            $module->moduleItems()
+                ->where('order', '>', $oldOrder)
+                ->where('order', '<=', $newOrder)
+                ->where('id', '!=', $item->id)
+                ->decrement('order');
+        } else {
+            // Moving up: increase order of items between new and old position
+            $module->moduleItems()
+                ->where('order', '>=', $newOrder)
+                ->where('order', '<', $oldOrder)
+                ->where('id', '!=', $item->id)
+                ->increment('order');
+        }
+    }
+
+    /**
+     * Reorder remaining items after deletion.
+     */
+    private function reorderRemainingItems(CourseModule $module): void
+    {
+        $items = $module->moduleItems()->ordered()->get();
+
+        foreach ($items as $index => $item) {
+            $item->update(['order' => $index + 1]);
+        }
+    }
+}

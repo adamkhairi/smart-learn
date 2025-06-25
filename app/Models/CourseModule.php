@@ -55,6 +55,14 @@ class CourseModule extends Model
     }
 
     /**
+     * Alias for moduleItems relationship for compatibility.
+     */
+    public function items(): HasMany
+    {
+        return $this->moduleItems();
+    }
+
+    /**
      * Check if module is published.
      */
     public function isPublished(): bool

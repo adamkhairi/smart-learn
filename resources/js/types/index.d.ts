@@ -80,19 +80,25 @@ export interface CourseModule {
     title: string;
     description?: string;
     order: number;
+    is_published: boolean;
     created_at: string;
     updated_at: string;
     items?: CourseModuleItem[];
+    moduleItems?: CourseModuleItem[];
+    itemsCount?: number;
 }
 
 export interface CourseModuleItem {
     id: number;
     course_module_id: number;
     title: string;
-    type: 'lecture' | 'assignment' | 'quiz' | 'file';
+    description?: string;
+    type: 'video' | 'document' | 'link' | 'quiz' | 'assignment';
+    url?: string;
     content?: string;
-    file_path?: string;
     order: number;
+    duration?: number;
+    is_required: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -169,4 +175,42 @@ export interface CourseCreatePageProps extends PageProps {
 
 export interface CourseEditPageProps extends PageProps {
     course: Course;
+}
+
+export interface CourseModulesPageProps extends PageProps {
+    course: Course;
+    modules: CourseModule[];
+}
+
+export interface CourseModuleCreatePageProps extends PageProps {
+    course: Course;
+    nextOrder: number;
+}
+
+export interface CourseModuleShowPageProps extends PageProps {
+    course: Course;
+    module: CourseModule;
+}
+
+export interface CourseModuleEditPageProps extends PageProps {
+    course: Course;
+    module: CourseModule;
+}
+
+export interface CourseModuleItemCreatePageProps extends PageProps {
+    course: Course;
+    module: CourseModule;
+    nextOrder: number;
+}
+
+export interface CourseModuleItemShowPageProps extends PageProps {
+    course: Course;
+    module: CourseModule;
+    item: CourseModuleItem;
+}
+
+export interface CourseModuleItemEditPageProps extends PageProps {
+    course: Course;
+    module: CourseModule;
+    item: CourseModuleItem;
 }
