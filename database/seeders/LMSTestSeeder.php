@@ -25,13 +25,17 @@ class LMSTestSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create different types of users
-        $admin = User::factory()->create([
-            'name' => 'Admin User',
-            'email' => 'admin@lms.com',
-            'username' => 'admin',
-            'role' => 'admin',
-        ]);
+        // Check if admin already exists (from AdminUserSeeder)
+        $admin = User::where('role', 'admin')->first();
+
+        if (!$admin) {
+            $admin = User::factory()->create([
+                'name' => 'Test Admin User',
+                'email' => 'testadmin@lms.com',
+                'username' => 'testadmin',
+                'role' => 'admin',
+            ]);
+        }
 
         $instructors = User::factory(8)->instructor()->create();
 

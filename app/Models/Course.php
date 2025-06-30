@@ -224,4 +224,227 @@ class Course extends Model
             $q->where('user_id', $userId);
         }]);
     }
+
+    /**
+     * Get course statistics.
+     */
+    public function getStats(): array
+    {
+        return [
+            'total_students' => $this->getStudents()->count(),
+            'total_instructors' => $this->getInstructors()->count(),
+            'total_modules' => $this->modules()->count(),
+            'total_published_modules' => $this->modules()->where('is_published', true)->count(),
+            'total_assignments' => $this->assignments()->count(),
+            'total_assessments' => $this->assessments()->count(),
+            'total_exams' => $this->exams()->count(),
+            'total_announcements' => $this->announcements()->count(),
+            'total_discussions' => $this->discussions()->count(),
+            'enrollment_rate' => $this->calculateEnrollmentRate(),
+            'completion_rate' => $this->calculateCompletionRate(),
+        ];
+    }
+
+    /**
+     * Calculate enrollment rate (students enrolled vs total capacity).
+     */
+    public function calculateEnrollmentRate(): float
+    {
+        $studentCount = $this->getStudents()->count();
+        // Assuming a default capacity of 50 students if not specified
+        $capacity = 50;
+        return $capacity > 0 ? round(($studentCount / $capacity) * 100, 2) : 0;
+    }
+
+    /**
+     * Calculate completion rate based on module progress.
+     */
+    public function calculateCompletionRate(): float
+    {
+        $totalModules = $this->modules()->where('is_published', true)->count();
+        if ($totalModules === 0) {
+            return 0;
+        }
+
+        $students = $this->getStudents();
+        if ($students->count() === 0) {
+            return 0;
+        }
+
+        $totalProgress = 0;
+        foreach ($students as $student) {
+            $completedModules = $this->modules()
+                ->where('is_published', true)
+                ->whereHas('moduleItems', function ($query) use ($student) {
+                    $query->whereHas('views', function ($q) use ($student) {
+                        $q->where('user_id', $student->id);
+                    });
+                })
+                ->count();
+            $totalProgress += $completedModules;
+        }
+
+        return round(($totalProgress / ($totalModules * $students->count())) * 100, 2);
+    }
+
+    /**
+     * Get recent activity for this course.
+     */
+    public function getRecentActivity(int $limit = 10): array
+    {
+        $activities = [];
+
+        // Recent announcements
+        $announcements = $this->announcements()
+            ->latest()
+            ->limit($limit)
+            ->get();
+        foreach ($announcements as $announcement) {
+            $activities[] = [
+                'type' => 'announcement',
+                'title' => $announcement->title,
+                'created_at' => $announcement->created_at,
+                'user' => $announcement->creator,
+            ];
+        }
+
+        // Recent discussions
+        $discussions = $this->discussions()
+            ->latest()
+            ->limit($limit)
+            ->get();
+        foreach ($discussions as $discussion) {
+            $activities[] = [
+                'type' => 'discussion',
+                'title' => $discussion->title,
+                'created_at' => $discussion->created_at,
+                'user' => $discussion->creator,
+            ];
+        }
+
+        // Recent submissions
+        $submissions = $this->assessments()
+            ->with(['submissions' => function ($query) {
+                $query->latest()->limit($limit);
+            }])
+            ->get()
+            ->pluck('submissions')
+            ->flatten();
+        foreach ($submissions as $submission) {
+            $activities[] = [
+                'type' => 'submission',
+                'title' => "Submission for {$submission->assessment->title}",
+                'created_at' => $submission->submitted_at,
+                'user' => $submission->user,
+            ];
+        }
+
+        // Sort by created_at and return limited results
+        usort($activities, function ($a, $b) {
+            return $b['created_at']->compare($a['created_at']);
+        });
+
+        return array_slice($activities, 0, $limit);
+    }
+
+    /**
+     * Check if user is instructor for this course.
+     */
+    public function isInstructor(int $userId): bool
+    {
+        return $this->created_by === $userId ||
+               $this->enrolledUsers()
+                   ->where('user_id', $userId)
+                   ->wherePivot('enrolled_as', 'instructor')
+                   ->exists();
+    }
+
+    /**
+     * Check if user is student in this course.
+     */
+    public function isStudent(int $userId): bool
+    {
+        return $this->enrolledUsers()
+            ->where('user_id', $userId)
+            ->wherePivot('enrolled_as', 'student')
+            ->exists();
+    }
+
+    /**
+     * Get user's role in this course.
+     */
+    public function getUserRole(int $userId): ?string
+    {
+        if ($this->created_by === $userId) {
+            return 'creator';
+        }
+
+        $enrollment = $this->enrolledUsers()
+            ->where('user_id', $userId)
+            ->first();
+
+        return $enrollment ? $enrollment->pivot->enrolled_as : null;
+    }
+
+    /**
+     * Publish the course.
+     */
+    public function publish(): void
+    {
+        $this->update(['status' => 'published']);
+    }
+
+    /**
+     * Archive the course.
+     */
+    public function archive(): void
+    {
+        $this->update(['status' => 'archived']);
+    }
+
+    /**
+     * Draft the course.
+     */
+    public function draft(): void
+    {
+        $this->update(['status' => 'draft']);
+    }
+
+    /**
+     * Get course progress for a specific user.
+     */
+    public function getUserProgress(int $userId): array
+    {
+        $totalModules = $this->modules()->where('is_published', true)->count();
+        $completedModules = 0;
+        $totalItems = 0;
+        $completedItems = 0;
+
+        foreach ($this->modules()->where('is_published', true)->get() as $module) {
+            $moduleItems = $module->moduleItems;
+            $totalItems += $moduleItems->count();
+
+            $moduleCompleted = true;
+            foreach ($moduleItems as $item) {
+                if (!$item->views()->where('user_id', $userId)->exists()) {
+                    $moduleCompleted = false;
+                } else {
+                    $completedItems++;
+                }
+            }
+
+            if ($moduleCompleted) {
+                $completedModules++;
+            }
+        }
+
+        return [
+            'total_modules' => $totalModules,
+            'completed_modules' => $completedModules,
+            'total_items' => $totalItems,
+            'completed_items' => $completedItems,
+            'module_progress' => $totalModules > 0 ? round(($completedModules / $totalModules) * 100, 2) : 0,
+            'item_progress' => $totalItems > 0 ? round(($completedItems / $totalItems) * 100, 2) : 0,
+        ];
+    }
 }

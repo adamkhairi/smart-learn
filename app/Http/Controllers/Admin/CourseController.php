@@ -1,0 +1,325 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class CourseController extends Controller
+{
+    /**
+     * Display a listing of courses with management features.
+     */
+    public function index(Request $request): Response
+    {
+        $query = Course::with(['creator', 'enrolledUsers']);
+
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('creator', function ($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filter by status
+        if ($request->filled('status') && $request->get('status') !== 'all') {
+            $query->where('status', $request->get('status'));
+        }
+
+        // Filter by creator
+        if ($request->filled('creator') && $request->get('creator') !== 'all') {
+            $query->where('created_by', $request->get('creator'));
+        }
+
+        // Sort functionality
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        $courses = $query->paginate(15)->withQueryString();
+
+        // Get creators for filter
+        $creators = User::whereIn('id', Course::distinct()->pluck('created_by'))->get();
+
+        return Inertia::render('Admin/Courses/Index', [
+            'courses' => $courses,
+            'creators' => $creators,
+            'filters' => $request->only(['search', 'status', 'creator', 'sort_by', 'sort_order']),
+        ]);
+    }
+
+    /**
+     * Show the form for creating a new course.
+     */
+    public function create(): Response
+    {
+        $instructors = User::where('role', 'instructor')->get();
+
+        return Inertia::render('Admin/Courses/Create', [
+            'instructors' => $instructors,
+        ]);
+    }
+
+    /**
+     * Store a newly created course in storage.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'created_by' => 'required|exists:users,id',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
+            'status' => 'required|in:draft,published,archived',
+            'files' => 'nullable|array',
+        ]);
+
+        $course = new Course($validated);
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('courses/images', 'public');
+            $course->image = $path;
+        }
+
+        $course->save();
+
+        // Auto-enroll the creator as instructor
+        $course->enroll($validated['created_by'], 'instructor');
+
+        return redirect()->route('admin.courses.index')
+            ->with('success', 'Course created successfully!');
+    }
+
+    /**
+     * Display the specified course with detailed information.
+     */
+    public function show(Course $course): Response
+    {
+        $course->load([
+            'creator',
+            'enrolledUsers',
+            'modules' => function ($query) {
+                $query->ordered()->with(['moduleItems' => function ($q) {
+                    $q->ordered();
+                }]);
+            },
+            'assignments',
+            'assessments',
+            'announcements' => function ($query) {
+                $query->latest()->limit(10);
+            },
+            'discussions' => function ($query) {
+                $query->latest()->limit(10);
+            }
+        ]);
+
+        $stats = $course->getStats();
+        $recentActivity = $course->getRecentActivity(15);
+
+        return Inertia::render('Admin/Courses/Show', [
+            'course' => $course,
+            'stats' => $stats,
+            'recentActivity' => $recentActivity,
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified course.
+     */
+    public function edit(Course $course): Response
+    {
+        $course->load(['creator', 'enrolledUsers']);
+        $instructors = User::where('role', 'instructor')->get();
+
+        return Inertia::render('Admin/Courses/Edit', [
+            'course' => $course,
+            'instructors' => $instructors,
+        ]);
+    }
+
+    /**
+     * Update the specified course in storage.
+     */
+    public function update(Request $request, Course $course)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'created_by' => 'required|exists:users,id',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
+            'status' => 'required|in:draft,published,archived',
+            'files' => 'nullable|array',
+        ]);
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            try {
+                // Delete old image if exists
+                if ($course->image) {
+                    Storage::disk('public')->delete($course->image);
+                }
+
+                $path = $request->file('image')->store('courses/images', 'public');
+                $validated['image'] = $path;
+            } catch (\Exception $e) {
+                return back()->withErrors(['image' => 'The image failed to upload. Please try again.']);
+            }
+        }
+
+        $course->update($validated);
+
+        // Update enrollment if creator changed
+        if ($course->created_by !== $validated['created_by']) {
+            // Remove old creator enrollment
+            $course->unenroll($course->created_by);
+            // Add new creator enrollment
+            $course->enroll($validated['created_by'], 'instructor');
+        }
+
+        return redirect()->route('admin.courses.index')
+            ->with('success', 'Course updated successfully!');
+    }
+
+    /**
+     * Remove the specified course from storage.
+     */
+    public function destroy(Course $course)
+    {
+        // Delete course image if exists
+        if ($course->image) {
+            Storage::disk('public')->delete($course->image);
+        }
+
+        $course->delete();
+
+        return redirect()->route('admin.courses.index')
+            ->with('success', 'Course deleted successfully!');
+    }
+
+    /**
+     * Toggle course status.
+     */
+    public function toggleStatus(Course $course)
+    {
+        $newStatus = $course->status === 'published' ? 'archived' : 'published';
+        $course->update(['status' => $newStatus]);
+
+        return back()->with('success', "Course {$newStatus} successfully!");
+    }
+
+    /**
+     * Get course statistics.
+     */
+    public function stats(Course $course)
+    {
+        $stats = $course->getStats();
+        $recentActivity = $course->getRecentActivity(20);
+
+        return response()->json([
+            'stats' => $stats,
+            'recentActivity' => $recentActivity,
+        ]);
+    }
+
+    /**
+     * Manage course enrollments.
+     */
+    public function manageEnrollments(Course $course)
+    {
+        $course->load(['enrolledUsers']);
+
+        $enrolledUsers = $course->enrolledUsers()->with('profile')->get();
+        $availableUsers = User::whereNotIn('id', $enrolledUsers->pluck('id'))->get();
+
+        return Inertia::render('Admin/Courses/Enrollments', [
+            'course' => $course,
+            'enrolledUsers' => $enrolledUsers,
+            'availableUsers' => $availableUsers,
+        ]);
+    }
+
+    /**
+     * Enroll users in course.
+     */
+    public function enrollUsers(Request $request, Course $course)
+    {
+        $validated = $request->validate([
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'exists:users,id',
+            'role' => 'required|in:student,instructor',
+        ]);
+
+        $enrolledCount = 0;
+        foreach ($validated['user_ids'] as $userId) {
+            try {
+                $course->enroll($userId, $validated['role']);
+                $enrolledCount++;
+            } catch (\Exception $e) {
+                // User might already be enrolled, continue
+            }
+        }
+
+        return back()->with('success', "{$enrolledCount} users enrolled successfully!");
+    }
+
+    /**
+     * Unenroll users from course.
+     */
+    public function unenrollUsers(Request $request, Course $course)
+    {
+        $validated = $request->validate([
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'exists:users,id',
+        ]);
+
+        $unenrolledCount = 0;
+        foreach ($validated['user_ids'] as $userId) {
+            try {
+                $course->unenroll($userId);
+                $unenrolledCount++;
+            } catch (\Exception $e) {
+                // User might not be enrolled, continue
+            }
+        }
+
+        return back()->with('success', "{$unenrolledCount} users unenrolled successfully!");
+    }
+
+    /**
+     * Get course analytics.
+     */
+    public function analytics(Course $course)
+    {
+        $stats = $course->getStats();
+        $recentActivity = $course->getRecentActivity(50);
+
+        // Get enrollment trends (last 30 days)
+        $enrollmentTrends = $course->enrolledUsers()
+            ->wherePivot('created_at', '>=', now()->subDays(30))
+            ->selectRaw('DATE(course_user_enrollments.created_at) as date, COUNT(*) as count')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        return Inertia::render('Admin/Courses/Analytics', [
+            'course' => $course,
+            'stats' => $stats,
+            'recentActivity' => $recentActivity,
+            'enrollmentTrends' => $enrollmentTrends,
+        ]);
+    }
+}

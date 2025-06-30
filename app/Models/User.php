@@ -201,6 +201,136 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user has any of the given roles.
+     */
+    public function hasAnyRole(array $roles): bool
+    {
+        return in_array($this->role, $roles);
+    }
+
+    /**
+     * Check if user can manage courses.
+     */
+    public function canManageCourses(): bool
+    {
+        return $this->hasAnyRole(['admin', 'instructor']);
+    }
+
+    /**
+     * Check if user can manage users.
+     */
+    public function canManageUsers(): bool
+    {
+        return $this->hasRole('admin');
+    }
+
+    /**
+     * Get courses where user is instructor.
+     */
+    public function instructorCourses(): BelongsToMany
+    {
+        return $this->belongsToMany(Course::class, 'course_user_enrollments')
+                    ->wherePivot('enrolled_as', 'instructor')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Get courses where user is admin.
+     */
+    public function adminCourses(): BelongsToMany
+    {
+        return $this->belongsToMany(Course::class, 'course_user_enrollments')
+                    ->wherePivot('enrolled_as', 'admin')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Get all courses user can manage (as instructor or admin).
+     */
+    public function manageableCourses(): BelongsToMany
+    {
+        return $this->belongsToMany(Course::class, 'course_user_enrollments')
+                    ->whereIn('enrolled_as', ['instructor', 'admin'])
+                    ->withTimestamps();
+    }
+
+    /**
+     * Assign user to a course with specific role.
+     */
+    public function assignToCourse(Course $course, string $role = 'student'): void
+    {
+        $enrolledAs = $role === 'admin' ? 'admin' : ($role === 'instructor' ? 'instructor' : 'student');
+
+        $this->enrollments()->syncWithoutDetaching([
+            $course->id => ['enrolled_as' => $enrolledAs]
+        ]);
+    }
+
+    /**
+     * Remove user from a course.
+     */
+    public function removeFromCourse(Course $course): void
+    {
+        $this->enrollments()->detach($course->id);
+    }
+
+    /**
+     * Update user role.
+     */
+    public function updateRole(string $newRole): void
+    {
+        if (!in_array($newRole, ['admin', 'instructor', 'student'])) {
+            throw new \InvalidArgumentException('Invalid role specified');
+        }
+
+        $this->update(['role' => $newRole]);
+    }
+
+    /**
+     * Toggle user active status.
+     */
+    public function toggleActive(): void
+    {
+        $this->update(['is_active' => !$this->is_active]);
+    }
+
+    /**
+     * Get user statistics.
+     */
+    public function getStats(): array
+    {
+        return [
+            'courses_created' => $this->createdCourses()->count(),
+            'courses_enrolled' => $this->enrollments()->count(),
+            'courses_teaching' => $this->instructorCourses()->count(),
+            'assignments_submitted' => $this->submissions()->count(),
+            'articles_published' => $this->articles()->count(),
+            'followers_count' => $this->followers()->count(),
+            'following_count' => $this->follows()->count(),
+        ];
+    }
+
+    /**
+     * Scope to get users by search term.
+     */
+    public function scopeSearch($query, string $search)
+    {
+        return $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('email', 'like', "%{$search}%")
+              ->orWhere('username', 'like', "%{$search}%");
+        });
+    }
+
+    /**
+     * Scope to get users with course assignments.
+     */
+    public function scopeWithCourseAssignments($query)
+    {
+        return $query->with(['enrollments', 'createdCourses']);
+    }
+
+    /**
      * Get the default photo URL.
      */
     public function getPhotoUrlAttribute(): string

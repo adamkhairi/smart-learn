@@ -2,11 +2,16 @@ import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { footerNavItems, mainNavItems } from '@/lib/navigation';
-import { Link } from '@inertiajs/react';
+import { footerNavItems, mainNavItems, adminNavItems } from '@/lib/navigation';
+import { Link, usePage } from '@inertiajs/react';
+import { Separator } from '@/components/ui/separator';
 import AppLogo from './app-logo';
+import { SharedData } from '@/types';
 
 export function AppSidebar() {
+    const { auth } = usePage<SharedData>().props;
+    const isAdmin = auth.user?.role === 'admin';
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -23,6 +28,13 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <NavMain items={mainNavItems} />
+
+                {isAdmin && (
+                    <>
+                        <Separator className="my-2" />
+                        <NavMain items={adminNavItems} />
+                    </>
+                )}
             </SidebarContent>
 
             <SidebarFooter>
