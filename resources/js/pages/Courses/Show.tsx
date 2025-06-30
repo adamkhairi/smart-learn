@@ -1,11 +1,13 @@
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem, CourseShowPageProps } from '@/types';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Users, BookOpen, Calendar, Edit, Plus, FileText, MessageSquare, Bell } from 'lucide-react';
+import { ModuleProgress } from '@/components/module-progress';
+import { useAuth } from '@/hooks/use-auth';
+import { ArrowLeft, Users, BookOpen, Calendar, Edit, Plus, FileText, MessageSquare, Bell, Clock, CheckCircle, Eye, ArrowRight, Star, Target, Award } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -18,15 +20,20 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-function Show({ course, userEnrollment, userRole }: CourseShowPageProps) {
-    const isInstructor = userRole === 'admin' || course.created_by === userEnrollment?.user_id;
+function Show({ course, userEnrollment }: CourseShowPageProps) {
+    const { canManageCourse } = useAuth();
+    const isInstructor = canManageCourse(course.created_by);
     const isStudent = userEnrollment?.enrolled_as === 'student';
 
-    const handleDelete = () => {
-        if (confirm('Are you sure you want to delete this course?')) {
-            router.delete(`/courses/${course.id}`);
-        }
-    };
+    // Filter content based on user role
+    const publishedModules = course.modules?.filter(module => module.is_published) || [];
+
+    // Students should only see published content
+    const visibleModules = isStudent ? publishedModules : (course.modules || []);
+    const visibleAssignments = course.assignments || [];
+    const visibleDiscussions = course.discussions || [];
+
+    // Course deletion would be handled by the parent component
 
     const getStatusBadge = (status: string) => {
         return status === 'published' ? (
@@ -43,34 +50,36 @@ function Show({ course, userEnrollment, userRole }: CourseShowPageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={course.name} />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                {/* Header */}
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" asChild>
-                        <Link href="/courses">
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Courses
-                        </Link>
-                    </Button>
-                    <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-2xl font-bold">{course.name}</h1>
-                            {getStatusBadge(course.status)}
+            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-6">
+                {/* Enhanced Header */}
+                <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="sm" asChild>
+                            <Link href="/courses">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Courses
+                            </Link>
+                        </Button>
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <h1 className="text-3xl font-bold">{course.name}</h1>
+                                {getStatusBadge(course.status)}
+                            </div>
+                            <p className="text-muted-foreground text-lg">
+                                Created by {course.creator?.name} • {new Date(course.created_at).toLocaleDateString()}
+                            </p>
                         </div>
-                        <p className="text-muted-foreground">
-                            Created by {course.creator?.name} • {new Date(course.created_at).toLocaleDateString()}
-                        </p>
                     </div>
                     <div className="flex items-center gap-2">
                         {isInstructor && (
                             <>
-                                <Button asChild>
+                                <Button variant="outline" asChild>
                                     <Link href={`/courses/${course.id}/edit`}>
                                         <Edit className="mr-2 h-4 w-4" />
                                         Edit Course
                                     </Link>
                                 </Button>
-                                <Button variant="outline" asChild>
+                                <Button asChild>
                                     <Link href={`/courses/${course.id}/modules/create`}>
                                         <Plus className="mr-2 h-4 w-4" />
                                         Add Module
@@ -81,260 +90,313 @@ function Show({ course, userEnrollment, userRole }: CourseShowPageProps) {
                     </div>
                 </div>
 
-                {/* Course Overview */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Main Content */}
-                    <div className="lg:col-span-2">
-                        <Tabs defaultValue="overview" className="w-full">
-                            <TabsList className="grid w-full grid-cols-4">
-                                <TabsTrigger value="overview">Overview</TabsTrigger>
-                                <TabsTrigger value="modules">Modules</TabsTrigger>
-                                <TabsTrigger value="assignments">Assignments</TabsTrigger>
-                                <TabsTrigger value="discussions">Discussions</TabsTrigger>
-                            </TabsList>
-
-                            <TabsContent value="overview" className="space-y-4">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Course Description</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {course.description ? (
-                                            <p className="text-muted-foreground">{course.description}</p>
-                                        ) : (
-                                            <p className="text-muted-foreground italic">No description provided.</p>
-                                        )}
-                                    </CardContent>
-                                </Card>
-
-                                {/* Course Stats */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <Card>
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center gap-2">
-                                                <Users className="h-5 w-5 text-muted-foreground" />
-                                                <div>
-                                                    <p className="text-2xl font-bold">{course.enrolled_users?.length || 0}</p>
-                                                    <p className="text-xs text-muted-foreground">Students</p>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                    <Card>
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center gap-2">
-                                                <BookOpen className="h-5 w-5 text-muted-foreground" />
-                                                <div>
-                                                    <p className="text-2xl font-bold">{course.modules?.length || 0}</p>
-                                                    <p className="text-xs text-muted-foreground">Modules</p>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                    <Card>
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center gap-2">
-                                                <FileText className="h-5 w-5 text-muted-foreground" />
-                                                <div>
-                                                    <p className="text-2xl font-bold">{course.assignments?.length || 0}</p>
-                                                    <p className="text-xs text-muted-foreground">Assignments</p>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                    <Card>
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center gap-2">
-                                                <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                                                <div>
-                                                    <p className="text-2xl font-bold">{course.discussions?.length || 0}</p>
-                                                    <p className="text-xs text-muted-foreground">Discussions</p>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
+                {/* Course Stats Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card className="border-l-4 border-l-blue-500">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                                    <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                 </div>
-                            </TabsContent>
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Students</p>
+                                    <p className="text-2xl font-bold">{course.enrolled_users?.length || 0}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-l-4 border-l-green-500">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                                    <BookOpen className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Modules</p>
+                                    <p className="text-2xl font-bold">{visibleModules.length}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-l-4 border-l-purple-500">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                                    <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Assignments</p>
+                                    <p className="text-2xl font-bold">{course.assignments?.length || 0}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-l-4 border-l-orange-500">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                                    <MessageSquare className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Discussions</p>
+                                    <p className="text-2xl font-bold">{course.discussions?.length || 0}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                            <TabsContent value="modules" className="space-y-4">
-                                {course.modules && course.modules.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {course.modules.map((module) => (
-                                            <Card key={module.id}>
-                                                <CardHeader>
-                                                    <CardTitle className="flex items-center justify-between">
-                                                        <span>{module.title}</span>
-                                                        {isInstructor && (
-                                                            <Button variant="ghost" size="sm">
-                                                                <Edit className="h-4 w-4" />
-                                                            </Button>
+                {/* Main Content Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Main Content Area */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Course Description */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Target className="h-5 w-5" />
+                                    Course Description
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {course.description ? (
+                                    <p className="text-muted-foreground leading-relaxed">{course.description}</p>
+                                ) : (
+                                    <p className="text-muted-foreground italic">No description provided.</p>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Quick Access to Modules */}
+                        {visibleModules.length > 0 && (
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="flex items-center gap-2">
+                                            <BookOpen className="h-5 w-5" />
+                                            Course Modules
+                                        </CardTitle>
+                                        <Button variant="outline" asChild>
+                                            <Link href={`/courses/${course.id}/modules`}>
+                                                {isInstructor ? 'Manage Modules' : 'View All Modules'}
+                                                <ArrowRight className="ml-2 h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                    <CardDescription>
+                                        {isStudent ? 'Continue your learning journey' : 'Quick overview of your course content'}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {visibleModules.slice(0, 4).map((module) => (
+                                            <Card key={module.id} className="hover:shadow-md transition-shadow border-l-4 border-l-blue-500">
+                                                <CardHeader className="pb-3">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <Badge variant="outline" className="text-xs">
+                                                            Module {module.order}
+                                                        </Badge>
+                                                        {!isStudent && (
+                                                            module.is_published ? (
+                                                                <Badge variant="default" className="text-xs">
+                                                                    <CheckCircle className="mr-1 h-3 w-3" />
+                                                                    Published
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge variant="secondary" className="text-xs">
+                                                                    Draft
+                                                                </Badge>
+                                                            )
                                                         )}
-                                                    </CardTitle>
-                                                    {module.description && (
-                                                        <CardDescription>{module.description}</CardDescription>
-                                                    )}
+                                                    </div>
+                                                    <CardTitle className="text-base">{module.title}</CardTitle>
                                                 </CardHeader>
-                                                <CardContent>
-                                                    {module.items && module.items.length > 0 ? (
-                                                        <div className="space-y-2">
-                                                            {module.items.map((item) => (
-                                                                <div key={item.id} className="flex items-center gap-3 p-2 rounded border">
-                                                                    <div className="flex-1">
-                                                                        <p className="font-medium">{item.title}</p>
-                                                                        <p className="text-sm text-muted-foreground">
-                                                                            {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-                                                                        </p>
-                                                                    </div>
-                                                                    <Button variant="ghost" size="sm">
-                                                                        View
-                                                                    </Button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        <p className="text-muted-foreground text-center py-4">
-                                                            No items in this module yet.
+                                                <CardContent className="space-y-3">
+                                                    {module.description && (
+                                                        <p className="text-sm text-muted-foreground line-clamp-2">
+                                                            {module.description}
                                                         </p>
                                                     )}
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <Card>
-                                        <CardContent className="flex flex-col items-center justify-center py-12">
-                                            <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
-                                            <h3 className="text-lg font-semibold mb-2">No modules yet</h3>
-                                            <p className="text-muted-foreground text-center mb-4">
-                                                {isInstructor
-                                                    ? "Start building your course by adding modules"
-                                                    : "This course doesn't have any modules yet."
-                                                }
-                                            </p>
-                                            {isInstructor && (
-                                                <Button asChild>
-                                                    <Link href={`/courses/${course.id}/modules/create`}>
-                                                        <Plus className="mr-2 h-4 w-4" />
-                                                        Add First Module
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-                                )}
-                            </TabsContent>
 
-                            <TabsContent value="assignments" className="space-y-4">
-                                {course.assignments && course.assignments.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {course.assignments.map((assignment) => (
-                                            <Card key={assignment.id}>
-                                                <CardHeader>
-                                                    <CardTitle className="flex items-center justify-between">
-                                                        <span>{assignment.title}</span>
-                                                        <Badge variant="outline">
-                                                            {assignment.points || 0} points
-                                                        </Badge>
-                                                    </CardTitle>
-                                                    {assignment.description && (
-                                                        <CardDescription>{assignment.description}</CardDescription>
+                                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                                        <span className="flex items-center gap-1">
+                                                            <FileText className="h-3 w-3" />
+                                                            {module.itemsCount || 0} items
+                                                        </span>
+                                                        <span className="flex items-center gap-1">
+                                                            <Clock className="h-3 w-3" />
+                                                            ~{Math.max(1, Math.ceil((module.itemsCount || 0) * 15 / 60))}h
+                                                        </span>
+                                                    </div>
+
+                                                    {!isInstructor && (
+                                                        <ModuleProgress
+                                                            module={module}
+                                                            completedItems={[]} // This would come from backend
+                                                            showDetails={false}
+                                                        />
                                                     )}
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                            {assignment.due_date && (
-                                                                <div className="flex items-center gap-1">
-                                                                    <Calendar className="h-4 w-4" />
-                                                                    <span>Due: {new Date(assignment.due_date).toLocaleDateString()}</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <Button variant="outline" size="sm">
-                                                            {isStudent ? 'Submit Assignment' : 'View Submissions'}
+
+                                                    <div className="flex gap-2">
+                                                        <Button size="sm" asChild className="flex-1">
+                                                            <Link href={`/courses/${course.id}/modules/${module.id}`}>
+                                                                <Eye className="mr-2 h-4 w-4" />
+                                                                {isInstructor ? 'Manage' : 'View'}
+                                                            </Link>
                                                         </Button>
+                                                        {isInstructor && (
+                                                            <Button variant="outline" size="sm" asChild>
+                                                                <Link href={`/courses/${course.id}/modules/${module.id}/edit`}>
+                                                                    <Edit className="h-4 w-4" />
+                                                                </Link>
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </CardContent>
                                             </Card>
                                         ))}
                                     </div>
-                                ) : (
-                                    <Card>
-                                        <CardContent className="flex flex-col items-center justify-center py-12">
-                                            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                                            <h3 className="text-lg font-semibold mb-2">No assignments yet</h3>
-                                            <p className="text-muted-foreground text-center mb-4">
-                                                {isInstructor
-                                                    ? "Create assignments to assess student learning"
-                                                    : "This course doesn't have any assignments yet."
-                                                }
-                                            </p>
-                                            {isInstructor && (
-                                                <Button asChild>
-                                                    <Link href={`/courses/${course.id}/assignments/create`}>
-                                                        <Plus className="mr-2 h-4 w-4" />
-                                                        Create Assignment
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-                                )}
-                            </TabsContent>
 
-                            <TabsContent value="discussions" className="space-y-4">
-                                {course.discussions && course.discussions.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {course.discussions.map((discussion) => (
-                                            <Card key={discussion.id}>
-                                                <CardHeader>
-                                                    <CardTitle>{discussion.title}</CardTitle>
-                                                    <CardDescription>
-                                                        {new Date(discussion.created_at).toLocaleDateString()}
-                                                    </CardDescription>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <p className="text-muted-foreground mb-4">{discussion.content}</p>
-                                                    <Button variant="outline" size="sm">
-                                                        <MessageSquare className="mr-2 h-4 w-4" />
-                                                        Join Discussion
-                                                    </Button>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <Card>
-                                        <CardContent className="flex flex-col items-center justify-center py-12">
-                                            <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
-                                            <h3 className="text-lg font-semibold mb-2">No discussions yet</h3>
-                                            <p className="text-muted-foreground text-center mb-4">
-                                                Start a discussion to engage with your classmates
-                                            </p>
-                                            <Button asChild>
-                                                <Link href={`/courses/${course.id}/discussions/create`}>
-                                                    <Plus className="mr-2 h-4 w-4" />
-                                                    Start Discussion
+                                    {visibleModules.length > 4 && (
+                                        <div className="text-center mt-6">
+                                            <Button variant="outline" asChild>
+                                                <Link href={`/courses/${course.id}/modules`}>
+                                                    View All {visibleModules.length} Modules
                                                 </Link>
                                             </Button>
-                                        </CardContent>
-                                    </Card>
-                                )}
-                            </TabsContent>
-                        </Tabs>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Course Content Tabs */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Award className="h-5 w-5" />
+                                    Course Content
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Tabs defaultValue="assignments" className="w-full">
+                                    <TabsList className="grid w-full grid-cols-2">
+                                        <TabsTrigger value="assignments">Assignments</TabsTrigger>
+                                        <TabsTrigger value="discussions">Discussions</TabsTrigger>
+                                    </TabsList>
+
+                                    <TabsContent value="assignments" className="space-y-4 mt-4">
+                                        {visibleAssignments.length > 0 ? (
+                                            <div className="space-y-4">
+                                                {visibleAssignments.map((assignment) => (
+                                                    <Card key={assignment.id} className="hover:shadow-sm transition-shadow">
+                                                        <CardHeader className="pb-3">
+                                                            <CardTitle className="flex items-center justify-between text-lg">
+                                                                <span>{assignment.title}</span>
+                                                                <Badge variant="outline">
+                                                                    {assignment.points || 0} points
+                                                                </Badge>
+                                                            </CardTitle>
+                                                            {assignment.description && (
+                                                                <CardDescription>{assignment.description}</CardDescription>
+                                                            )}
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                                                    {assignment.due_date && (
+                                                                        <div className="flex items-center gap-1">
+                                                                            <Calendar className="h-4 w-4" />
+                                                                            <span>Due: {new Date(assignment.due_date).toLocaleDateString()}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <Button variant="outline" size="sm">
+                                                                    {isStudent ? 'Submit Assignment' : 'View Submissions'}
+                                                                </Button>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8">
+                                                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                                <h3 className="text-lg font-semibold mb-2">No assignments yet</h3>
+                                                <p className="text-muted-foreground mb-4">
+                                                    {isInstructor
+                                                        ? "Create assignments to assess student learning"
+                                                        : "This course doesn't have any assignments yet."
+                                                    }
+                                                </p>
+                                                {isInstructor && (
+                                                    <Button asChild>
+                                                        <Link href={`/courses/${course.id}/assignments/create`}>
+                                                            <Plus className="mr-2 h-4 w-4" />
+                                                            Create Assignment
+                                                        </Link>
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </TabsContent>
+
+                                    <TabsContent value="discussions" className="space-y-4 mt-4">
+                                        {visibleDiscussions.length > 0 ? (
+                                            <div className="space-y-4">
+                                                {visibleDiscussions.map((discussion) => (
+                                                    <Card key={discussion.id} className="hover:shadow-sm transition-shadow">
+                                                        <CardHeader className="pb-3">
+                                                            <CardTitle className="text-lg">{discussion.title}</CardTitle>
+                                                            <CardDescription>
+                                                                {new Date(discussion.created_at).toLocaleDateString()}
+                                                            </CardDescription>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <p className="text-muted-foreground mb-4 line-clamp-3">{discussion.content}</p>
+                                                            <Button variant="outline" size="sm">
+                                                                <MessageSquare className="mr-2 h-4 w-4" />
+                                                                Join Discussion
+                                                            </Button>
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8">
+                                                <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                                <h3 className="text-lg font-semibold mb-2">No discussions yet</h3>
+                                                <p className="text-muted-foreground mb-4">
+                                                    Start a discussion to engage with your classmates
+                                                </p>
+                                                <Button asChild>
+                                                    <Link href={`/courses/${course.id}/discussions/create`}>
+                                                        <Plus className="mr-2 h-4 w-4" />
+                                                        Start Discussion
+                                                    </Link>
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </TabsContent>
+                                </Tabs>
+                            </CardContent>
+                        </Card>
                     </div>
 
-                    {/* Sidebar */}
-                    <div className="space-y-4">
+                    {/* Enhanced Sidebar */}
+                    <div className="space-y-6">
                         {/* Course Image */}
                         {course.image && (
                             <Card>
-                                <CardContent className="p-4">
+                                <CardContent className="p-0">
                                     <img
                                         src={`/storage/${course.image}`}
                                         alt={course.name}
-                                        className="w-full h-48 object-cover rounded-lg"
+                                        className="w-full h-48 object-cover rounded-t-lg"
                                     />
+                                    <div className="p-4">
+                                        <p className="text-sm text-muted-foreground">Course Banner</p>
+                                    </div>
                                 </CardContent>
                             </Card>
                         )}
@@ -342,9 +404,12 @@ function Show({ course, userEnrollment, userRole }: CourseShowPageProps) {
                         {/* Quick Actions */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Quick Actions</CardTitle>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Star className="h-5 w-5" />
+                                    Quick Actions
+                                </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-2">
+                            <CardContent className="space-y-3">
                                 <Button variant="outline" className="w-full justify-start" asChild>
                                     <Link href={`/courses/${course.id}/announcements`}>
                                         <Bell className="mr-2 h-4 w-4" />
@@ -374,17 +439,46 @@ function Show({ course, userEnrollment, userRole }: CourseShowPageProps) {
                         {course.announcements && course.announcements.length > 0 && (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Recent Announcements</CardTitle>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Bell className="h-5 w-5" />
+                                        Recent Announcements
+                                    </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-3">
+                                <CardContent className="space-y-4">
                                     {course.announcements.slice(0, 3).map((announcement) => (
-                                        <div key={announcement.id} className="border-l-2 border-primary pl-3">
-                                            <p className="font-medium text-sm">{announcement.title}</p>
+                                        <div key={announcement.id} className="border-l-2 border-primary pl-3 py-1">
+                                            <p className="font-medium text-sm mb-1">{announcement.title}</p>
                                             <p className="text-xs text-muted-foreground">
                                                 {new Date(announcement.created_at).toLocaleDateString()}
                                             </p>
                                         </div>
                                     ))}
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Course Progress (for students) */}
+                        {isStudent && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Target className="h-5 w-5" />
+                                        Your Progress
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between text-sm">
+                                            <span>Modules Completed</span>
+                                            <span className="font-medium">0 / {visibleModules.length}</span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-2">
+                                            <div className="bg-blue-600 h-2 rounded-full" style={{ width: '0%' }}></div>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Keep going! You're making great progress.
+                                        </p>
+                                    </div>
                                 </CardContent>
                             </Card>
                         )}

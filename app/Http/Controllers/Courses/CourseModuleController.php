@@ -20,11 +20,16 @@ class CourseModuleController extends Controller
     {
         $this->authorize('view', $course);
 
+        $user = Auth::user();
+        $isInstructor = $user->isAdmin() || $course->created_by === $user->id;
+
         $course->load([
-            'modules' => function ($query) {
-                $query->ordered()->with(['moduleItems' => function ($q) {
-                    $q->ordered();
-                }]);
+            'modules' => function ($query) use ($isInstructor) {
+                $query->ordered()->withCount('moduleItems');
+                if (!$isInstructor) {
+                    // Students only see published modules
+                    $query->where('is_published', true);
+                }
             }
         ]);
 
@@ -83,14 +88,28 @@ class CourseModuleController extends Controller
             abort(404);
         }
 
+        // Check if user can access this module
+        $user = Auth::user();
+        $isInstructor = $user->isAdmin() || $course->created_by === $user->id;
+
+        // Students cannot access draft modules
+        if (!$isInstructor && !$module->is_published) {
+            abort(403, 'This module is not available yet.');
+        }
+
+        // Refresh the module to get latest data and load items
+        $module->refresh();
         $module->load([
             'moduleItems' => function ($query) {
                 $query->ordered();
             }
         ]);
 
+        // Add created_by field to course for frontend compatibility
+        $course->created_by = $course->created_by ?? $course->user_id;
+
         return Inertia::render('Courses/Modules/Show', [
-            'course' => $course,
+            'course' => $course->load('creator'),
             'module' => $module,
         ]);
     }

@@ -113,10 +113,30 @@ class CourseController extends Controller
             abort(403, 'You do not have access to this course.');
         }
 
+        // Determine if user is instructor for this course
+        $isInstructor = $user->isAdmin() || $course->created_by === $user->id;
+        $userEnrollment = $course->enrolledUsers()
+            ->where('user_id', $user->id)
+            ->first();
+
+        // Filter modules based on user role
+        $modulesQuery = $course->modules();
+        if (!$isInstructor) {
+            // Students only see published modules
+            $modulesQuery->where('is_published', true);
+        }
+
         $course->load([
             'creator',
             'enrolledUsers',
-            'modules.items',
+            'modules' => function ($query) use ($isInstructor) {
+                $query->ordered()->with(['moduleItems' => function ($q) {
+                    $q->ordered();
+                }]);
+                if (!$isInstructor) {
+                    $query->where('is_published', true);
+                }
+            },
             'assignments',
             'assessments',
             'announcements' => function ($query) {
@@ -127,9 +147,8 @@ class CourseController extends Controller
             }
         ]);
 
-        $userEnrollment = $course->enrolledUsers()
-            ->where('user_id', $user->id)
-            ->first();
+        // Add created_by field to course for frontend compatibility
+        $course->created_by = $course->created_by ?? $course->user_id;
 
         return Inertia::render('Courses/Show', [
             'course' => $course,

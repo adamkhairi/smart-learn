@@ -85,7 +85,9 @@ export interface CourseModule {
     updated_at: string;
     items?: CourseModuleItem[];
     moduleItems?: CourseModuleItem[];
+    module_items?: CourseModuleItem[];
     itemsCount?: number;
+    module_items_count?: number;
 }
 
 export interface CourseModuleItem {

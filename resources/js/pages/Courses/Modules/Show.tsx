@@ -2,8 +2,12 @@ import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem, CourseModuleShowPageProps } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ModuleItemPreview } from '@/components/module-item-preview';
+import { useAuth } from '@/hooks/use-auth';
 import {
     ArrowLeft,
     Plus,
@@ -21,15 +25,19 @@ import {
     Clock,
     CheckCircle,
     XCircle,
-    Download
+    Download,
+    ExternalLink
 } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 
 function Show({ course, module }: CourseModuleShowPageProps) {
     const [draggedItem, setDraggedItem] = useState<number | null>(null);
+    const [processingActions, setProcessingActions] = useState<Record<number, boolean>>({});
 
     const { patch } = useForm();
+    const { canManageCourse } = useAuth();
+    const { confirm, confirmDialog } = useConfirmDialog();
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Courses', href: '/courses' },
@@ -38,16 +46,62 @@ function Show({ course, module }: CourseModuleShowPageProps) {
         { title: module.title, href: '#' },
     ];
 
-    const isInstructor = true; // This should come from auth context/props
+    const isInstructor = canManageCourse(course.created_by);
 
     const handleTogglePublished = () => {
-        patch(`/courses/${course.id}/modules/${module.id}/toggle-published`);
+        setProcessingActions(prev => ({ ...prev, [module.id]: true }));
+        patch(`/courses/${course.id}/modules/${module.id}/toggle-published`, {
+            onFinish: () => {
+                setProcessingActions(prev => ({ ...prev, [module.id]: false }));
+            }
+        });
     };
 
     const handleDelete = () => {
-        if (confirm(`Are you sure you want to delete the module "${module.title}"? This action cannot be undone.`)) {
-            router.delete(`/courses/${course.id}/modules/${module.id}`);
-        }
+        confirm({
+            title: 'Delete Module',
+            description: `Are you sure you want to delete "${module.title}"? This action cannot be undone and will remove all module items.`,
+            confirmText: 'Delete Module',
+            variant: 'destructive',
+            onConfirm: () => {
+                router.delete(`/courses/${course.id}/modules/${module.id}`);
+            }
+        });
+    };
+
+    const handleDuplicate = () => {
+        setProcessingActions(prev => ({ ...prev, [module.id]: true }));
+        router.post(`/courses/${course.id}/modules/${module.id}/duplicate`, {}, {
+            onFinish: () => {
+                setProcessingActions(prev => ({ ...prev, [module.id]: false }));
+            }
+        });
+    };
+
+    const handleItemDelete = (itemId: number, itemTitle: string) => {
+        confirm({
+            title: 'Delete Item',
+            description: `Are you sure you want to delete "${itemTitle}"? This action cannot be undone.`,
+            confirmText: 'Delete Item',
+            variant: 'destructive',
+            onConfirm: () => {
+                setProcessingActions(prev => ({ ...prev, [itemId]: true }));
+                router.delete(`/courses/${course.id}/modules/${module.id}/items/${itemId}`, {
+                    onFinish: () => {
+                        setProcessingActions(prev => ({ ...prev, [itemId]: false }));
+                    }
+                });
+            }
+        });
+    };
+
+    const handleItemDuplicate = (itemId: number) => {
+        setProcessingActions(prev => ({ ...prev, [itemId]: true }));
+        router.post(`/courses/${course.id}/modules/${module.id}/items/${itemId}/duplicate`, {}, {
+            onFinish: () => {
+                setProcessingActions(prev => ({ ...prev, [itemId]: false }));
+            }
+        });
     };
 
     const handleDragStart = (e: React.DragEvent, itemId: number) => {
@@ -63,18 +117,19 @@ function Show({ course, module }: CourseModuleShowPageProps) {
     const handleDrop = (e: React.DragEvent, targetItemId: number) => {
         e.preventDefault();
 
-        if (!draggedItem || draggedItem === targetItemId || !module.moduleItems) {
+        const moduleItems = module.moduleItems || module.module_items || module.items;
+        if (!draggedItem || draggedItem === targetItemId || !moduleItems) {
             setDraggedItem(null);
             return;
         }
 
-        const draggedIndex = module.moduleItems.findIndex(item => item.id === draggedItem);
-        const targetIndex = module.moduleItems.findIndex(item => item.id === targetItemId);
+        const draggedIndex = moduleItems.findIndex(item => item.id === draggedItem);
+        const targetIndex = moduleItems.findIndex(item => item.id === targetItemId);
 
         if (draggedIndex === -1 || targetIndex === -1) return;
 
         // Create new order array
-        const reorderedItems = [...module.moduleItems];
+        const reorderedItems = [...moduleItems];
         const [draggedItem_] = reorderedItems.splice(draggedIndex, 1);
         reorderedItems.splice(targetIndex, 0, draggedItem_);
 
@@ -85,7 +140,7 @@ function Show({ course, module }: CourseModuleShowPageProps) {
         }));
 
         // Send update to backend
-        patch(`/courses/${course.id}/modules/${module.id}/items/order`, {
+        router.patch(`/courses/${course.id}/modules/${module.id}/items/order`, {
             items: itemsWithNewOrder
         });
 
@@ -153,9 +208,10 @@ function Show({ course, module }: CourseModuleShowPageProps) {
 
                     {isInstructor && (
                         <div className="flex items-center gap-2">
-                            <Button
+                            <LoadingButton
                                 variant="ghost"
                                 size="sm"
+                                loading={processingActions[module.id]}
                                 onClick={handleTogglePublished}
                             >
                                 {module.is_published ? (
@@ -169,30 +225,32 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                                         Publish
                                     </>
                                 )}
-                            </Button>
+                            </LoadingButton>
                             <Button variant="outline" size="sm" asChild>
                                 <Link href={`/courses/${course.id}/modules/${module.id}/edit`}>
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit Module
                                 </Link>
                             </Button>
-                            <Button
+                            <LoadingButton
                                 variant="outline"
                                 size="sm"
-                                onClick={() => router.post(`/courses/${course.id}/modules/${module.id}/duplicate`)}
+                                loading={processingActions[module.id]}
+                                onClick={handleDuplicate}
                             >
                                 <Copy className="mr-2 h-4 w-4" />
                                 Duplicate
-                            </Button>
-                            <Button
+                            </LoadingButton>
+                            <LoadingButton
                                 variant="outline"
                                 size="sm"
+                                loading={processingActions[module.id]}
                                 onClick={handleDelete}
                                 className="text-red-600 hover:text-red-700"
                             >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
-                            </Button>
+                            </LoadingButton>
                         </div>
                     )}
                 </div>
@@ -219,9 +277,10 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                     )}
                 </div>
 
-                {module.moduleItems && module.moduleItems.length > 0 ? (
+                {(module.moduleItems || module.module_items || module.items) &&
+                 (module.moduleItems || module.module_items || module.items)!.length > 0 ? (
                     <div className="space-y-3">
-                        {module.moduleItems.map((item, index) => (
+                        {(module.moduleItems || module.module_items || module.items)!.map((item, index) => (
                             <Card
                                 key={item.id}
                                 className={`transition-all duration-200 hover:shadow-md ${
@@ -280,7 +339,7 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                                         </div>
 
                                         <div className="flex items-center gap-2">
-                                            {/* View/Access Button */}
+                                            {/* Quick Access Actions */}
                                             {item.type === 'document' && item.url && (
                                                 <Button variant="ghost" size="sm" asChild>
                                                     <a
@@ -300,14 +359,27 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                     >
-                                                        <Play className="h-4 w-4" />
+                                                        <ExternalLink className="h-4 w-4" />
                                                     </a>
                                                 </Button>
                                             )}
 
-                                            <Button variant="ghost" size="sm" asChild>
+                                                                        {/* Preview Button */}
+                            <ModuleItemPreview
+                                item={item}
+                                courseId={course.id}
+                                moduleId={module.id}
+                                trigger={
+                                    <Button variant="ghost" size="sm">
+                                        <Eye className="h-4 w-4" />
+                                    </Button>
+                                }
+                            />
+
+                                            {/* Full View Button */}
+                                            <Button variant="outline" size="sm" asChild>
                                                 <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}`}>
-                                                    <Eye className="h-4 w-4" />
+                                                    View
                                                 </Link>
                                             </Button>
 
@@ -318,25 +390,23 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                                                             <Edit className="h-4 w-4" />
                                                         </Link>
                                                     </Button>
-                                                    <Button
+                                                    <LoadingButton
                                                         variant="ghost"
                                                         size="sm"
-                                                        onClick={() => router.post(`/courses/${course.id}/modules/${module.id}/items/${item.id}/duplicate`)}
+                                                        loading={processingActions[item.id]}
+                                                        onClick={() => handleItemDuplicate(item.id)}
                                                     >
                                                         <Copy className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
+                                                    </LoadingButton>
+                                                    <LoadingButton
                                                         variant="ghost"
                                                         size="sm"
-                                                        onClick={() => {
-                                                            if (confirm(`Are you sure you want to delete "${item.title}"?`)) {
-                                                                router.delete(`/courses/${course.id}/modules/${module.id}/items/${item.id}`);
-                                                            }
-                                                        }}
+                                                        loading={processingActions[item.id]}
+                                                        onClick={() => handleItemDelete(item.id, item.title)}
                                                         className="text-red-600 hover:text-red-700"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                    </LoadingButton>
                                                 </>
                                             )}
                                         </div>
@@ -367,6 +437,9 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                         </CardContent>
                     </Card>
                 )}
+
+                {/* Confirm Dialog */}
+                {confirmDialog}
             </div>
         </AppLayout>
     );

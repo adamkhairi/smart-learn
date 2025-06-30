@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -39,6 +40,15 @@ class CourseModule extends Model
     }
 
     /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'deleted_at',
+    ];
+
+    /**
      * Get the course this module belongs to.
      */
     public function course(): BelongsTo
@@ -71,11 +81,13 @@ class CourseModule extends Model
     }
 
     /**
-     * Get the count of module items.
+     * Get the items count as an attribute.
      */
-    public function itemsCount(): int
+    protected function itemsCount(): Attribute
     {
-        return $this->moduleItems()->count();
+        return Attribute::make(
+            get: fn () => $this->moduleItems_count ?? $this->moduleItems()->count(),
+        );
     }
 
     /**

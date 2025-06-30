@@ -1,11 +1,13 @@
 import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CourseModuleItemShowPageProps } from '@/types';
+import { CourseModuleItemShowPageProps } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ModuleNavigation } from '@/components/module-navigation';
+import { NavigationBreadcrumb } from '@/components/navigation-breadcrumb';
+import { useAuth } from '@/hooks/use-auth';
 import {
-    ArrowLeft,
     Edit,
     Play,
     FileText,
@@ -16,19 +18,29 @@ import {
     ExternalLink,
     Clock,
     CheckCircle,
-    AlertCircle
+    AlertCircle,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 
 function Show({ course, module, item }: CourseModuleItemShowPageProps) {
-    const breadcrumbs: BreadcrumbItem[] = [
+    const { canManageCourse } = useAuth();
+    const isInstructor = canManageCourse(course.created_by);
+
+    // Navigation items for breadcrumb
+    const navigationItems = [
         { title: 'Courses', href: '/courses' },
         { title: course.name, href: `/courses/${course.id}` },
         { title: 'Modules', href: `/courses/${course.id}/modules` },
         { title: module.title, href: `/courses/${course.id}/modules/${module.id}` },
-        { title: item.title, href: '#' },
+        { title: item.title, href: '#', isActive: true },
     ];
 
-    const isInstructor = true; // This should come from auth context/props
+    // Find previous and next items for navigation
+    const items = module.moduleItems || [];
+    const currentIndex = items.findIndex(i => i.id === item.id);
+    const previousItem = currentIndex > 0 ? items[currentIndex - 1] : null;
+    const nextItem = currentIndex < items.length - 1 ? items[currentIndex + 1] : null;
 
     const getItemIcon = (type: string) => {
         switch (type) {
@@ -67,11 +79,11 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
                     if (embedUrl) {
                         return (
                             <div className="space-y-4">
-                                <div className="aspect-video">
+                                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
                                     <iframe
                                         src={embedUrl}
                                         title={item.title}
-                                        className="w-full h-full rounded-lg"
+                                        className="w-full h-full"
                                         allowFullScreen
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     />
@@ -156,7 +168,7 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
                                         Open Link
                                     </a>
                                 </Button>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-muted-foreground break-all">
                                     {item.url}
                                 </p>
                             </div>
@@ -209,19 +221,26 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title={`${item.title} - ${module.title}`} />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                {/* Header */}
+                {/* Enhanced Breadcrumb Navigation */}
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/courses/${course.id}/modules/${module.id}`}>
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to Module
+                    <NavigationBreadcrumb items={navigationItems} />
+                    {isInstructor && (
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}/edit`}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Item
                             </Link>
                         </Button>
+                    )}
+                </div>
+
+                {/* Header with Item Navigation */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
                         <div>
                             <div className="flex items-center gap-3 mb-1">
                                 {getItemIcon(item.type)}
@@ -233,19 +252,41 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
                                 )}
                             </div>
                             <p className="text-muted-foreground">
-                                {item.type.charAt(0).toUpperCase() + item.type.slice(1)} in {module.title}
+                                {item.type.charAt(0).toUpperCase() + item.type.slice(1)} • Item {currentIndex + 1} of {items.length} in {module.title}
                             </p>
                         </div>
                     </div>
 
-                    {isInstructor && (
-                        <Button asChild>
-                            <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}/edit`}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Item
-                            </Link>
-                        </Button>
-                    )}
+                    {/* Previous/Next Navigation */}
+                    <div className="flex items-center gap-2">
+                        {previousItem ? (
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={`/courses/${course.id}/modules/${module.id}/items/${previousItem.id}`}>
+                                    <ChevronLeft className="mr-2 h-4 w-4" />
+                                    Previous
+                                </Link>
+                            </Button>
+                        ) : (
+                            <Button variant="outline" size="sm" disabled>
+                                <ChevronLeft className="mr-2 h-4 w-4" />
+                                Previous
+                            </Button>
+                        )}
+
+                        {nextItem ? (
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={`/courses/${course.id}/modules/${module.id}/items/${nextItem.id}`}>
+                                    Next
+                                    <ChevronRight className="ml-2 h-4 w-4" />
+                                </Link>
+                            </Button>
+                        ) : (
+                            <Button variant="outline" size="sm" disabled>
+                                Next
+                                <ChevronRight className="ml-2 h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -253,10 +294,41 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
                     <div className="lg:col-span-3">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    {getItemIcon(item.type)}
-                                    {item.title}
-                                </CardTitle>
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="flex items-center gap-2">
+                                        {getItemIcon(item.type)}
+                                        {item.title}
+                                    </CardTitle>
+
+                                    {/* Item Metadata */}
+                                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                        <span className="capitalize">{item.type}</span>
+                                        {item.duration && (
+                                            <>
+                                                <span>•</span>
+                                                <div className="flex items-center gap-1">
+                                                    <Clock className="h-3 w-3" />
+                                                    {formatDuration(item.duration)}
+                                                </div>
+                                            </>
+                                        )}
+                                        <span>•</span>
+                                        <div className="flex items-center gap-1">
+                                            {item.is_required ? (
+                                                <>
+                                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                                    Required
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <AlertCircle className="h-3 w-3 text-orange-500" />
+                                                    Optional
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {item.description && (
                                     <CardDescription>{item.description}</CardDescription>
                                 )}
@@ -265,10 +337,65 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
                                 {renderContent()}
                             </CardContent>
                         </Card>
+
+                        {/* Navigation to Next/Previous Items */}
+                        {(previousItem || nextItem) && (
+                            <div className="flex justify-between gap-4 mt-6">
+                                {previousItem ? (
+                                    <Card className="flex-1 hover:shadow-md transition-shadow">
+                                        <CardContent className="p-4">
+                                            <Link
+                                                href={`/courses/${course.id}/modules/${module.id}/items/${previousItem.id}`}
+                                                className="block"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground">Previous</p>
+                                                        <p className="font-medium text-sm">{previousItem.title}</p>
+                                                    </div>
+                                                </div>
+                                            </Link>
+                                        </CardContent>
+                                    </Card>
+                                ) : (
+                                    <div className="flex-1" />
+                                )}
+
+                                {nextItem ? (
+                                    <Card className="flex-1 hover:shadow-md transition-shadow">
+                                        <CardContent className="p-4">
+                                            <Link
+                                                href={`/courses/${course.id}/modules/${module.id}/items/${nextItem.id}`}
+                                                className="block"
+                                            >
+                                                <div className="flex items-center gap-3 justify-end text-right">
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground">Next</p>
+                                                        <p className="font-medium text-sm">{nextItem.title}</p>
+                                                    </div>
+                                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                                </div>
+                                            </Link>
+                                        </CardContent>
+                                    </Card>
+                                ) : (
+                                    <div className="flex-1" />
+                                )}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Sidebar */}
+                    {/* Enhanced Sidebar Navigation */}
                     <div className="space-y-6">
+                        <ModuleNavigation
+                            course={course}
+                            module={module}
+                            currentItem={item}
+                            completedItems={[]} // This would come from backend
+                        />
+
+                        {/* Item Details Card */}
                         <Card>
                             <CardHeader>
                                 <CardTitle className="text-lg">Item Details</CardTitle>
@@ -282,8 +409,8 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
                                 </div>
                                 <div>
                                     <div className="flex justify-between text-sm">
-                                        <span>Order</span>
-                                        <span>#{item.order}</span>
+                                        <span>Position</span>
+                                        <span>{currentIndex + 1} of {items.length}</span>
                                     </div>
                                 </div>
                                 {item.duration && (
@@ -324,24 +451,7 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
                             </CardContent>
                         </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">Module Navigation</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-2">
-                                <Button variant="outline" size="sm" asChild className="w-full justify-start">
-                                    <Link href={`/courses/${course.id}/modules/${module.id}`}>
-                                        View All Items
-                                    </Link>
-                                </Button>
-                                <Button variant="outline" size="sm" asChild className="w-full justify-start">
-                                    <Link href={`/courses/${course.id}`}>
-                                        Course Overview
-                                    </Link>
-                                </Button>
-                            </CardContent>
-                        </Card>
-
+                        {/* Quick Actions for Instructors */}
                         {isInstructor && (
                             <Card>
                                 <CardHeader>
@@ -350,11 +460,13 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
                                 <CardContent className="space-y-2">
                                     <Button variant="outline" size="sm" asChild className="w-full justify-start">
                                         <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}/edit`}>
+                                            <Edit className="mr-2 h-4 w-4" />
                                             Edit Item
                                         </Link>
                                     </Button>
                                     <Button variant="outline" size="sm" asChild className="w-full justify-start">
                                         <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
+                                            <FileText className="mr-2 h-4 w-4" />
                                             Add New Item
                                         </Link>
                                     </Button>

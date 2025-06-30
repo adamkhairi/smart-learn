@@ -13,7 +13,7 @@ import { useState } from 'react';
 function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) {
     const [selectedType, setSelectedType] = useState<string>('');
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, progress } = useForm({
         title: '',
         description: '',
         type: '' as 'video' | 'document' | 'link' | 'quiz' | 'assignment',
@@ -35,15 +35,42 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(`/courses/${course.id}/modules/${module.id}/items`);
+
+        // Ensure type is set
+        if (!data.type) {
+            console.error('Type not selected');
+            return;
+        }
+
+        // Type-specific validation
+        if (data.type === 'video' && !data.duration) {
+            console.error('Duration required for video');
+            return;
+        }
+
+        // For file uploads, we need to use forceFormData option
+        const options = {
+            forceFormData: data.type === 'document',
+            onSuccess: () => {
+                console.log('Module item created successfully');
+            },
+            onError: (errors: Record<string, string>) => {
+                console.error('Form submission errors:', errors);
+            }
+        };
+
+        post(`/courses/${course.id}/modules/${module.id}/items`, options);
     };
 
     const handleTypeChange = (type: string) => {
+        console.log('Changing type to:', type);
         setSelectedType(type);
-        setData('type', type as 'video' | 'document' | 'link' | 'quiz' | 'assignment');
-        // Reset type-specific fields
+
+        // Properly set the form data type
         setData(prev => ({
             ...prev,
+            type: type as 'video' | 'document' | 'link' | 'quiz' | 'assignment',
+            // Reset type-specific fields
             url: '',
             content: '',
             file: null,
@@ -53,7 +80,27 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
+        console.log('File selected:', file?.name);
         setData('file', file);
+    };
+
+    // Validation helpers
+    const isFormValid = () => {
+        if (!data.title.trim() || !data.type) return false;
+
+        switch (data.type) {
+            case 'video':
+                return data.url.trim() && data.duration.trim();
+            case 'link':
+                return data.url.trim();
+            case 'document':
+                return data.file !== null;
+            case 'quiz':
+            case 'assignment':
+                return data.content.trim();
+            default:
+                return false;
+        }
     };
 
     const itemTypes = [
@@ -93,6 +140,16 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
             color: 'text-red-500'
         },
     ];
+
+    const getSubmitButtonText = () => {
+        if (processing) {
+            if (data.type === 'document' && progress) {
+                return `Uploading... ${Math.round(progress.percentage || 0)}%`;
+            }
+            return 'Adding...';
+        }
+        return 'Add Item';
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -167,6 +224,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                 onChange={(e) => setData('title', e.target.value)}
                                                 placeholder="Enter item title"
                                                 className={errors.title ? 'border-red-500' : ''}
+                                                required
                                             />
                                             {errors.title && (
                                                 <p className="text-sm text-red-500">{errors.title}</p>
@@ -206,6 +264,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         : "https://example.com"
                                                 }
                                                 className={errors.url ? 'border-red-500' : ''}
+                                                required
                                             />
                                             {errors.url && (
                                                 <p className="text-sm text-red-500">{errors.url}</p>
@@ -225,6 +284,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.xls,.xlsx"
                                                         onChange={handleFileChange}
                                                         className="hidden"
+                                                        required
                                                     />
                                                     <label
                                                         htmlFor="file"
@@ -262,6 +322,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                 }
                                                 rows={8}
                                                 className={errors.content ? 'border-red-500' : ''}
+                                                required
                                             />
                                             {errors.content && (
                                                 <p className="text-sm text-red-500">{errors.content}</p>
@@ -272,7 +333,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                     {/* Duration (for videos) */}
                                     {selectedType === 'video' && (
                                         <div className="space-y-2">
-                                            <Label htmlFor="duration">Duration (seconds)</Label>
+                                            <Label htmlFor="duration">Duration (seconds) *</Label>
                                             <Input
                                                 id="duration"
                                                 type="number"
@@ -281,10 +342,14 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                 onChange={(e) => setData('duration', e.target.value)}
                                                 placeholder="e.g., 300 for 5 minutes"
                                                 className={errors.duration ? 'border-red-500' : ''}
+                                                required
                                             />
                                             {errors.duration && (
                                                 <p className="text-sm text-red-500">{errors.duration}</p>
                                             )}
+                                            <p className="text-xs text-muted-foreground">
+                                                Duration helps students plan their learning time
+                                            </p>
                                         </div>
                                     )}
 
@@ -318,15 +383,24 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
 
                                     {/* Submit Actions */}
                                     <div className="flex items-center gap-4 pt-6 border-t">
-                                        <Button type="submit" disabled={processing || !selectedType}>
+                                        <Button
+                                            type="submit"
+                                            disabled={processing || !isFormValid()}
+                                            className="min-w-[120px]"
+                                        >
                                             <Save className="mr-2 h-4 w-4" />
-                                            {processing ? 'Adding...' : 'Add Item'}
+                                            {getSubmitButtonText()}
                                         </Button>
-                                        <Button type="button" variant="outline" asChild>
+                                        <Button type="button" variant="outline" asChild disabled={processing}>
                                             <Link href={`/courses/${course.id}/modules/${module.id}`}>
                                                 Cancel
                                             </Link>
                                         </Button>
+                                        {!isFormValid() && (
+                                            <p className="text-sm text-muted-foreground">
+                                                Please fill in all required fields
+                                            </p>
+                                        )}
                                     </div>
                                 </form>
                             </CardContent>

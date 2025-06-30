@@ -9,8 +9,11 @@ use App\Models\CourseModule;
 use App\Models\CourseModuleItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Exception;
+use Illuminate\Http\RedirectResponse;
 
 class CourseModuleItemController extends Controller
 {
@@ -30,7 +33,7 @@ class CourseModuleItemController extends Controller
         $nextOrder = $module->moduleItems()->max('order') + 1;
 
         return Inertia::render('Courses/Modules/Items/Create', [
-            'course' => $course,
+            'course' => $course->load('creator'),
             'module' => $module,
             'nextOrder' => $nextOrder,
         ]);
@@ -39,7 +42,7 @@ class CourseModuleItemController extends Controller
     /**
      * Store a newly created module item.
      */
-    public function store(CourseModuleItemRequest $request, Course $course, CourseModule $module)
+    public function store(CourseModuleItemRequest $request, Course $course, CourseModule $module): RedirectResponse
     {
         $this->authorize('update', $course);
 
@@ -48,24 +51,39 @@ class CourseModuleItemController extends Controller
             abort(404);
         }
 
-        $validated = $request->validated();
-        $validated['course_module_id'] = $module->id;
+        try {
+            $validated = $request->validated();
+            $validated['course_module_id'] = $module->id;
 
-        // If no order specified, set it to the end
-        if (!isset($validated['order'])) {
-            $validated['order'] = $module->moduleItems()->max('order') + 1;
+            // If no order specified, set it to the end
+            if (!isset($validated['order'])) {
+                $validated['order'] = $module->moduleItems()->max('order') + 1;
+            }
+
+            // Handle file upload for document type
+            if ($request->hasFile('file') && $validated['type'] === 'document') {
+                $file = $request->file('file');
+
+                // Generate unique filename
+                $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
+                    . '.' . $file->getClientOriginalExtension();
+
+                // Store file
+                $path = $file->storeAs('modules/documents', $filename, 'public');
+                $validated['url'] = $path;
+            }
+
+            $item = CourseModuleItem::create($validated);
+
+            return redirect()
+                ->route('courses.modules.show', [$course, $module])
+                ->with('success', "Module item '{$item->title}' created successfully!");
+
+        } catch (Exception $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to create module item. Please try again.']);
         }
-
-        // Handle file upload for document type
-        if ($request->hasFile('file') && $validated['type'] === 'document') {
-            $path = $request->file('file')->store('modules/documents', 'public');
-            $validated['url'] = $path;
-        }
-
-        $item = CourseModuleItem::create($validated);
-
-        return redirect()->route('courses.modules.show', [$course, $module])
-            ->with('success', 'Module item created successfully!');
     }
 
     /**
@@ -80,10 +98,20 @@ class CourseModuleItemController extends Controller
             abort(404);
         }
 
+        // Load module with all items for navigation
+        $module->load(['moduleItems' => function ($query) {
+            $query->ordered();
+        }]);
+
+        // Add created_by field to course for frontend compatibility
+        $course->created_by = $course->created_by ?? $course->user_id;
+
         return Inertia::render('Courses/Modules/Items/Show', [
-            'course' => $course,
+            'course' => $course->load('creator'),
             'module' => $module,
             'item' => $item,
+            // TODO: Add user progress tracking for completedItems
+            'completedItems' => [], // This would come from user progress tracking
         ]);
     }
 
@@ -100,7 +128,7 @@ class CourseModuleItemController extends Controller
         }
 
         return Inertia::render('Courses/Modules/Items/Edit', [
-            'course' => $course,
+            'course' => $course->load('creator'),
             'module' => $module,
             'item' => $item,
         ]);
@@ -109,7 +137,7 @@ class CourseModuleItemController extends Controller
     /**
      * Update the specified module item.
      */
-    public function update(CourseModuleItemRequest $request, Course $course, CourseModule $module, CourseModuleItem $item)
+    public function update(CourseModuleItemRequest $request, Course $course, CourseModule $module, CourseModuleItem $item): RedirectResponse
     {
         $this->authorize('update', $course);
 
@@ -118,34 +146,49 @@ class CourseModuleItemController extends Controller
             abort(404);
         }
 
-        $validated = $request->validated();
+        try {
+            $validated = $request->validated();
 
-        // Handle order changes
-        if (isset($validated['order']) && $validated['order'] !== $item->order) {
-            $this->reorderItems($module, $item, $validated['order']);
-        }
-
-        // Handle file upload for document type
-        if ($request->hasFile('file') && $validated['type'] === 'document') {
-            // Delete old file if exists
-            if ($item->url && $item->type === 'document') {
-                Storage::disk('public')->delete($item->url);
+            // Handle order changes
+            if (isset($validated['order']) && $validated['order'] !== $item->order) {
+                $this->reorderItems($module, $item, $validated['order']);
             }
 
-            $path = $request->file('file')->store('modules/documents', 'public');
-            $validated['url'] = $path;
+            // Handle file upload for document type
+            if ($request->hasFile('file') && $validated['type'] === 'document') {
+                // Delete old file if exists
+                if ($item->url && $item->type === 'document') {
+                    Storage::disk('public')->delete($item->url);
+                }
+
+                $file = $request->file('file');
+
+                // Generate unique filename
+                $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
+                    . '.' . $file->getClientOriginalExtension();
+
+                // Store new file
+                $path = $file->storeAs('modules/documents', $filename, 'public');
+                $validated['url'] = $path;
+            }
+
+            $item->update($validated);
+
+            return redirect()
+                ->route('courses.modules.show', [$course, $module])
+                ->with('success', "Module item '{$item->title}' updated successfully!");
+
+        } catch (Exception $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to update module item. Please try again.']);
         }
-
-        $item->update($validated);
-
-        return redirect()->route('courses.modules.show', [$course, $module])
-            ->with('success', 'Module item updated successfully!');
     }
 
     /**
      * Remove the specified module item.
      */
-    public function destroy(Course $course, CourseModule $module, CourseModuleItem $item)
+    public function destroy(Course $course, CourseModule $module, CourseModuleItem $item): RedirectResponse
     {
         $this->authorize('update', $course);
 
@@ -154,24 +197,33 @@ class CourseModuleItemController extends Controller
             abort(404);
         }
 
-        // Delete associated file if exists
-        if ($item->url && $item->type === 'document') {
-            Storage::disk('public')->delete($item->url);
+        try {
+            $itemTitle = $item->title;
+
+            // Delete associated file if exists
+            if ($item->url && $item->type === 'document') {
+                Storage::disk('public')->delete($item->url);
+            }
+
+            $item->delete();
+
+            // Reorder remaining items
+            $this->reorderRemainingItems($module);
+
+            return redirect()
+                ->route('courses.modules.show', [$course, $module])
+                ->with('success', "Module item '{$itemTitle}' deleted successfully!");
+
+        } catch (Exception $e) {
+            return back()
+                ->withErrors(['error' => 'Failed to delete module item. Please try again.']);
         }
-
-        $item->delete();
-
-        // Reorder remaining items
-        $this->reorderRemainingItems($module);
-
-        return redirect()->route('courses.modules.show', [$course, $module])
-            ->with('success', 'Module item deleted successfully!');
     }
 
     /**
      * Update the order of module items.
      */
-    public function updateOrder(Request $request, Course $course, CourseModule $module)
+    public function updateOrder(Request $request, Course $course, CourseModule $module): RedirectResponse
     {
         $this->authorize('update', $course);
 
@@ -180,25 +232,30 @@ class CourseModuleItemController extends Controller
             abort(404);
         }
 
-        $validated = $request->validate([
-            'items' => 'required|array',
-            'items.*.id' => 'required|exists:course_module_items,id',
-            'items.*.order' => 'required|integer|min:1',
-        ]);
+        try {
+            $validated = $request->validate([
+                'items' => 'required|array',
+                'items.*.id' => 'required|exists:course_module_items,id',
+                'items.*.order' => 'required|integer|min:1',
+            ]);
 
-        foreach ($validated['items'] as $itemData) {
-            CourseModuleItem::where('id', $itemData['id'])
-                ->where('course_module_id', $module->id)
-                ->update(['order' => $itemData['order']]);
+            foreach ($validated['items'] as $itemData) {
+                CourseModuleItem::where('id', $itemData['id'])
+                    ->where('course_module_id', $module->id)
+                    ->update(['order' => $itemData['order']]);
+            }
+
+            return back()->with('success', 'Item order updated successfully!');
+
+        } catch (Exception $e) {
+            return back()->withErrors(['error' => 'Failed to update item order.']);
         }
-
-        return back()->with('success', 'Item order updated successfully!');
     }
 
     /**
      * Duplicate a module item.
      */
-    public function duplicate(Course $course, CourseModule $module, CourseModuleItem $item)
+    public function duplicate(Course $course, CourseModule $module, CourseModuleItem $item): RedirectResponse
     {
         $this->authorize('update', $course);
 
@@ -207,27 +264,35 @@ class CourseModuleItemController extends Controller
             abort(404);
         }
 
-        $newItem = $item->replicate();
-        $newItem->title = $item->title . ' (Copy)';
-        $newItem->order = $module->moduleItems()->max('order') + 1;
+        try {
+            $newItem = $item->replicate();
+            $newItem->title = $item->title . ' (Copy)';
+            $newItem->order = $module->moduleItems()->max('order') + 1;
 
-        // Handle file duplication for documents
-        if ($item->type === 'document' && $item->url) {
-            $originalPath = $item->url;
-            $extension = pathinfo($originalPath, PATHINFO_EXTENSION);
-            $filename = pathinfo($originalPath, PATHINFO_FILENAME);
-            $newPath = "modules/documents/{$filename}_copy.{$extension}";
+            // Handle file duplication for documents
+            if ($item->type === 'document' && $item->url) {
+                $originalPath = $item->url;
+                $extension = pathinfo($originalPath, PATHINFO_EXTENSION);
+                $filename = pathinfo($originalPath, PATHINFO_FILENAME);
+                $newFilename = $filename . '_copy_' . time() . '.' . $extension;
+                $newPath = "modules/documents/{$newFilename}";
 
-            if (Storage::disk('public')->exists($originalPath)) {
-                Storage::disk('public')->copy($originalPath, $newPath);
-                $newItem->url = $newPath;
+                if (Storage::disk('public')->exists($originalPath)) {
+                    Storage::disk('public')->copy($originalPath, $newPath);
+                    $newItem->url = $newPath;
+                }
             }
+
+            $newItem->save();
+
+            return redirect()
+                ->route('courses.modules.items.edit', [$course, $module, $newItem])
+                ->with('success', "Module item '{$newItem->title}' duplicated successfully!");
+
+        } catch (Exception $e) {
+            return back()
+                ->withErrors(['error' => 'Failed to duplicate module item. Please try again.']);
         }
-
-        $newItem->save();
-
-        return redirect()->route('courses.modules.items.edit', [$course, $module, $newItem])
-            ->with('success', 'Module item duplicated successfully!');
     }
 
     /**
