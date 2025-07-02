@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm } from '@inertiajs/react';
+import { useForm, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Users, UserPlus, UserMinus, Search } from 'lucide-react';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useToast } from '@/hooks/use-toast';
 import { Course, User } from '@/types';
 
 interface CourseEnrollmentProps {
@@ -16,6 +18,12 @@ interface CourseEnrollmentProps {
 
 export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
     const [searchTerm, setSearchTerm] = useState('');
+    const [unenrollingUserId, setUnenrollingUserId] = useState<number | null>(null);
+
+    // Initialize confirmation dialog and toast
+    const { confirm, confirmDialog } = useConfirmDialog();
+    const { success: showSuccess, error: showError } = useToast();
+
     const { data, setData, post, processing, errors } = useForm({
         user_id: '',
         role: 'student' as 'student' | 'instructor',
@@ -25,14 +33,36 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
 
     const handleEnroll = (e: React.FormEvent) => {
         e.preventDefault();
-        post(`/courses/${course.id}/enroll`);
+        post(`/courses/${course.id}/enroll`, {
+            onSuccess: () => {
+                showSuccess('User enrolled successfully.');
+                setData({ user_id: '', role: 'student' });
+            },
+            onError: () => {
+                showError('Failed to enroll user. Please try again.');
+            }
+        });
     };
 
-    const handleUnenroll = (userId: number) => {
-        if (confirm('Are you sure you want to remove this user from the course?')) {
-            // This would need to be implemented with a proper delete request
-            console.log('Unenroll user:', userId);
-        }
+    const handleUnenroll = (userId: number, userName: string) => {
+        confirm({
+            title: 'Remove User from Course',
+            description: `Are you sure you want to remove ${userName} from this course? They will lose access to all course materials and their progress will be saved but not accessible.`,
+            confirmText: 'Yes, Remove User',
+            variant: 'destructive',
+            onConfirm: () => {
+                setUnenrollingUserId(userId);
+                router.delete(`/courses/${course.id}/unenroll/${userId}`, {
+                    onSuccess: () => {
+                        showSuccess('User removed from course successfully.');
+                    },
+                    onError: () => {
+                        showError('Failed to remove user from course. Please try again.');
+                    },
+                    onFinish: () => setUnenrollingUserId(null)
+                });
+            }
+        });
     };
 
     const filteredUsers = course.enrolled_users?.filter(user =>
@@ -157,10 +187,15 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => handleUnenroll(user.id)}
+                                                onClick={() => handleUnenroll(user.id, user.name)}
                                                 className="text-destructive hover:text-destructive"
+                                                disabled={unenrollingUserId === user.id}
                                             >
-                                                <UserMinus className="h-4 w-4" />
+                                                {unenrollingUserId === user.id ? (
+                                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                                                ) : (
+                                                    <UserMinus className="h-4 w-4" />
+                                                )}
                                             </Button>
                                         )}
                                     </div>
@@ -177,6 +212,7 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                     )}
                 </div>
             </CardContent>
+            {confirmDialog}
         </Card>
     );
 }

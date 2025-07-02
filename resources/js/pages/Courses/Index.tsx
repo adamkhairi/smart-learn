@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo } from 'react';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -30,9 +32,14 @@ function Index({ courses, userRole }: CoursesPageProps) {
     const isMobile = useIsMobile();
     const canCreateCourse = userRole === 'admin' || userRole === 'instructor';
 
+    // Initialize confirmation dialog and toast
+    const { confirm, confirmDialog } = useConfirmDialog();
+    const { success: showSuccess, error: showError } = useToast();
+
     // State for search and filtering
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'archived'>('all');
+    const [deletingCourseId, setDeletingCourseId] = useState<number | null>(null);
 
     // Filter and search courses
     const filteredCourses = useMemo(() => {
@@ -46,10 +53,25 @@ function Index({ courses, userRole }: CoursesPageProps) {
         });
     }, [courses, searchQuery, statusFilter]);
 
-    const handleDelete = (courseId: number) => {
-        if (confirm('Are you sure you want to delete this course?')) {
-            router.delete(`/courses/${courseId}`);
-        }
+    const handleDelete = (courseId: number, courseName: string) => {
+        confirm({
+            title: 'Delete Course',
+            description: `Are you sure you want to delete "${courseName}"? This action cannot be undone and will permanently remove all course content, modules, and enrollments.`,
+            confirmText: 'Yes, Delete Course',
+            variant: 'destructive',
+            onConfirm: () => {
+                setDeletingCourseId(courseId);
+                router.delete(`/courses/${courseId}`, {
+                    onSuccess: () => {
+                        showSuccess('Course deleted successfully.');
+                    },
+                    onError: () => {
+                        showError('Failed to delete course. Please try again.');
+                    },
+                    onFinish: () => setDeletingCourseId(null)
+                });
+            }
+        });
     };
 
     const getStatusBadge = (status: string) => {
@@ -263,14 +285,12 @@ function Index({ courses, userRole }: CoursesPageProps) {
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleDelete(course.id);
-                                                                    }}
-                                                                    className="text-destructive"
+                                                                    onClick={() => handleDelete(course.id, course.name)}
+                                                                    className="text-red-600"
+                                                                    disabled={deletingCourseId === course.id}
                                                                 >
                                                                     <Trash2 className="mr-2 h-4 w-4" />
-                                                                    Delete
+                                                                    {deletingCourseId === course.id ? 'Deleting...' : 'Delete'}
                                                                 </DropdownMenuItem>
                                                             </>
                                                         )}
@@ -311,14 +331,12 @@ function Index({ courses, userRole }: CoursesPageProps) {
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleDelete(course.id);
-                                                                    }}
-                                                                    className="text-destructive"
+                                                                    onClick={() => handleDelete(course.id, course.name)}
+                                                                    className="text-red-600"
+                                                                    disabled={deletingCourseId === course.id}
                                                                 >
                                                                     <Trash2 className="mr-2 h-4 w-4" />
-                                                                    Delete
+                                                                    {deletingCourseId === course.id ? 'Deleting...' : 'Delete'}
                                                                 </DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
@@ -371,6 +389,7 @@ function Index({ courses, userRole }: CoursesPageProps) {
                     </div>
                 )}
             </div>
+            {confirmDialog}
         </AppLayout>
     );
 }
