@@ -6,8 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
-import { ModuleItemPreview } from '@/components/module-item-preview';
 import { useAuth } from '@/hooks/use-auth';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
     ArrowLeft,
     Plus,
@@ -24,10 +24,18 @@ import {
     Clock,
     CheckCircle,
     XCircle,
-    ExternalLink
+    ExternalLink,
+    MoreVertical
 } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 
 function Show({ course, module }: CourseModuleShowPageProps) {
     const [draggedItem, setDraggedItem] = useState<number | null>(null);
@@ -36,6 +44,7 @@ function Show({ course, module }: CourseModuleShowPageProps) {
     const { patch } = useForm();
     const { canManageCourse } = useAuth();
     const { confirm, confirmDialog } = useConfirmDialog();
+    const isMobile = useIsMobile();
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Courses', href: '/courses' },
@@ -182,7 +191,7 @@ function Show({ course, module }: CourseModuleShowPageProps) {
 
         const itemType = getItemType(item);
         if (itemType === 'lecture') {
-            return (item.itemable as any)?.video_url || null;
+            return (item.itemable as { video_url?: string })?.video_url || null;
         }
 
         return null;
@@ -192,258 +201,368 @@ function Show({ course, module }: CourseModuleShowPageProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${module.title} - ${course.name}`} />
 
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/courses/${course.id}/modules`}>
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to Modules
-                            </Link>
-                        </Button>
-                        <div>
-                            <div className="flex items-center gap-3 mb-1">
-                                <h1 className="text-2xl font-bold">{module.title}</h1>
+            <div className="flex h-full flex-1 flex-col gap-4 lg:gap-6 overflow-x-auto rounded-xl p-4 lg:p-6">
+                {/* Enhanced Header - Mobile Optimized */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                            <Button variant="ghost" size={isMobile ? "sm" : "default"} asChild>
+                                <Link href={`/courses/${course.id}/modules`}>
+                                    <ArrowLeft className="mr-2 h-4 w-4" />
+                                    <span className="hidden sm:inline">Back to Modules</span>
+                                    <span className="sm:hidden">Back</span>
+                                </Link>
+                            </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">{module.title}</h1>
                                 {module.is_published ? (
-                                    <Badge variant="default" className="text-xs">
+                                    <Badge variant="default" className="self-start bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                                         <CheckCircle className="mr-1 h-3 w-3" />
                                         Published
                                     </Badge>
                                 ) : (
-                                    <Badge variant="secondary" className="text-xs">
+                                    <Badge variant="secondary" className="self-start bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
                                         <XCircle className="mr-1 h-3 w-3" />
                                         Draft
                                     </Badge>
                                 )}
                             </div>
-                            <p className="text-muted-foreground">
-                                Module {module.order} in {course.name}
-                            </p>
+
+                            {module.description && (
+                                <p className="text-sm text-muted-foreground sm:text-base lg:text-lg">
+                                    {module.description}
+                                </p>
+                            )}
+
+                            <div className="flex items-center gap-4 text-xs sm:text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                    <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                                    {(module.moduleItems || module.module_items || module.items || []).length} items
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                                    Module {module.order}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
+                    {/* Action Buttons - Responsive */}
                     {isInstructor && (
-                        <div className="flex items-center gap-2">
-                            <LoadingButton
-                                variant="ghost"
-                                size="sm"
-                                loading={processingActions[module.id]}
-                                onClick={handleTogglePublished}
-                            >
-                                {module.is_published ? (
-                                    <>
-                                        <EyeOff className="mr-2 h-4 w-4" />
-                                        Unpublish
-                                    </>
-                                ) : (
-                                    <>
-                                        <Eye className="mr-2 h-4 w-4" />
-                                        Publish
-                                    </>
-                                )}
-                            </LoadingButton>
-                            <Button variant="outline" size="sm" asChild>
-                                <Link href={`/courses/${course.id}/modules/${module.id}/edit`}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit Module
-                                </Link>
-                            </Button>
-                            <LoadingButton
-                                variant="outline"
-                                size="sm"
-                                loading={processingActions[module.id]}
-                                onClick={handleDuplicate}
-                            >
-                                <Copy className="mr-2 h-4 w-4" />
-                                Duplicate
-                            </LoadingButton>
-                            <LoadingButton
-                                variant="outline"
-                                size="sm"
-                                loading={processingActions[module.id]}
-                                onClick={handleDelete}
-                                className="text-red-600 hover:text-red-700"
-                            >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                            </LoadingButton>
+                        <div className="flex shrink-0 items-center gap-2">
+                            {/* Mobile: Dropdown Menu */}
+                            {isMobile ? (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm">
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
+                                                <Plus className="mr-2 h-4 w-4" />
+                                                Add Item
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/courses/${course.id}/modules/${module.id}/edit`}>
+                                                <Edit className="mr-2 h-4 w-4" />
+                                                Edit Module
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={handleTogglePublished}>
+                                            {module.is_published ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                                            {module.is_published ? 'Unpublish' : 'Publish'}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={handleDuplicate}>
+                                            <Copy className="mr-2 h-4 w-4" />
+                                            Duplicate
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete Module
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            ) : (
+                                /* Desktop: Individual Buttons */
+                                <>
+                                    <Button asChild>
+                                        <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Add Item
+                                        </Link>
+                                    </Button>
+                                    <Button variant="outline" asChild>
+                                        <Link href={`/courses/${course.id}/modules/${module.id}/edit`}>
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            Edit
+                                        </Link>
+                                    </Button>
+                                    <LoadingButton
+                                        variant="outline"
+                                        size="default"
+                                        loading={processingActions[module.id]}
+                                        onClick={handleTogglePublished}
+                                    >
+                                        {module.is_published ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                                        {module.is_published ? 'Unpublish' : 'Publish'}
+                                    </LoadingButton>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="outline" size="default">
+                                                <MoreVertical className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={handleDuplicate}>
+                                                <Copy className="mr-2 h-4 w-4" />
+                                                Duplicate Module
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Delete Module
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
 
-                {/* Module Description */}
-                {module.description && (
-                    <Card>
-                        <CardContent className="pt-6">
-                            <p className="text-muted-foreground">{module.description}</p>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Module Items */}
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold">Module Content</h2>
-                    {isInstructor && (
-                        <Button asChild>
-                            <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add Item
-                            </Link>
-                        </Button>
-                    )}
-                </div>
-
-                {(module.moduleItems || module.module_items || module.items) &&
-                 (module.moduleItems || module.module_items || module.items)!.length > 0 ? (
-                    <div className="space-y-3">
-                        {(module.moduleItems || module.module_items || module.items)!.map((item, index) => (
-                            <Card
-                                key={item.id}
-                                className={`transition-all duration-200 hover:shadow-md ${
-                                    draggedItem === item.id ? 'opacity-50 scale-95' : ''
-                                }`}
-                                draggable={isInstructor}
-                                onDragStart={(e) => handleDragStart(e, item.id)}
-                                onDragOver={handleDragOver}
-                                onDrop={(e) => handleDrop(e, item.id)}
-                            >
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-4 flex-1">
-                                            {isInstructor && (
-                                                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                                            )}
-
-                                            <div className="flex items-center gap-3">
-                                                {getItemIcon(getItemType(item))}
-                                                <Badge variant="outline" className="text-xs">
-                                                    {index + 1}
-                                                </Badge>
-                                            </div>
-
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <h3 className="font-medium">{item.title}</h3>
-                                                    {item.is_required && (
-                                                        <Badge variant="destructive" className="text-xs">
-                                                            Required
-                                                        </Badge>
-                                                    )}
-                                                </div>
-
-                                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                    <span className="capitalize">{getItemType(item)}</span>
-                                                    {item.duration && (
-                                                        <>
-                                                            <span>•</span>
-                                                            <div className="flex items-center gap-1">
-                                                                <Clock className="h-3 w-3" />
-                                                                {formatDuration(item.duration)}
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                    {item.description && (
-                                                        <>
-                                                            <span>•</span>
-                                                            <span className="max-w-md truncate">
-                                                                {item.description}
-                                                            </span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-2">
-                                            {/* Quick Access Actions */}
-                                            {getItemType(item) === 'lecture' && getExternalUrl(item) && (
-                                                <Button variant="ghost" size="sm" asChild>
-                                                    <a
-                                                        href={getExternalUrl(item) || '#'}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                    >
-                                                        <ExternalLink className="h-4 w-4" />
-                                                    </a>
-                                                </Button>
-                                            )}
-
-                                                                        {/* Preview Button */}
-                            <ModuleItemPreview
-                                item={item}
-                                courseId={course.id}
-                                moduleId={module.id}
-                                trigger={
-                                    <Button variant="ghost" size="sm">
-                                        <Eye className="h-4 w-4" />
+                {/* Module Items List - Enhanced for Mobile */}
+                <div className="space-y-4 lg:space-y-6">
+                    {(module.moduleItems || module.module_items || module.items || []).length === 0 ? (
+                        <Card>
+                            <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16">
+                                <FileText className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mb-4" />
+                                <h3 className="text-lg sm:text-xl font-semibold mb-2">No module items yet</h3>
+                                <p className="text-sm sm:text-base text-muted-foreground text-center mb-6 max-w-md">
+                                    {isInstructor
+                                        ? "Start building your module by adding lectures, assignments, or assessments"
+                                        : "This module doesn't have any content yet"
+                                    }
+                                </p>
+                                {isInstructor && (
+                                    <Button asChild size={isMobile ? "sm" : "default"}>
+                                        <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Add First Item
+                                        </Link>
                                     </Button>
-                                }
-                            />
+                                )}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="space-y-3 sm:space-y-4">
+                            {(module.moduleItems || module.module_items || module.items || []).map((item) => {
+                                const itemType = getItemType(item);
+                                const externalUrl = getExternalUrl(item);
+                                const isProcessing = processingActions[item.id];
 
-                                            {/* Full View Button */}
-                                            <Button variant="outline" size="sm" asChild>
-                                                <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}`}>
-                                                    View
-                                                </Link>
-                                            </Button>
+                                return (
+                                    <Card
+                                        key={item.id}
+                                        className={`group hover:shadow-md transition-all duration-200 ${
+                                            draggedItem === item.id ? 'opacity-50' : ''
+                                        }`}
+                                        draggable={isInstructor && !isMobile}
+                                        onDragStart={(e) => handleDragStart(e, item.id)}
+                                        onDragOver={handleDragOver}
+                                        onDrop={(e) => handleDrop(e, item.id)}
+                                    >
+                                        <CardContent className="p-4 sm:p-6">
+                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                                                {/* Drag Handle & Item Info */}
+                                                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                                                    {/* Drag Handle - Desktop Only */}
+                                                    {isInstructor && !isMobile && (
+                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
+                                                            <GripVertical className="h-4 w-4 text-muted-foreground" />
+                                                        </div>
+                                                    )}
 
-                                            {isInstructor && (
-                                                <>
-                                                    <Button variant="ghost" size="sm" asChild>
-                                                        <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}/edit`}>
-                                                            <Edit className="h-4 w-4" />
+                                                    {/* Item Type Icon */}
+                                                    <div className="flex-shrink-0">
+                                                        {getItemIcon(itemType)}
+                                                    </div>
+
+                                                    {/* Item Details */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                                                            <h3 className="font-semibold text-sm sm:text-base line-clamp-1">
+                                                                {item.title}
+                                                            </h3>
+                                                            <div className="flex items-center gap-2">
+                                                                <Badge variant="outline" className="text-xs">
+                                                                    {itemType}
+                                                                </Badge>
+                                                                {item.status === 'published' ? (
+                                                                    <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                                        Published
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <Badge variant="secondary" className="text-xs">
+                                                                        Draft
+                                                                    </Badge>
+                                                                )}
+                                                                {item.is_required && (
+                                                                    <Badge variant="outline" className="text-xs border-red-200 text-red-700 dark:border-red-800 dark:text-red-300">
+                                                                        Required
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {item.description && (
+                                                            <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">
+                                                                {item.description}
+                                                            </p>
+                                                        )}
+
+                                                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                                            <span>#{item.order}</span>
+                                                            {item.duration && (
+                                                                <span className="flex items-center gap-1">
+                                                                    <Clock className="h-3 w-3" />
+                                                                    {formatDuration(item.duration)}
+                                                                </span>
+                                                            )}
+                                                            {item.view_count > 0 && (
+                                                                <span className="flex items-center gap-1">
+                                                                    <Eye className="h-3 w-3" />
+                                                                    {item.view_count} views
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Action Buttons */}
+                                                <div className="flex items-center gap-2 justify-end sm:justify-start">
+                                                    {/* Primary Action */}
+                                                    <Button
+                                                        size="sm"
+                                                        asChild
+                                                        className="flex-1 sm:flex-initial"
+                                                    >
+                                                        <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}`}>
+                                                            <Eye className="mr-2 h-4 w-4" />
+                                                            <span className="hidden sm:inline">View</span>
+                                                            <span className="sm:hidden">View</span>
                                                         </Link>
                                                     </Button>
-                                                    <LoadingButton
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        loading={processingActions[item.id]}
-                                                        onClick={() => handleItemDuplicate(item.id)}
-                                                    >
-                                                        <Copy className="h-4 w-4" />
-                                                    </LoadingButton>
-                                                    <LoadingButton
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        loading={processingActions[item.id]}
-                                                        onClick={() => handleItemDelete(item.id, item.title)}
-                                                        className="text-red-600 hover:text-red-700"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </LoadingButton>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                ) : (
-                    <Card>
-                        <CardContent className="flex flex-col items-center justify-center py-12">
-                            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-semibold mb-2">No content yet</h3>
-                            <p className="text-muted-foreground text-center mb-4">
-                                {isInstructor
-                                    ? "Start adding content to this module"
-                                    : "This module doesn't have any content yet."
-                                }
-                            </p>
-                            {isInstructor && (
-                                <Button asChild>
-                                    <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Add First Item
-                                    </Link>
-                                </Button>
-                            )}
-                        </CardContent>
-                    </Card>
-                )}
 
-                {/* Confirm Dialog */}
+                                                    {/* External Link */}
+                                                    {externalUrl && (
+                                                        <Button variant="outline" size="sm" asChild>
+                                                            <a href={externalUrl} target="_blank" rel="noopener noreferrer">
+                                                                <ExternalLink className="h-4 w-4" />
+                                                            </a>
+                                                        </Button>
+                                                    )}
+
+                                                    {/* Instructor Actions */}
+                                                    {isInstructor && (
+                                                        <>
+                                                            {/* Mobile: Dropdown */}
+                                                            {isMobile ? (
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger asChild>
+                                                                        <Button variant="outline" size="sm">
+                                                                            <MoreVertical className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent align="end" className="w-40">
+                                                                        <DropdownMenuItem asChild>
+                                                                            <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}/edit`}>
+                                                                                <Edit className="mr-2 h-4 w-4" />
+                                                                                Edit
+                                                                            </Link>
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem
+                                                                            onClick={() => handleItemDuplicate(item.id)}
+                                                                            disabled={isProcessing}
+                                                                        >
+                                                                            <Copy className="mr-2 h-4 w-4" />
+                                                                            Duplicate
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuSeparator />
+                                                                        <DropdownMenuItem
+                                                                            onClick={() => handleItemDelete(item.id, item.title)}
+                                                                            className="text-destructive"
+                                                                        >
+                                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                                            Delete
+                                                                        </DropdownMenuItem>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            ) : (
+                                                                /* Desktop: Individual Buttons */
+                                                                <>
+                                                                    <Button variant="outline" size="sm" asChild>
+                                                                        <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}/edit`}>
+                                                                            <Edit className="h-4 w-4" />
+                                                                        </Link>
+                                                                    </Button>
+                                                                    <DropdownMenu>
+                                                                        <DropdownMenuTrigger asChild>
+                                                                            <Button variant="outline" size="sm">
+                                                                                <MoreVertical className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </DropdownMenuTrigger>
+                                                                        <DropdownMenuContent align="end">
+                                                                            <DropdownMenuItem
+                                                                                onClick={() => handleItemDuplicate(item.id)}
+                                                                                disabled={isProcessing}
+                                                                            >
+                                                                                <Copy className="mr-2 h-4 w-4" />
+                                                                                Duplicate Item
+                                                                            </DropdownMenuItem>
+                                                                            <DropdownMenuSeparator />
+                                                                            <DropdownMenuItem
+                                                                                onClick={() => handleItemDelete(item.id, item.title)}
+                                                                                className="text-destructive"
+                                                                            >
+                                                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                                                Delete Item
+                                                                            </DropdownMenuItem>
+                                                                        </DropdownMenuContent>
+                                                                    </DropdownMenu>
+                                                                </>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Add Item Button - Instructor Only */}
+                    {isInstructor && (module.moduleItems || module.module_items || module.items || []).length > 0 && (
+                        <div className="flex justify-center pt-4">
+                            <Button variant="outline" asChild size={isMobile ? "sm" : "default"}>
+                                <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add Another Item
+                                </Link>
+                            </Button>
+                        </div>
+                    )}
+                </div>
+
                 {confirmDialog}
             </div>
         </AppLayout>

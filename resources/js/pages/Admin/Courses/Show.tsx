@@ -304,8 +304,8 @@ export default function Show({ course, stats, recentActivity }: Props) {
           </div>
         </div>
 
-        {/* Statistics Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Enhanced Statistics Dashboard */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           <StatCard
             title="Total Students"
             value={stats.total_students}
@@ -332,11 +332,23 @@ export default function Show({ course, stats, recentActivity }: Props) {
             icon={Target}
             color="text-orange-600"
           />
+          <StatCard
+            title="Assessments"
+            value={stats.total_assessments}
+            icon={FileText}
+            color="text-blue-600"
+          />
+          <StatCard
+            title="Discussions"
+            value={stats.total_discussions}
+            icon={MessageSquare}
+            color="text-green-600"
+          />
         </div>
 
         {/* Main Content with Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-5 w-full max-w-2xl">
+          <TabsList className="grid grid-cols-5 w-full">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Eye className="h-4 w-4" />
               Overview
@@ -376,78 +388,84 @@ export default function Show({ course, stats, recentActivity }: Props) {
                 </Card>
               </div>
 
-              {/* Progress Overview */}
+              {/* Content Progress */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Progress Overview</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5 text-blue-600" />
+                    Content Progress
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium">Enrollment Rate</span>
-                      <span className="text-sm text-muted-foreground">{stats.enrollment_rate}%</span>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium">Published Modules</span>
+                        <span className="text-sm font-semibold text-blue-600">
+                          {stats.total_published_modules}/{stats.total_modules}
+                        </span>
+                      </div>
+                      <Progress
+                        value={stats.total_modules > 0 ? (stats.total_published_modules / stats.total_modules) * 100 : 0}
+                        className="h-2"
+                      />
                     </div>
-                    <Progress value={stats.enrollment_rate} className="h-3" />
-                  </div>
 
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium">Completion Rate</span>
-                      <span className="text-sm text-muted-foreground">{stats.completion_rate}%</span>
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      <div className="text-center p-3 rounded-lg border">
+                        <p className="text-lg font-bold text-green-600">{stats.total_modules}</p>
+                        <p className="text-xs text-muted-foreground">Total Modules</p>
+                      </div>
+                      <div className="text-center p-3 rounded-lg border">
+                        <p className="text-lg font-bold text-orange-600">{stats.total_assignments}</p>
+                        <p className="text-xs text-muted-foreground">Assignments</p>
+                      </div>
                     </div>
-                    <Progress value={stats.completion_rate} className="h-3" />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium">Published Modules</span>
-                      <span className="text-sm text-muted-foreground">
-                        {stats.total_published_modules}/{stats.total_modules}
-                      </span>
-                    </div>
-                    <Progress
-                      value={stats.total_modules > 0 ? (stats.total_published_modules / stats.total_modules) * 100 : 0}
-                      className="h-3"
-                    />
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Performance Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Assessments</p>
-                      <p className="text-2xl font-bold">{stats.total_assessments}</p>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    Performance Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 rounded-lg bg-blue-50 dark:bg-blue-950">
+                      <p className="text-2xl font-bold text-blue-600">{stats.enrollment_rate}%</p>
+                      <p className="text-sm text-muted-foreground">Enrollment Rate</p>
                     </div>
-                    <FileText className="h-8 w-8 text-blue-600" />
+                    <div className="text-center p-4 rounded-lg bg-green-50 dark:bg-green-950">
+                      <p className="text-2xl font-bold text-green-600">{stats.completion_rate}%</p>
+                      <p className="text-sm text-muted-foreground">Completion Rate</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bell className="h-5 w-5 text-orange-600" />
+                    Communication Stats
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 rounded-lg bg-orange-50 dark:bg-orange-950">
+                      <p className="text-2xl font-bold text-orange-600">{stats.total_announcements}</p>
                       <p className="text-sm text-muted-foreground">Announcements</p>
-                      <p className="text-2xl font-bold">{stats.total_announcements}</p>
                     </div>
-                    <Bell className="h-8 w-8 text-green-600" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Discussions</p>
-                      <p className="text-2xl font-bold">{stats.total_discussions}</p>
+                    <div className="text-center p-4 rounded-lg bg-purple-50 dark:bg-purple-950">
+                      <p className="text-2xl font-bold text-purple-600">{stats.total_discussions}</p>
+                      <p className="text-sm text-muted-foreground">Active Discussions</p>
                     </div>
-                    <MessageSquare className="h-8 w-8 text-purple-600" />
                   </div>
                 </CardContent>
               </Card>
@@ -474,65 +492,85 @@ export default function Show({ course, stats, recentActivity }: Props) {
               </div>
             </div>
 
-            {/* Content Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="border-l-4 border-l-blue-500">
+            {/* Content Status Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                      <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    </div>
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Modules</p>
-                      <p className="text-2xl font-bold">{course.modules.length}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {stats.total_published_modules} published
-                      </p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <BookOpen className="h-4 w-4 text-blue-600" />
+                        <p className="text-sm font-medium text-muted-foreground">Module Status</p>
+                      </div>
+                      <p className="text-lg font-bold">{stats.total_published_modules}/{course.modules.length}</p>
+                      <p className="text-xs text-muted-foreground">Published/Total</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                        <span className="text-sm font-bold text-blue-600">
+                          {course.modules.length > 0 ? Math.round((stats.total_published_modules / course.modules.length) * 100) : 0}%
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-l-4 border-l-orange-500">
+              <Card className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                      <Target className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                    </div>
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Assignments</p>
-                      <p className="text-2xl font-bold">{course.assignments.length}</p>
-                      <p className="text-xs text-muted-foreground">Active</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Target className="h-4 w-4 text-orange-600" />
+                        <p className="text-sm font-medium text-muted-foreground">Active Tasks</p>
+                      </div>
+                      <p className="text-lg font-bold">{course.assignments.length + course.assessments.length}</p>
+                      <p className="text-xs text-muted-foreground">Assignments + Assessments</p>
+                    </div>
+                    <div className="text-right">
+                      <Badge variant="outline" className="text-orange-600 border-orange-600">
+                        {course.assignments.length} + {course.assessments.length}
+                      </Badge>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-l-4 border-l-purple-500">
+              <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                      <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                    </div>
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Assessments</p>
-                      <p className="text-2xl font-bold">{course.assessments.length}</p>
-                      <p className="text-xs text-muted-foreground">Quizzes & Tests</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <MessageSquare className="h-4 w-4 text-green-600" />
+                        <p className="text-sm font-medium text-muted-foreground">Communication</p>
+                      </div>
+                      <p className="text-lg font-bold">{course.discussions.length}</p>
+                      <p className="text-xs text-muted-foreground">Active Discussions</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                        <MessageSquare className="h-5 w-5 text-green-600" />
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-l-4 border-l-green-500">
+              <Card className="border-l-4 border-l-purple-500 hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                      <MessageSquare className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    </div>
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Discussions</p>
-                      <p className="text-2xl font-bold">{course.discussions.length}</p>
-                      <p className="text-xs text-muted-foreground">Forums</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Bell className="h-4 w-4 text-purple-600" />
+                        <p className="text-sm font-medium text-muted-foreground">Updates</p>
+                      </div>
+                      <p className="text-lg font-bold">{course.announcements.length}</p>
+                      <p className="text-xs text-muted-foreground">Recent Announcements</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                        <Bell className="h-5 w-5 text-purple-600" />
+                      </div>
                     </div>
                   </div>
                 </CardContent>
