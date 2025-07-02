@@ -35,7 +35,9 @@ import {
     SelectValue
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useFlashToast } from '@/hooks/use-flash-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface User {
     id: number;
@@ -88,10 +90,18 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
     // Initialize toast notifications
     useFlashToast();
 
+    // Initialize confirmation dialog
+    const { confirm, confirmDialog } = useConfirmDialog();
+
+    // Initialize toast for manual notifications
+    const { success: showSuccess, error: showError } = useToast();
+
     const [search, setSearch] = useState(filters.search || '');
     const [roleFilter, setRoleFilter] = useState(filters.role || 'all');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
     const [loading, setLoading] = useState(false);
+    const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
+    const [togglingUserId, setTogglingUserId] = useState<number | null>(null);
 
     const handleSearch = () => {
         setLoading(true);
@@ -115,16 +125,48 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
         });
     };
 
-    const handleToggleActive = (userId: number, userName: string) => {
-        if (confirm(`Are you sure you want to toggle the status for ${userName}?`)) {
-            router.patch(route('admin.users.toggle-active', userId));
-        }
+    const handleToggleActive = (userId: number, userName: string, isActive: boolean) => {
+        const action = isActive ? 'deactivate' : 'activate';
+        const actionPast = isActive ? 'deactivated' : 'activated';
+        confirm({
+            title: `${action.charAt(0).toUpperCase() + action.slice(1)} User`,
+            description: `Are you sure you want to ${action} ${userName}?`,
+            confirmText: `Yes, ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+            variant: 'default',
+            onConfirm: () => {
+                setTogglingUserId(userId);
+                router.patch(route('admin.users.toggle-active', userId), {}, {
+                    onSuccess: () => {
+                        showSuccess(`User ${actionPast} successfully.`);
+                    },
+                    onError: () => {
+                        showError('Failed to update user status. Please try again.');
+                    },
+                    onFinish: () => setTogglingUserId(null)
+                });
+            }
+        });
     };
 
     const handleDelete = (userId: number, userName: string) => {
-        if (confirm(`Are you sure you want to delete ${userName}? This action cannot be undone.`)) {
-            router.delete(route('admin.users.destroy', userId));
-        }
+        confirm({
+            title: 'Delete User',
+            description: `Are you sure you want to delete ${userName}? This action cannot be undone and will permanently remove all associated data.`,
+            confirmText: 'Yes, Delete User',
+            variant: 'destructive',
+            onConfirm: () => {
+                setDeletingUserId(userId);
+                router.delete(route('admin.users.destroy', userId), {
+                    onSuccess: () => {
+                        showSuccess('User deleted successfully.');
+                    },
+                    onError: () => {
+                        showError('Failed to delete user. Please try again.');
+                    },
+                    onFinish: () => setDeletingUserId(null)
+                });
+            }
+        });
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -364,8 +406,16 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
                                                             Edit
                                                         </Link>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleToggleActive(user.id, user.name)}>
-                                                        {user.is_active ? (
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleToggleActive(user.id, user.name, user.is_active)}
+                                                        disabled={togglingUserId === user.id}
+                                                    >
+                                                        {togglingUserId === user.id ? (
+                                                            <>
+                                                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                                                                {user.is_active ? 'Deactivating...' : 'Activating...'}
+                                                            </>
+                                                        ) : user.is_active ? (
                                                             <>
                                                                 <UserX className="mr-2 h-4 w-4" />
                                                                 Deactivate
@@ -380,9 +430,10 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
                                                     <DropdownMenuItem
                                                         onClick={() => handleDelete(user.id, user.name)}
                                                         className="text-red-600"
+                                                        disabled={deletingUserId === user.id}
                                                     >
                                                         <Trash2 className="mr-2 h-4 w-4" />
-                                                        Delete
+                                                        {deletingUserId === user.id ? 'Deleting...' : 'Delete'}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -440,6 +491,7 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
                     </CardContent>
                 </Card>
             </div>
+            {confirmDialog}
         </AppLayout>
     );
 }
