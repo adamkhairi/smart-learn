@@ -22,7 +22,10 @@ import {
   UserPlus,
   GraduationCap,
   Target,
-  Activity
+  Activity,
+  Plus,
+  MoreHorizontal,
+  Trash2
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -34,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface Course {
   id: number;
@@ -452,108 +456,577 @@ export default function Show({ course, stats, recentActivity }: Props) {
 
           {/* Content Tab */}
           <TabsContent value="content" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Modules */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <BookOpen className="h-5 w-5" />
-                      Modules ({course.modules.length})
-                    </CardTitle>
-                    <Button size="sm" variant="outline">
-                      Add Module
-                    </Button>
+            {/* Content Management Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">Course Content Management</h3>
+                <p className="text-muted-foreground">Manage modules, assignments, assessments, and discussions</p>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export Content
+                </Button>
+                <Button size="sm" variant="outline">
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Bulk Publish
+                </Button>
+              </div>
+            </div>
+
+            {/* Content Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card className="border-l-4 border-l-blue-500">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                      <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Modules</p>
+                      <p className="text-2xl font-bold">{course.modules.length}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {stats.total_published_modules} published
+                      </p>
+                    </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {course.modules.length > 0 ? (
-                    <div className="space-y-3">
-                      {course.modules.map((module, index) => (
-                        <div key={module.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-medium">
-                            {index + 1}
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium">{module.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {module.module_items.length} items
-                            </div>
-                          </div>
-                          <Badge variant={module.is_published ? 'default' : 'secondary'}>
-                            {module.is_published ? 'Published' : 'Draft'}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">No modules created yet</p>
-                      <Button size="sm" className="mt-2">Create First Module</Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 
-              {/* Assignments & Assessments */}
-              <div className="space-y-4">
+              <Card className="border-l-4 border-l-orange-500">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                      <Target className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Assignments</p>
+                      <p className="text-2xl font-bold">{course.assignments.length}</p>
+                      <p className="text-xs text-muted-foreground">Active</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-purple-500">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                      <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Assessments</p>
+                      <p className="text-2xl font-bold">{course.assessments.length}</p>
+                      <p className="text-xs text-muted-foreground">Quizzes & Tests</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-green-500">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                      <MessageSquare className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Discussions</p>
+                      <p className="text-2xl font-bold">{course.discussions.length}</p>
+                      <p className="text-xs text-muted-foreground">Forums</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Content Management Tabs */}
+            <Tabs defaultValue="modules" className="space-y-4">
+              <TabsList className="grid grid-cols-5 w-full">
+                <TabsTrigger value="modules">Modules</TabsTrigger>
+                <TabsTrigger value="assignments">Assignments</TabsTrigger>
+                <TabsTrigger value="assessments">Assessments</TabsTrigger>
+                <TabsTrigger value="discussions">Discussions</TabsTrigger>
+                <TabsTrigger value="announcements">Announcements</TabsTrigger>
+              </TabsList>
+
+              {/* Modules Management */}
+              <TabsContent value="modules" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Target className="h-5 w-5" />
-                      Assignments ({course.assignments.length})
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-5 w-5" />
+                        <CardTitle>Course Modules ({course.modules.length})</CardTitle>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline">
+                          <Eye className="mr-2 h-4 w-4" />
+                          Preview All
+                        </Button>
+                        <Link href={`/courses/${course.id}/modules/create`}>
+                          <Button size="sm">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Module
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {course.modules.length > 0 ? (
+                      <div className="space-y-4">
+                        {course.modules.map((module, index) => (
+                          <Card key={module.id} className="hover:shadow-md transition-shadow">
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold">
+                                  {index + 1}
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="font-semibold text-lg">{module.name}</h4>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant={module.is_published ? 'default' : 'secondary'}>
+                                        {module.is_published ? (
+                                          <>
+                                            <CheckCircle className="mr-1 h-3 w-3" />
+                                            Published
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Clock className="mr-1 h-3 w-3" />
+                                            Draft
+                                          </>
+                                        )}
+                                      </Badge>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button variant="ghost" size="sm">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                          <DropdownMenuItem asChild>
+                                            <Link href={`/courses/${course.id}/modules/${module.id}`}>
+                                              <Eye className="mr-2 h-4 w-4" />
+                                              View Details
+                                            </Link>
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem asChild>
+                                            <Link href={`/courses/${course.id}/modules/${module.id}/edit`}>
+                                              <Edit className="mr-2 h-4 w-4" />
+                                              Edit Module
+                                            </Link>
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem>
+                                            {module.is_published ? (
+                                              <>
+                                                <AlertCircle className="mr-2 h-4 w-4" />
+                                                Unpublish
+                                              </>
+                                            ) : (
+                                              <>
+                                                <CheckCircle className="mr-2 h-4 w-4" />
+                                                Publish
+                                              </>
+                                            )}
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem className="text-red-600">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete Module
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <FileText className="h-3 w-3" />
+                                      {module.module_items.length} items
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      ~{Math.max(1, Math.ceil(module.module_items.length * 15 / 60))}h duration
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Users className="h-3 w-3" />
+                                      {stats.total_students} students
+                                    </span>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
+                                      <Button size="sm" variant="outline">
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Add Content
+                                      </Button>
+                                    </Link>
+                                    <Button size="sm" variant="outline">
+                                      <BarChart3 className="mr-2 h-4 w-4" />
+                                      View Analytics
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No modules created yet</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Start building your course by creating the first module
+                        </p>
+                        <Link href={`/courses/${course.id}/modules/create`}>
+                          <Button>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Create First Module
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Assignments Management */}
+              <TabsContent value="assignments" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Target className="h-5 w-5" />
+                        <CardTitle>Course Assignments ({course.assignments.length})</CardTitle>
+                      </div>
+                      <Link href={`/courses/${course.id}/assignments/create`}>
+                        <Button size="sm">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create Assignment
+                        </Button>
+                      </Link>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {course.assignments.length > 0 ? (
-                      <div className="space-y-2">
-                        {course.assignments.slice(0, 3).map((assignment) => (
-                          <div key={assignment.id} className="flex items-center justify-between p-2 rounded border">
-                            <div>
-                              <div className="font-medium">{assignment.title}</div>
-                              <div className="text-sm text-muted-foreground">
-                                Due: {new Date(assignment.due_date).toLocaleDateString()}
+                      <div className="space-y-4">
+                        {course.assignments.map((assignment) => (
+                          <Card key={assignment.id} className="hover:shadow-md transition-shadow">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold text-lg">{assignment.title}</h4>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      Due: {new Date(assignment.due_date).toLocaleDateString()}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Users className="h-3 w-3" />
+                                      0 submissions
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline">Active</Badge>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem>
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        View Submissions
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem>
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Edit Assignment
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem>
+                                        <BarChart3 className="mr-2 h-4 w-4" />
+                                        View Analytics
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem className="text-red-600">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete Assignment
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
                               </div>
-                            </div>
-                            <Clock className="h-4 w-4 text-orange-600" />
-                          </div>
+                            </CardContent>
+                          </Card>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-muted-foreground text-center py-4">No assignments yet</p>
+                      <div className="text-center py-12">
+                        <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No assignments created yet</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Create assignments to assess student learning and progress
+                        </p>
+                        <Link href={`/courses/${course.id}/assignments/create`}>
+                          <Button>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Create First Assignment
+                          </Button>
+                        </Link>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
+              </TabsContent>
 
+              {/* Assessments Management */}
+              <TabsContent value="assessments" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Assessments ({course.assessments.length})
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        <CardTitle>Course Assessments ({course.assessments.length})</CardTitle>
+                      </div>
+                      <Link href={`/courses/${course.id}/assessments/create`}>
+                        <Button size="sm">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create Assessment
+                        </Button>
+                      </Link>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {course.assessments.length > 0 ? (
-                      <div className="space-y-2">
-                        {course.assessments.slice(0, 3).map((assessment) => (
-                          <div key={assessment.id} className="flex items-center justify-between p-2 rounded border">
-                            <div>
-                              <div className="font-medium">{assessment.title}</div>
-                              <div className="text-sm text-muted-foreground">
-                                Type: {assessment.type}
+                      <div className="space-y-4">
+                        {course.assessments.map((assessment) => (
+                          <Card key={assessment.id} className="hover:shadow-md transition-shadow">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold text-lg">{assessment.title}</h4>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <Badge variant="secondary">{assessment.type}</Badge>
+                                    <span className="flex items-center gap-1">
+                                      <Users className="h-3 w-3" />
+                                      0 attempts
+                                    </span>
+                                  </div>
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem>
+                                      <Eye className="mr-2 h-4 w-4" />
+                                      Preview Assessment
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit Assessment
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                      <BarChart3 className="mr-2 h-4 w-4" />
+                                      View Results
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-600">
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete Assessment
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
-                            </div>
-                          </div>
+                            </CardContent>
+                          </Card>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-muted-foreground text-center py-4">No assessments yet</p>
+                      <div className="text-center py-12">
+                        <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No assessments created yet</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Create quizzes and tests to evaluate student understanding
+                        </p>
+                        <Link href={`/courses/${course.id}/assessments/create`}>
+                          <Button>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Create First Assessment
+                          </Button>
+                        </Link>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
-              </div>
-            </div>
+              </TabsContent>
+
+              {/* Discussions Management */}
+              <TabsContent value="discussions" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="h-5 w-5" />
+                        <CardTitle>Course Discussions ({course.discussions.length})</CardTitle>
+                      </div>
+                      <Link href={`/courses/${course.id}/discussions/create`}>
+                        <Button size="sm">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Start Discussion
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {course.discussions.length > 0 ? (
+                      <div className="space-y-4">
+                        {course.discussions.map((discussion) => (
+                          <Card key={discussion.id} className="hover:shadow-md transition-shadow">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold text-lg">{discussion.title}</h4>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span>Started by {discussion.creator.name}</span>
+                                    <span>{new Date(discussion.created_at).toLocaleDateString()}</span>
+                                    <span className="flex items-center gap-1">
+                                      <MessageSquare className="h-3 w-3" />
+                                      0 replies
+                                    </span>
+                                  </div>
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem>
+                                      <Eye className="mr-2 h-4 w-4" />
+                                      View Discussion
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit Discussion
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                      <Bell className="mr-2 h-4 w-4" />
+                                      Pin Discussion
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-600">
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete Discussion
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No discussions started yet</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Create discussion forums to encourage student engagement
+                        </p>
+                        <Link href={`/courses/${course.id}/discussions/create`}>
+                          <Button>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Start First Discussion
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Announcements Management */}
+              <TabsContent value="announcements" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Bell className="h-5 w-5" />
+                        <CardTitle>Course Announcements ({course.announcements.length})</CardTitle>
+                      </div>
+                      <Link href={`/courses/${course.id}/announcements/create`}>
+                        <Button size="sm">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create Announcement
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {course.announcements.length > 0 ? (
+                      <div className="space-y-4">
+                        {course.announcements.map((announcement) => (
+                          <Card key={announcement.id} className="hover:shadow-md transition-shadow">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold text-lg">{announcement.title}</h4>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span>By {announcement.creator.name}</span>
+                                    <span>{new Date(announcement.created_at).toLocaleDateString()}</span>
+                                    <Badge variant="outline">Published</Badge>
+                                  </div>
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem>
+                                      <Eye className="mr-2 h-4 w-4" />
+                                      View Announcement
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit Announcement
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                      <Share2 className="mr-2 h-4 w-4" />
+                                      Send Notification
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-600">
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete Announcement
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Bell className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No announcements yet</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Keep students informed with important course announcements
+                        </p>
+                        <Link href={`/courses/${course.id}/announcements/create`}>
+                          <Button>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Create First Announcement
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           {/* Users Tab */}
