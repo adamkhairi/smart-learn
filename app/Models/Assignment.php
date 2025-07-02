@@ -21,6 +21,7 @@ class Assignment extends Model
     protected $fillable = [
         'assignment_type',
         'title',
+        'description',
         'total_points',
         'status',
         'visibility',
@@ -90,6 +91,38 @@ class Assignment extends Model
     public function submissions(): HasMany
     {
         return $this->hasMany(Submission::class);
+    }
+
+    /**
+     * Get likes for this assignment.
+     */
+    public function likes()
+    {
+        return $this->morphMany(Like::class, 'likeable');
+    }
+
+    /**
+     * Get bookmarks for this assignment.
+     */
+    public function bookmarks()
+    {
+        return $this->morphMany(Bookmark::class, 'bookmarkable');
+    }
+
+    /**
+     * Get comments for this assignment.
+     */
+    public function comments()
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+
+    /**
+     * Get the course module item this assignment belongs to.
+     */
+    public function moduleItem()
+    {
+        return $this->morphOne(CourseModuleItem::class, 'itemable');
     }
 
     /**

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import AppLayout from '@/layouts/app-layout';
 
 interface Course {
   id: number;
@@ -114,7 +115,7 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
   };
 
   return (
-    <>
+    <AppLayout>
       <Head title={`${course.name} - Enrollments`} />
 
       <div className="space-y-6">
@@ -374,6 +375,6 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
           </Card>
         )}
       </div>
-    </>
+    </AppLayout>
   );
 }

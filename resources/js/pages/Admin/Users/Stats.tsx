@@ -1,10 +1,11 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Users, UserCheck, UserX, TrendingUp, BookOpen, Calendar } from 'lucide-react';
+import { ArrowLeft, Users, UserCheck, UserX, TrendingUp, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import AppLayout from '@/layouts/app-layout';
 
 interface User {
     id: number;
@@ -54,7 +55,7 @@ export default function UserStats({ stats }: Props) {
     };
 
     return (
-        <>
+        <AppLayout>
             <Head title="User Statistics" />
 
             <div className="space-y-6">
@@ -228,6 +229,6 @@ export default function UserStats({ stats }: Props) {
                     </CardContent>
                 </Card>
             </div>
-        </>
+        </AppLayout>
     );
 }

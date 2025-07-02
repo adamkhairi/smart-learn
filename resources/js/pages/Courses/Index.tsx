@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Plus, Users, BookOpen, Calendar, Edit, Trash2, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '@/hooks/use-auth';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -15,6 +16,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function Index({ courses, userRole }: CoursesPageProps) {
+    const { user, canManageCourse, isStudent } = useAuth();
     const canCreateCourse = userRole === 'admin' || userRole === 'instructor';
 
     const handleDelete = (courseId: number) => {
@@ -36,7 +38,7 @@ function Index({ courses, userRole }: CoursesPageProps) {
     };
 
     const getRoleBadge = (course: Course) => {
-        if (course.creator?.id === courses[0]?.creator?.id) {
+        if (course.creator?.id === user?.id) {
             return (
                 <Badge variant="outline" className="border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300">
                     Creator
@@ -44,7 +46,7 @@ function Index({ courses, userRole }: CoursesPageProps) {
             );
         }
 
-        const enrollment = course.enrolled_users?.find((user: User) => user.id === courses[0]?.creator?.id);
+        const enrollment = course.enrolled_users?.find((enrolledUser: User) => enrolledUser.id === user?.id);
         if (enrollment) {
             return (
                 <Badge variant="outline" className="border-purple-200 text-purple-700 dark:border-purple-800 dark:text-purple-300">
@@ -57,7 +59,11 @@ function Index({ courses, userRole }: CoursesPageProps) {
     };
 
     const canEditCourse = (course: Course) => {
-        return userRole === 'admin' || course.created_by === courses[0]?.creator?.id;
+        // Students cannot edit any course
+        if (isStudent) return false;
+
+        // Use the proper authentication check
+        return canManageCourse(course.created_by);
     };
 
     console.log('courses', courses);
@@ -65,7 +71,7 @@ function Index({ courses, userRole }: CoursesPageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Courses" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold">Courses</h1>
@@ -107,19 +113,24 @@ function Index({ courses, userRole }: CoursesPageProps) {
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
                         {courses.map((course) => (
                             <Card
                                 key={course.id}
-                                className="group hover:shadow-lg transition-all"
+                                className="group hover:shadow-lg transition-all h-full"
                             >
-                                <CardHeader className="pb-3">
+                                <CardHeader className="pb-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <CardTitle className="line-clamp-2">
-                                                    {course.name}
-                                                </CardTitle>
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <Link
+                                                    href={`/courses/${course.id}`}
+                                                    className="block"
+                                                >
+                                                    <CardTitle className="line-clamp-2 hover:text-primary transition-colors cursor-pointer text-lg">
+                                                        {course.name}
+                                                    </CardTitle>
+                                                </Link>
                                             </div>
                                             <div className="flex items-center gap-2 mb-2">
                                                 {getStatusBadge(course.status)}
@@ -165,20 +176,22 @@ function Index({ courses, userRole }: CoursesPageProps) {
                                         </div>
                                     </div>
                                 </CardHeader>
-                                <CardContent>
-                                    {course.description && (
-                                        <CardDescription className="line-clamp-3 mb-4">
-                                            {course.description}
-                                        </CardDescription>
-                                    )}
+                                <CardContent className="pt-0 flex flex-col justify-between flex-1">
+                                    <div>
+                                        {course.description && (
+                                            <CardDescription className="line-clamp-3 mb-6 text-base leading-relaxed">
+                                                {course.description}
+                                            </CardDescription>
+                                        )}
+                                    </div>
 
-                                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex items-center gap-1">
+                                    <div className="flex items-center justify-between text-sm text-muted-foreground mt-4">
+                                        <div className="flex items-center gap-6">
+                                            <div className="flex items-center gap-2">
                                                 <Users className="h-4 w-4" />
-                                                <span>{course.enrolled_users?.length || 0}</span>
+                                                <span>{course.enrolled_users?.length || 0} students</span>
                                             </div>
-                                            <div className="flex items-center gap-1">
+                                            <div className="flex items-center gap-2">
                                                 <BookOpen className="h-4 w-4" />
                                                 <span>{course.modules?.length || 0} modules</span>
                                             </div>

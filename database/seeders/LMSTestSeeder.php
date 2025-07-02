@@ -81,7 +81,8 @@ class LMSTestSeeder extends Seeder
             foreach ($likers as $liker) {
                 Like::factory()->create([
                     'user_id' => $liker->id,
-                    'article_id' => $article->id,
+                    'likeable_id' => $article->id,
+                    'likeable_type' => Article::class,
                 ]);
             }
 
@@ -90,7 +91,8 @@ class LMSTestSeeder extends Seeder
             foreach ($commenters as $commenter) {
                 Comment::factory()->create([
                     'user_id' => $commenter->id,
-                    'article_id' => $article->id,
+                    'commentable_id' => $article->id,
+                    'commentable_type' => Article::class,
                 ]);
             }
 
@@ -99,7 +101,8 @@ class LMSTestSeeder extends Seeder
             foreach ($bookmarkers as $bookmarker) {
                 Bookmark::factory()->create([
                     'user_id' => $bookmarker->id,
-                    'article_id' => $article->id,
+                    'bookmarkable_id' => $article->id,
+                    'bookmarkable_type' => Article::class,
                 ]);
             }
         }

@@ -115,9 +115,24 @@ class CourseController extends Controller
 
         // Determine if user is instructor for this course
         $isInstructor = $user->isAdmin() || $course->created_by === $user->id;
-        $userEnrollment = $course->enrolledUsers()
+
+        // Get user enrollment data
+        $userEnrollmentData = $course->enrolledUsers()
             ->where('user_id', $user->id)
             ->first();
+
+        // Format userEnrollment as expected by frontend
+        $userEnrollment = null;
+        if ($userEnrollmentData) {
+            $userEnrollment = [
+                'id' => $userEnrollmentData->pivot->id ?? null,
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+                'enrolled_as' => $userEnrollmentData->pivot->enrolled_as,
+                'created_at' => $userEnrollmentData->pivot->created_at,
+                'updated_at' => $userEnrollmentData->pivot->updated_at,
+            ];
+        }
 
         // Filter modules based on user role
         $modulesQuery = $course->modules();

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Head, useForm } from '@inertiajs/react';
-import { ArrowLeft, Save } from 'lucide-react';
+import { Head, useForm, Link } from '@inertiajs/react';
+import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,11 +13,29 @@ import {
     SelectValue
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import InputError from '@/components/input-error';
-import { Link } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
 
-export default function CreateUser() {
-    const { data, setData, post, processing, errors } = useForm({
+interface Props {
+    flash?: {
+        success?: string;
+        error?: string;
+    };
+    errors?: Record<string, string>;
+}
+
+export default function CreateUser({ flash, errors }: Props) {
+    const { data, setData, post, processing, errors: formErrors } = useForm<{
+        name: string;
+        email: string;
+        username: string;
+        password: string;
+        password_confirmation: string;
+        role: string;
+        mobile: string;
+        is_active: boolean;
+    }>({
         name: '',
         email: '',
         username: '',
@@ -34,10 +52,25 @@ export default function CreateUser() {
     };
 
     return (
-        <>
+        <AppLayout>
             <Head title="Create User" />
 
-            <div className="space-y-6">
+            <div className="space-y-6 pt-4">
+                {/* Flash Messages */}
+                {flash?.success && (
+                    <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{flash.success}</AlertDescription>
+                    </Alert>
+                )}
+
+                {(flash?.error || errors?.error) && (
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{flash?.error || errors?.error}</AlertDescription>
+                    </Alert>
+                )}
+
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -57,7 +90,7 @@ export default function CreateUser() {
                 </div>
 
                 {/* Form */}
-                <Card className="max-w-2xl">
+                <Card className="w-full">
                     <CardHeader>
                         <CardTitle>User Information</CardTitle>
                     </CardHeader>
@@ -72,8 +105,9 @@ export default function CreateUser() {
                                         value={data.name}
                                         onChange={(e) => setData('name', e.target.value)}
                                         placeholder="Enter full name"
+                                        className={formErrors.name ? 'border-red-500' : ''}
                                     />
-                                    <InputError message={errors.name} />
+                                    <InputError message={formErrors.name} />
                                 </div>
 
                                 <div className="space-y-2">
@@ -84,8 +118,9 @@ export default function CreateUser() {
                                         value={data.email}
                                         onChange={(e) => setData('email', e.target.value)}
                                         placeholder="Enter email address"
+                                        className={formErrors.email ? 'border-red-500' : ''}
                                     />
-                                    <InputError message={errors.email} />
+                                    <InputError message={formErrors.email} />
                                 </div>
                             </div>
 
@@ -98,8 +133,12 @@ export default function CreateUser() {
                                         value={data.username}
                                         onChange={(e) => setData('username', e.target.value)}
                                         placeholder="Enter username (optional)"
+                                        className={formErrors.username ? 'border-red-500' : ''}
                                     />
-                                    <InputError message={errors.username} />
+                                    <InputError message={formErrors.username} />
+                                    <p className="text-xs text-muted-foreground">
+                                        Leave blank to auto-generate from name
+                                    </p>
                                 </div>
 
                                 <div className="space-y-2">
@@ -110,8 +149,9 @@ export default function CreateUser() {
                                         value={data.mobile}
                                         onChange={(e) => setData('mobile', e.target.value)}
                                         placeholder="Enter mobile number"
+                                        className={formErrors.mobile ? 'border-red-500' : ''}
                                     />
-                                    <InputError message={errors.mobile} />
+                                    <InputError message={formErrors.mobile} />
                                 </div>
                             </div>
 
@@ -124,8 +164,12 @@ export default function CreateUser() {
                                         value={data.password}
                                         onChange={(e) => setData('password', e.target.value)}
                                         placeholder="Enter password"
+                                        className={formErrors.password ? 'border-red-500' : ''}
                                     />
-                                    <InputError message={errors.password} />
+                                    <InputError message={formErrors.password} />
+                                    <p className="text-xs text-muted-foreground">
+                                        Minimum 8 characters
+                                    </p>
                                 </div>
 
                                 <div className="space-y-2">
@@ -136,8 +180,9 @@ export default function CreateUser() {
                                         value={data.password_confirmation}
                                         onChange={(e) => setData('password_confirmation', e.target.value)}
                                         placeholder="Confirm password"
+                                        className={formErrors.password_confirmation ? 'border-red-500' : ''}
                                     />
-                                    <InputError message={errors.password_confirmation} />
+                                    <InputError message={formErrors.password_confirmation} />
                                 </div>
                             </div>
 
@@ -145,7 +190,7 @@ export default function CreateUser() {
                                 <div className="space-y-2">
                                     <Label htmlFor="role">Role *</Label>
                                     <Select value={data.role} onValueChange={(value) => setData('role', value)}>
-                                        <SelectTrigger>
+                                        <SelectTrigger className={formErrors.role ? 'border-red-500' : ''}>
                                             <SelectValue placeholder="Select role" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -154,26 +199,32 @@ export default function CreateUser() {
                                             <SelectItem value="admin">Admin</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    <InputError message={errors.role} />
+                                    <InputError message={formErrors.role} />
+                                    <p className="text-xs text-muted-foreground">
+                                        Student: Can enroll in courses • Instructor: Can create courses • Admin: Full access
+                                    </p>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label>Status</Label>
-                                    <div className="flex items-center space-x-2">
+                                    <Label>Account Status</Label>
+                                    <div className="flex items-center space-x-2 pt-2">
                                         <Checkbox
                                             id="is_active"
                                             checked={data.is_active}
-                                            onCheckedChange={(checked) => setData('is_active', Boolean(checked))}
+                                            onCheckedChange={(checked) => setData('is_active', checked === true)}
                                         />
                                         <Label htmlFor="is_active" className="text-sm font-normal">
                                             Active account
                                         </Label>
                                     </div>
-                                    <InputError message={errors.is_active} />
+                                    <InputError message={formErrors.is_active} />
+                                    <p className="text-xs text-muted-foreground">
+                                        Inactive users cannot login
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="flex justify-end space-x-4">
+                            <div className="flex justify-end space-x-4 pt-4">
                                 <Link href={route('admin.users.index')}>
                                     <Button type="button" variant="outline">
                                         Cancel
@@ -188,6 +239,6 @@ export default function CreateUser() {
                     </CardContent>
                 </Card>
             </div>
-        </>
+        </AppLayout>
     );
 }

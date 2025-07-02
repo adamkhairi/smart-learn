@@ -22,9 +22,21 @@ class CommentFactory extends Factory
         return [
             'content' => $this->faker->paragraphs(2, true),
             'user_id' => User::factory(),
-            'article_id' => Article::factory(),
+            'commentable_id' => Article::factory(),
+            'commentable_type' => Article::class,
             'parent_id' => null,
         ];
+    }
+
+    /**
+     * Indicate that the comment is for a specific commentable model.
+     */
+    public function forCommentable($commentable): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'commentable_id' => $commentable->id,
+            'commentable_type' => get_class($commentable),
+        ]);
     }
 
     /**
@@ -32,9 +44,7 @@ class CommentFactory extends Factory
      */
     public function forArticle(Article $article): static
     {
-        return $this->state(fn (array $attributes) => [
-            'article_id' => $article->id,
-        ]);
+        return $this->forCommentable($article);
     }
 
     /**
@@ -54,7 +64,8 @@ class CommentFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'parent_id' => $comment->id,
-            'article_id' => $comment->article_id,
+            'commentable_id' => $comment->commentable_id,
+            'commentable_type' => $comment->commentable_type,
         ]);
     }
 }

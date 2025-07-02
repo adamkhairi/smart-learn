@@ -2,18 +2,15 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CourseModuleItem } from '@/types';
+import { CourseModuleItem, Lecture, Assessment, Assignment } from '@/types';
 import {
     Play,
     FileText,
-    Link as LinkIcon,
     HelpCircle,
     ClipboardList,
     Eye,
     ExternalLink,
-    Download,
     Clock,
-    CheckCircle,
     AlertCircle
 } from 'lucide-react';
 
@@ -27,15 +24,24 @@ interface ModuleItemPreviewProps {
 export function ModuleItemPreview({ item, courseId, moduleId, trigger }: ModuleItemPreviewProps) {
     const [open, setOpen] = useState(false);
 
+    // Helper function to get item type from polymorphic relationship
+    const getItemType = (): 'lecture' | 'assessment' | 'assignment' | 'unknown' => {
+        if (item.item_type_name) return item.item_type_name;
+
+        if (item.itemable_type?.includes('Lecture')) return 'lecture';
+        if (item.itemable_type?.includes('Assessment')) return 'assessment';
+        if (item.itemable_type?.includes('Assignment')) return 'assignment';
+
+        return 'unknown';
+    };
+
+    const itemType = getItemType();
+
     const getItemIcon = (type: string) => {
         switch (type) {
-            case 'video':
+            case 'lecture':
                 return <Play className="h-4 w-4 text-blue-500" />;
-            case 'document':
-                return <FileText className="h-4 w-4 text-green-500" />;
-            case 'link':
-                return <LinkIcon className="h-4 w-4 text-purple-500" />;
-            case 'quiz':
+            case 'assessment':
                 return <HelpCircle className="h-4 w-4 text-orange-500" />;
             case 'assignment':
                 return <ClipboardList className="h-4 w-4 text-red-500" />;
@@ -57,161 +63,163 @@ export function ModuleItemPreview({ item, courseId, moduleId, trigger }: ModuleI
     };
 
     const renderPreviewContent = () => {
-        switch (item.type) {
-            case 'video':
-                if (item.url) {
-                    const embedUrl = getYouTubeEmbedUrl(item.url);
+        if (!item.itemable) {
+            return (
+                <div className="text-center py-8">
+                    <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Preview not available</p>
+                </div>
+            );
+        }
+
+        switch (itemType) {
+            case 'lecture': {
+                const lecture = item.itemable as Lecture;
+
+                // Handle YouTube videos
+                if (lecture.video_url || lecture.youtube_id) {
+                    const videoUrl = lecture.video_url;
+                    const embedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) :
+                        lecture.youtube_id ? `https://www.youtube.com/embed/${lecture.youtube_id}` : null;
+
                     if (embedUrl) {
                         return (
                             <div className="space-y-4">
                                 <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
                                     <iframe
                                         src={embedUrl}
-                                        title={item.title}
+                                        title={lecture.title}
                                         className="w-full h-full"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     />
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <ExternalLink className="h-4 w-4" />
-                                    <a
-                                        href={item.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="hover:text-primary"
-                                    >
-                                        Watch on YouTube
-                                    </a>
-                                </div>
+                                {lecture.video_url && (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <ExternalLink className="h-4 w-4" />
+                                        <a
+                                            href={lecture.video_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="hover:text-primary"
+                                        >
+                                            Watch on YouTube
+                                        </a>
+                                    </div>
+                                )}
                             </div>
                         );
                     }
                 }
-                return (
-                    <div className="text-center py-8">
-                        <Play className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">
-                            {item.url ? (
-                                <a
-                                    href={item.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:underline"
-                                >
-                                    Open Video Link
-                                </a>
-                            ) : (
-                                'No video URL provided'
-                            )}
-                        </p>
-                    </div>
-                );
 
-            case 'document':
+                // Handle lecture content or no content
                 return (
                     <div className="space-y-4">
-                        <div className="text-center py-8">
-                            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <p className="text-muted-foreground mb-4">Document preview</p>
-                            {item.url && (
-                                <Button asChild>
-                                    <a
-                                        href={`/storage/${item.url}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        <Download className="mr-2 h-4 w-4" />
-                                        Download Document
-                                    </a>
-                                </Button>
-                            )}
-                        </div>
-                        {item.description && (
-                            <div className="border-t pt-4">
-                                <p className="text-sm text-muted-foreground mb-2">Description:</p>
-                                <p className="text-sm">{item.description}</p>
-                            </div>
-                        )}
-                    </div>
-                );
-
-            case 'link':
-                return (
-                    <div className="text-center py-8">
-                        <LinkIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground mb-4">External Resource</p>
-                        {item.url && (
-                            <>
-                                <Button asChild className="mb-4">
-                                    <a
-                                        href={item.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        <ExternalLink className="mr-2 h-4 w-4" />
-                                        Open Link
-                                    </a>
-                                </Button>
-                                <p className="text-xs text-muted-foreground break-all">
-                                    {item.url}
-                                </p>
-                            </>
-                        )}
-                        {item.description && (
-                            <div className="border-t pt-4 mt-4">
-                                <p className="text-sm text-muted-foreground mb-2">Description:</p>
-                                <p className="text-sm">{item.description}</p>
-                            </div>
-                        )}
-                    </div>
-                );
-
-            case 'quiz':
-            case 'assignment':
-                return (
-                    <div className="space-y-4">
-                        {item.content ? (
+                        {lecture.content ? (
                             <div className="prose max-w-none">
-                                <div className="whitespace-pre-wrap text-sm">{item.content}</div>
+                                <div className="whitespace-pre-wrap text-sm line-clamp-4">{lecture.content}</div>
                             </div>
                         ) : (
                             <div className="text-center py-8">
-                                {item.type === 'quiz' ? (
-                                    <HelpCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                ) : (
-                                    <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                )}
+                                <Play className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                                 <p className="text-muted-foreground">
-                                    {item.description || 'No preview available'}
+                                    {lecture.description || item.description || 'No preview available'}
                                 </p>
-                            </div>
-                        )}
-
-                        {item.url && (
-                            <div className="border-t pt-4">
-                                <p className="text-sm text-muted-foreground mb-2">
-                                    Additional Resource:
-                                </p>
-                                <Button variant="outline" size="sm" asChild>
-                                    <a
-                                        href={item.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        <ExternalLink className="mr-2 h-4 w-4" />
-                                        Open Resource
-                                    </a>
-                                </Button>
                             </div>
                         )}
                     </div>
                 );
+            }
+
+            case 'assessment': {
+                const assessment = item.itemable as Assessment;
+                return (
+                    <div className="space-y-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-center gap-3 mb-2">
+                                <HelpCircle className="h-5 w-5 text-blue-600" />
+                                <h3 className="font-semibold text-blue-800">
+                                    {assessment.type.charAt(0).toUpperCase() + assessment.type.slice(1)} Assessment
+                                </h3>
+                            </div>
+                            <div className="text-sm text-blue-700 space-y-1">
+                                {assessment.max_score && (
+                                    <p>Max Score: {assessment.max_score} points</p>
+                                )}
+                                {assessment.duration && (
+                                    <p>Duration: {formatDuration(assessment.duration)}</p>
+                                )}
+                                <p>Status: {assessment.visibility}</p>
+                            </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                            {item.description || 'Click to start this assessment'}
+                        </p>
+                    </div>
+                );
+            }
+
+            case 'assignment': {
+                const assignment = item.itemable as Assignment;
+                const isOpen = assignment.status === 'open';
+                const isEnded = assignment.status === 'ended';
+
+                return (
+                    <div className="space-y-4">
+                        <div className={`border rounded-lg p-4 ${
+                            isOpen ? 'bg-green-50 border-green-200' :
+                            isEnded ? 'bg-red-50 border-red-200' :
+                            'bg-yellow-50 border-yellow-200'
+                        }`}>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-3">
+                                    <ClipboardList className={`h-5 w-5 ${
+                                        isOpen ? 'text-green-600' :
+                                        isEnded ? 'text-red-600' :
+                                        'text-yellow-600'
+                                    }`} />
+                                    <h3 className={`font-semibold ${
+                                        isOpen ? 'text-green-800' :
+                                        isEnded ? 'text-red-800' :
+                                        'text-yellow-800'
+                                    }`}>
+                                        Assignment
+                                    </h3>
+                                </div>
+                                <Badge variant={
+                                    isOpen ? 'default' :
+                                    isEnded ? 'destructive' :
+                                    'secondary'
+                                }>
+                                    {assignment.status.replace('-', ' ')}
+                                </Badge>
+                            </div>
+                            <div className={`text-sm space-y-1 ${
+                                isOpen ? 'text-green-700' :
+                                isEnded ? 'text-red-700' :
+                                'text-yellow-700'
+                            }`}>
+                                {assignment.total_points && (
+                                    <p>Points: {assignment.total_points}</p>
+                                )}
+                                {assignment.expired_at && (
+                                    <p>Due: {new Date(assignment.expired_at).toLocaleDateString()}</p>
+                                )}
+                            </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                            {item.description || 'Click to view assignment details'}
+                        </p>
+                    </div>
+                );
+            }
 
             default:
                 return (
                     <div className="text-center py-8">
                         <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">Preview not available</p>
+                        <p className="text-muted-foreground">
+                            {item.description || 'Preview not available'}
+                        </p>
                     </div>
                 );
         }
@@ -222,24 +230,27 @@ export function ModuleItemPreview({ item, courseId, moduleId, trigger }: ModuleI
             <DialogTrigger asChild>
                 {trigger || (
                     <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4 mr-2" />
-                        Preview
+                        <Eye className="h-4 w-4" />
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-3">
-                        {getItemIcon(item.type)}
-                        <span>{item.title}</span>
+                    <DialogTitle className="flex items-center gap-2">
+                        {getItemIcon(itemType)}
+                        {item.title}
                         {item.is_required && (
                             <Badge variant="destructive" className="text-xs">
                                 Required
                             </Badge>
                         )}
                     </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                    {/* Item metadata */}
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="capitalize">{item.type}</span>
+                        <span className="capitalize">{itemType}</span>
                         {item.duration && (
                             <>
                                 <span>•</span>
@@ -249,36 +260,28 @@ export function ModuleItemPreview({ item, courseId, moduleId, trigger }: ModuleI
                                 </div>
                             </>
                         )}
-                        <span>•</span>
-                        <div className="flex items-center gap-1">
-                            {item.is_required ? (
-                                <>
-                                    <CheckCircle className="h-3 w-3 text-green-500" />
-                                    Required
-                                </>
-                            ) : (
-                                <>
-                                    <AlertCircle className="h-3 w-3 text-orange-500" />
-                                    Optional
-                                </>
-                            )}
-                        </div>
+                        {item.view_count > 0 && (
+                            <>
+                                <span>•</span>
+                                <span>{item.view_count} views</span>
+                            </>
+                        )}
                     </div>
-                </DialogHeader>
 
-                <div className="mt-4">
+                    {/* Content preview */}
                     {renderPreviewContent()}
-                </div>
 
-                <div className="flex justify-between items-center mt-6 pt-4 border-t">
-                    <div className="text-sm text-muted-foreground">
-                        Want to access all features?
+                    {/* Action buttons */}
+                    <div className="flex justify-between items-center pt-4 border-t">
+                        <Button variant="outline" onClick={() => setOpen(false)}>
+                            Close Preview
+                        </Button>
+                        <Button asChild>
+                            <a href={`/courses/${courseId}/modules/${moduleId}/items/${item.id}`}>
+                                View Full Item
+                            </a>
+                        </Button>
                     </div>
-                    <Button asChild>
-                        <a href={`/courses/${courseId}/modules/${moduleId}/items/${item.id}`}>
-                            View Full Item
-                        </a>
-                    </Button>
                 </div>
             </DialogContent>
         </Dialog>

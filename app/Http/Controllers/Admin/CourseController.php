@@ -242,7 +242,7 @@ class CourseController extends Controller
     {
         $course->load(['enrolledUsers']);
 
-        $enrolledUsers = $course->enrolledUsers()->with('profile')->get();
+        $enrolledUsers = $course->enrolledUsers()->get();
         $availableUsers = User::whereNotIn('id', $enrolledUsers->pluck('id'))->get();
 
         return Inertia::render('Admin/Courses/Enrollments', [

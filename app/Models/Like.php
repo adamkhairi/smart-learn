@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Like extends Model
 {
@@ -17,7 +18,8 @@ class Like extends Model
      */
     protected $fillable = [
         'user_id',
-        'article_id',
+        'likeable_id',
+        'likeable_type',
     ];
 
     /**
@@ -29,19 +31,20 @@ class Like extends Model
     }
 
     /**
-     * Get the article that was liked.
+     * Get the likeable model (Article, DiscussionComment, etc.).
      */
-    public function article(): BelongsTo
+    public function likeable(): MorphTo
     {
-        return $this->belongsTo(Article::class);
+        return $this->morphTo();
     }
 
     /**
-     * Scope to get likes for a specific article.
+     * Scope to get likes for a specific likeable model.
      */
-    public function scopeForArticle($query, int $articleId)
+    public function scopeForLikeable($query, string $type, int $id)
     {
-        return $query->where('article_id', $articleId);
+        return $query->where('likeable_type', $type)
+                    ->where('likeable_id', $id);
     }
 
     /**
@@ -50,5 +53,21 @@ class Like extends Model
     public function scopeByUser($query, int $userId)
     {
         return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Scope to get likes for articles.
+     */
+    public function scopeForArticles($query)
+    {
+        return $query->where('likeable_type', Article::class);
+    }
+
+    /**
+     * Scope to get likes for discussion comments.
+     */
+    public function scopeForDiscussionComments($query)
+    {
+        return $query->where('likeable_type', DiscussionComment::class);
     }
 }

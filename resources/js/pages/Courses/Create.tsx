@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CourseCreatePageProps } from '@/types';
+import { BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +21,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-function Create({ }: CourseCreatePageProps) {
+function Create() {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         description: '',
@@ -41,14 +41,18 @@ function Create({ }: CourseCreatePageProps) {
     };
 
     const generateRandomColor = () => {
-        const color = '#' + Math.floor(Math.random()*16777215).toString(16);
-        setData('background_color', color);
+        const colors = [
+            '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+            '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
+        ];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        setData('background_color', randomColor);
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Create Course" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" asChild>
                         <Link href="/courses">
@@ -129,23 +133,39 @@ function Create({ }: CourseCreatePageProps) {
                             {/* Background Color */}
                             <div className="space-y-2">
                                 <Label htmlFor="background_color">Background Color</Label>
-                                <div className="flex items-center gap-2">
-                                    <Input
-                                        id="background_color"
-                                        type="color"
-                                        value={data.background_color}
-                                        onChange={(e) => setData('background_color', e.target.value)}
-                                        className="w-16 h-10 p-1 border rounded"
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={generateRandomColor}
-                                    >
-                                        <Palette className="mr-2 h-4 w-4" />
-                                        Random
-                                    </Button>
+                                <div className="space-y-2">
+                                    {/* Color Preview */}
+                                    {data.background_color && (
+                                        <div
+                                            className="w-full h-16 rounded-lg border shadow-sm"
+                                            style={{ backgroundColor: data.background_color }}
+                                        />
+                                    )}
+
+                                    {/* Color Controls */}
+                                    <div className="flex items-center gap-2">
+                                        <div
+                                            className="w-8 h-8 rounded border"
+                                            style={{ backgroundColor: data.background_color || '#f3f4f6' }}
+                                        />
+                                        <Input
+                                            id="background_color"
+                                            type="text"
+                                            value={data.background_color}
+                                            onChange={(e) => setData('background_color', e.target.value)}
+                                            placeholder="#3B82F6"
+                                            className="font-mono text-sm"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={generateRandomColor}
+                                        >
+                                            <Palette className="mr-2 h-4 w-4" />
+                                            Random
+                                        </Button>
+                                    </div>
                                 </div>
                                 {errors.background_color && (
                                     <p className="text-sm text-red-500">{errors.background_color}</p>

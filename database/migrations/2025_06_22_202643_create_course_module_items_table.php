@@ -15,20 +15,21 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->text('description')->nullable();
-            $table->enum('type', ['video', 'document', 'link', 'quiz', 'assignment']);
-            $table->string('url')->nullable();
-            $table->longText('content')->nullable();
             $table->foreignId('course_module_id')->constrained('course_modules')->cascadeOnDelete();
+            $table->morphs('itemable'); // Creates itemable_id and itemable_type columns for polymorphic relation
             $table->integer('order')->default(0);
-            $table->integer('duration')->nullable(); // in seconds
             $table->boolean('is_required')->default(false);
+            $table->enum('status', ['draft', 'published'])->default('published');
+            $table->unsignedInteger('view_count')->default(0);
+            $table->timestamp('last_viewed_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
             // Indexes
             $table->index(['course_module_id', 'order']);
-            $table->index('type');
+            $table->index(['itemable_id', 'itemable_type']);
             $table->index('is_required');
+            $table->index('status');
         });
     }
 

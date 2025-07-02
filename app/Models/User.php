@@ -112,13 +112,7 @@ class User extends Authenticatable
         return $this->hasMany(Like::class);
     }
 
-    /**
-     * Get views by this user.
-     */
-    public function views(): HasMany
-    {
-        return $this->hasMany(View::class);
-    }
+
 
     /**
      * Get bookmarks by this user.
@@ -142,6 +136,14 @@ class User extends Authenticatable
     public function createdCourses(): HasMany
     {
         return $this->hasMany(Course::class, 'created_by');
+    }
+
+    /**
+     * Get lectures created by this user.
+     */
+    public function lectures(): HasMany
+    {
+        return $this->hasMany(Lecture::class, 'created_by');
     }
 
     /**

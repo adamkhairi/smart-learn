@@ -60,8 +60,8 @@ export interface Course {
     created_by?: number;
     image?: string;
     background_color?: string;
-    status: 'published' | 'archived';
-    files?: any[];
+    status: 'draft' | 'published' | 'archived';
+    files?: string[];
     created_at: string;
     updated_at: string;
     creator?: User;
@@ -95,14 +95,50 @@ export interface CourseModuleItem {
     course_module_id: number;
     title: string;
     description?: string;
-    type: 'video' | 'document' | 'link' | 'quiz' | 'assignment';
-    url?: string;
-    content?: string;
+    itemable_id: number;
+    itemable_type: string;
+    itemable?: Lecture | Assessment | Assignment;
     order: number;
-    duration?: number;
     is_required: boolean;
+    status: 'draft' | 'published';
+    view_count: number;
+    last_viewed_at?: string;
     created_at: string;
     updated_at: string;
+    // Helper computed properties
+    item_type_name?: 'lecture' | 'assessment' | 'assignment' | 'unknown';
+    duration?: number;
+    formatted_duration?: string;
+}
+
+export interface Lecture {
+    id: number;
+    title: string;
+    description?: string;
+    content?: string;
+    video_url?: string;
+    youtube_id?: string;
+    duration?: number;
+    metadata?: Record<string, unknown>;
+    course_id: number;
+    course_module_id?: number;
+    created_by?: number;
+    order: number;
+    is_published: boolean;
+    view_count: number;
+    created_at: string;
+    updated_at: string;
+    creator?: User;
+    course?: Course;
+    courseModule?: CourseModule;
+    likes?: Like[];
+    comments?: Comment[];
+    bookmarks?: Bookmark[];
+    moduleItem?: CourseModuleItem;
+    // Computed properties
+    formatted_duration?: string;
+    youtube_embed_url?: string;
+    youtube_thumbnail?: string;
 }
 
 export interface Assignment {
@@ -110,22 +146,146 @@ export interface Assignment {
     course_id: number;
     title: string;
     description?: string;
-    due_date?: string;
-    points?: number;
+    assignment_type?: string;
+    total_points?: number;
+    status: 'coming-soon' | 'open' | 'ended';
+    visibility: boolean;
+    started_at?: string;
+    expired_at?: string;
+    created_by?: number;
+    questions?: Question[];
     created_at: string;
     updated_at: string;
+    creator?: User;
+    course?: Course;
+    submissions?: Submission[];
+    likes?: Like[];
+    comments?: Comment[];
+    bookmarks?: Bookmark[];
+    moduleItem?: CourseModuleItem;
+    // Computed properties
+    points?: number; // Alias for total_points
+    due_date?: string; // Alias for expired_at
 }
 
 export interface Assessment {
     id: number;
     course_id: number;
     title: string;
-    description?: string;
     type: 'quiz' | 'exam' | 'project';
-    duration?: number;
-    total_points?: number;
+    max_score?: number;
+    weight?: number;
+    questions_type?: string;
+    submission_type?: string;
+    visibility: 'published' | 'unpublished';
+    created_by?: number;
+    files?: string[];
     created_at: string;
     updated_at: string;
+    creator?: User;
+    course?: Course;
+    questions?: Question[];
+    submissions?: Submission[];
+    likes?: Like[];
+    comments?: Comment[];
+    bookmarks?: Bookmark[];
+    moduleItem?: CourseModuleItem;
+    // Computed properties
+    total_points?: number; // Alias for max_score
+    duration?: number;
+}
+
+export interface Question {
+    id: number;
+    assessment_id: number;
+    question_number: number;
+    points: number;
+    type: 'MCQ' | 'Essay' | 'TrueFalse';
+    auto_graded: boolean;
+    choices?: Record<string, string>;
+    answer?: string;
+    keywords?: string[];
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Submission {
+    id: number;
+    user_id: number;
+    course_id: number;
+    assessment_id?: number;
+    assignment_id?: number;
+    answers: Record<string, unknown>;
+    submitted_at?: string;
+    plagiarism_status: string;
+    auto_grading_status: string;
+    score?: number;
+    created_at: string;
+    updated_at: string;
+    user?: User;
+    course?: Course;
+    assessment?: Assessment;
+    assignment?: Assignment;
+}
+
+// Polymorphic relationship interfaces
+export interface Like {
+    id: number;
+    user_id: number;
+    likeable_id: number;
+    likeable_type: string;
+    created_at: string;
+    updated_at: string;
+    user?: User;
+    likeable?: Article | Lecture | Assessment | Assignment | Comment;
+}
+
+export interface Comment {
+    id: number;
+    content: string;
+    user_id: number;
+    commentable_id: number;
+    commentable_type: string;
+    parent_id?: number;
+    created_at: string;
+    updated_at: string;
+    user?: User;
+    commentable?: Article | Lecture | Assessment | Assignment;
+    parent?: Comment;
+    replies?: Comment[];
+    likes?: Like[];
+}
+
+export interface Bookmark {
+    id: number;
+    user_id: number;
+    bookmarkable_id: number;
+    bookmarkable_type: string;
+    created_at: string;
+    updated_at: string;
+    user?: User;
+    bookmarkable?: Article | Lecture | Assessment | Assignment;
+}
+
+export interface Article {
+    id: number;
+    title: string;
+    text?: string;
+    lang?: string;
+    content_type?: string;
+    url?: string;
+    content_id?: number;
+    created_by: number;
+    created_at: string;
+    updated_at: string;
+    creator?: User;
+    likes?: Like[];
+    comments?: Comment[];
+    bookmarks?: Bookmark[];
+    // Computed properties
+    likes_count?: number;
+    is_liked_by_user?: boolean;
+    is_bookmarked_by_user?: boolean;
 }
 
 export interface Announcement {
@@ -172,7 +332,7 @@ export interface CourseShowPageProps extends PageProps {
 }
 
 export interface CourseCreatePageProps extends PageProps {
-    //
+    instructors?: User[];
 }
 
 export interface CourseEditPageProps extends PageProps {

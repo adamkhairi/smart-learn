@@ -21,8 +21,20 @@ class LikeFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'article_id' => Article::factory(),
+            'likeable_id' => Article::factory(),
+            'likeable_type' => Article::class,
         ];
+    }
+
+    /**
+     * Indicate that the like is for a specific likeable model.
+     */
+    public function forLikeable($likeable): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'likeable_id' => $likeable->id,
+            'likeable_type' => get_class($likeable),
+        ]);
     }
 
     /**
@@ -30,9 +42,7 @@ class LikeFactory extends Factory
      */
     public function forArticle(Article $article): static
     {
-        return $this->state(fn (array $attributes) => [
-            'article_id' => $article->id,
-        ]);
+        return $this->forLikeable($article);
     }
 
     /**

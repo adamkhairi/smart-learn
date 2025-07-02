@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import InputError from '@/components/input-error';
+import AppLayout from '@/layouts/app-layout';
 
 interface Instructor {
   id: number;
@@ -91,7 +92,7 @@ export default function Edit({ course, instructors, errors }: Props) {
   };
 
   return (
-    <>
+    <AppLayout>
       <Head title={`Edit ${course.name}`} />
 
       <div className="space-y-6">
@@ -280,6 +281,6 @@ export default function Edit({ course, instructors, errors }: Props) {
           </div>
         </form>
       </div>
-    </>
+    </AppLayout>
   );
 }

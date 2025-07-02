@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { CourseModuleItemShowPageProps } from '@/types';
+import { CourseModuleItemShowPageProps, Lecture, Assessment, Assignment } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,13 +11,11 @@ import {
     Edit,
     Play,
     FileText,
-    Link as LinkIcon,
     HelpCircle,
     ClipboardList,
     Download,
     ExternalLink,
     Clock,
-    CheckCircle,
     AlertCircle,
     ChevronLeft,
     ChevronRight
@@ -42,15 +40,24 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
     const previousItem = currentIndex > 0 ? items[currentIndex - 1] : null;
     const nextItem = currentIndex < items.length - 1 ? items[currentIndex + 1] : null;
 
+    // Helper function to get item type from polymorphic relationship
+    const getItemType = (): 'lecture' | 'assessment' | 'assignment' | 'unknown' => {
+        if (item.item_type_name) return item.item_type_name;
+
+        if (item.itemable_type?.includes('Lecture')) return 'lecture';
+        if (item.itemable_type?.includes('Assessment')) return 'assessment';
+        if (item.itemable_type?.includes('Assignment')) return 'assignment';
+
+        return 'unknown';
+    };
+
+    const itemType = getItemType();
+
     const getItemIcon = (type: string) => {
         switch (type) {
-            case 'video':
+            case 'lecture':
                 return <Play className="h-5 w-5 text-blue-500" />;
-            case 'document':
-                return <FileText className="h-5 w-5 text-green-500" />;
-            case 'link':
-                return <LinkIcon className="h-5 w-5 text-purple-500" />;
-            case 'quiz':
+            case 'assessment':
                 return <HelpCircle className="h-5 w-5 text-orange-500" />;
             case 'assignment':
                 return <ClipboardList className="h-5 w-5 text-red-500" />;
@@ -72,149 +79,192 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
     };
 
     const renderContent = () => {
-        switch (item.type) {
-            case 'video':
-                if (item.url) {
-                    const embedUrl = getYouTubeEmbedUrl(item.url);
+        if (!item.itemable) {
+            return (
+                <div className="text-center py-8">
+                    <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Content not available</p>
+                </div>
+            );
+        }
+
+        switch (itemType) {
+            case 'lecture': {
+                const lecture = item.itemable as Lecture;
+
+                // Handle YouTube videos
+                if (lecture.video_url || lecture.youtube_id) {
+                    const videoUrl = lecture.video_url;
+                    const embedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) :
+                        lecture.youtube_id ? `https://www.youtube.com/embed/${lecture.youtube_id}` : null;
+
                     if (embedUrl) {
                         return (
                             <div className="space-y-4">
                                 <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
                                     <iframe
                                         src={embedUrl}
-                                        title={item.title}
+                                        title={lecture.title}
                                         className="w-full h-full"
                                         allowFullScreen
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     />
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <ExternalLink className="h-4 w-4" />
-                                    <a
-                                        href={item.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="hover:text-primary"
-                                    >
-                                        Watch on YouTube
-                                    </a>
-                                </div>
+                                {lecture.video_url && (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <ExternalLink className="h-4 w-4" />
+                                        <a
+                                            href={lecture.video_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="hover:text-primary"
+                                        >
+                                            Watch on YouTube
+                                        </a>
+                                    </div>
+                                )}
+                                {lecture.content && (
+                                    <div className="prose max-w-none mt-6">
+                                        <h3>Lecture Notes</h3>
+                                        <div className="whitespace-pre-wrap">{lecture.content}</div>
+                                    </div>
+                                )}
                             </div>
                         );
                     }
                 }
-                return (
-                    <div className="text-center py-8">
-                        <Play className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">
-                            {item.url ? (
-                                <a
-                                    href={item.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:underline"
-                                >
-                                    Open Video Link
-                                </a>
-                            ) : (
-                                'No video URL provided'
-                            )}
-                        </p>
-                    </div>
-                );
 
-            case 'document':
-                return (
-                    <div className="text-center py-8">
-                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        {item.url ? (
-                            <div className="space-y-4">
-                                <p className="text-muted-foreground">
-                                    Document available for download
-                                </p>
-                                <Button asChild>
-                                    <a
-                                        href={`/storage/${item.url}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        <Download className="mr-2 h-4 w-4" />
-                                        Download Document
-                                    </a>
-                                </Button>
-                            </div>
-                        ) : (
-                            <p className="text-muted-foreground">No document available</p>
-                        )}
-                    </div>
-                );
-
-            case 'link':
-                return (
-                    <div className="text-center py-8">
-                        <LinkIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        {item.url ? (
-                            <div className="space-y-4">
-                                <p className="text-muted-foreground">
-                                    External resource link
-                                </p>
-                                <Button asChild>
-                                    <a
-                                        href={item.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        <ExternalLink className="mr-2 h-4 w-4" />
-                                        Open Link
-                                    </a>
-                                </Button>
-                                <p className="text-xs text-muted-foreground break-all">
-                                    {item.url}
-                                </p>
-                            </div>
-                        ) : (
-                            <p className="text-muted-foreground">No link provided</p>
-                        )}
-                    </div>
-                );
-
-            case 'quiz':
-            case 'assignment':
+                // Handle lecture content without video
                 return (
                     <div className="space-y-4">
-                        {item.content ? (
+                        {lecture.content ? (
                             <div className="prose max-w-none">
-                                <div className="whitespace-pre-wrap">{item.content}</div>
+                                <div className="whitespace-pre-wrap">{lecture.content}</div>
                             </div>
                         ) : (
-                            <p className="text-muted-foreground">No content provided</p>
-                        )}
-
-                        {item.url && (
-                            <div className="border-t pt-4">
-                                <p className="text-sm text-muted-foreground mb-2">
-                                    Additional Resource:
+                            <div className="text-center py-8">
+                                <Play className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                <p className="text-muted-foreground">
+                                    {lecture.video_url ? (
+                                        <a
+                                            href={lecture.video_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:underline"
+                                        >
+                                            Open Video Link
+                                        </a>
+                                    ) : (
+                                        'No content provided for this lecture'
+                                    )}
                                 </p>
-                                <Button variant="outline" size="sm" asChild>
-                                    <a
-                                        href={item.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        <ExternalLink className="mr-2 h-4 w-4" />
-                                        Open Resource
-                                    </a>
-                                </Button>
                             </div>
                         )}
                     </div>
                 );
+            }
+
+            case 'assessment': {
+                const assessment = item.itemable as Assessment;
+                return (
+                    <div className="space-y-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-center gap-3 mb-2">
+                                <HelpCircle className="h-5 w-5 text-blue-600" />
+                                <h3 className="font-semibold text-blue-800">
+                                    {assessment.type.charAt(0).toUpperCase() + assessment.type.slice(1)} Assessment
+                                </h3>
+                            </div>
+                            <div className="text-sm text-blue-700 space-y-1">
+                                {assessment.max_score && (
+                                    <p>Max Score: {assessment.max_score} points</p>
+                                )}
+                                {assessment.duration && (
+                                    <p>Duration: {formatDuration(assessment.duration)}</p>
+                                )}
+                                <p>Status: {assessment.visibility}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <Button className="flex-1">
+                                <HelpCircle className="mr-2 h-4 w-4" />
+                                Start Assessment
+                            </Button>
+                            {assessment.files && assessment.files.length > 0 && (
+                                <Button variant="outline">
+                                    <Download className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            case 'assignment': {
+                const assignment = item.itemable as Assignment;
+                const isOpen = assignment.status === 'open';
+                const isEnded = assignment.status === 'ended';
+
+                return (
+                    <div className="space-y-4">
+                        <div className={`border rounded-lg p-4 ${
+                            isOpen ? 'bg-green-50 border-green-200' :
+                            isEnded ? 'bg-red-50 border-red-200' :
+                            'bg-yellow-50 border-yellow-200'
+                        }`}>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-3">
+                                    <ClipboardList className={`h-5 w-5 ${
+                                        isOpen ? 'text-green-600' :
+                                        isEnded ? 'text-red-600' :
+                                        'text-yellow-600'
+                                    }`} />
+                                    <h3 className={`font-semibold ${
+                                        isOpen ? 'text-green-800' :
+                                        isEnded ? 'text-red-800' :
+                                        'text-yellow-800'
+                                    }`}>
+                                        Assignment
+                                    </h3>
+                                </div>
+                                <Badge variant={
+                                    isOpen ? 'default' :
+                                    isEnded ? 'destructive' :
+                                    'secondary'
+                                }>
+                                    {assignment.status.replace('-', ' ')}
+                                </Badge>
+                            </div>
+                            <div className={`text-sm space-y-1 ${
+                                isOpen ? 'text-green-700' :
+                                isEnded ? 'text-red-700' :
+                                'text-yellow-700'
+                            }`}>
+                                {assignment.total_points && (
+                                    <p>Points: {assignment.total_points}</p>
+                                )}
+                                {assignment.expired_at && (
+                                    <p>Due: {new Date(assignment.expired_at).toLocaleDateString()}</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {isOpen && (
+                            <Button className="w-full">
+                                <ClipboardList className="mr-2 h-4 w-4" />
+                                Submit Assignment
+                            </Button>
+                        )}
+                    </div>
+                );
+            }
 
             default:
                 return (
                     <div className="text-center py-8">
                         <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">Content not available</p>
+                        <p className="text-muted-foreground">Content type not supported</p>
                     </div>
                 );
         }
@@ -222,28 +272,16 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
 
     return (
         <AppLayout>
-            <Head title={`${item.title} - ${module.title}`} />
+            <Head title={`${item.title} - ${module.title} - ${course.name}`} />
 
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                {/* Enhanced Breadcrumb Navigation */}
-                <div className="flex items-center justify-between">
-                    <NavigationBreadcrumb items={navigationItems} />
-                    {isInstructor && (
-                        <Button variant="outline" size="sm" asChild>
-                            <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}/edit`}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Item
-                            </Link>
-                        </Button>
-                    )}
-                </div>
+            <div className="container mx-auto px-4 py-6">
+                <NavigationBreadcrumb items={navigationItems} />
 
-                {/* Header with Item Navigation */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div>
                             <div className="flex items-center gap-3 mb-1">
-                                {getItemIcon(item.type)}
+                                {getItemIcon(itemType)}
                                 <h1 className="text-2xl font-bold">{item.title}</h1>
                                 {item.is_required && (
                                     <Badge variant="destructive" className="text-xs">
@@ -252,227 +290,93 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
                                 )}
                             </div>
                             <p className="text-muted-foreground">
-                                {item.type.charAt(0).toUpperCase() + item.type.slice(1)} • Item {currentIndex + 1} of {items.length} in {module.title}
+                                {itemType.charAt(0).toUpperCase() + itemType.slice(1)} • Item {currentIndex + 1} of {items.length} in {module.title}
                             </p>
                         </div>
                     </div>
 
-                    {/* Previous/Next Navigation */}
-                    <div className="flex items-center gap-2">
-                        {previousItem ? (
+                    {isInstructor && (
+                        <div className="flex items-center gap-2">
                             <Button variant="outline" size="sm" asChild>
-                                <Link href={`/courses/${course.id}/modules/${module.id}/items/${previousItem.id}`}>
-                                    <ChevronLeft className="mr-2 h-4 w-4" />
-                                    Previous
+                                <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}/edit`}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit
                                 </Link>
                             </Button>
-                        ) : (
-                            <Button variant="outline" size="sm" disabled>
-                                <ChevronLeft className="mr-2 h-4 w-4" />
-                                Previous
-                            </Button>
-                        )}
-
-                        {nextItem ? (
-                            <Button variant="outline" size="sm" asChild>
-                                <Link href={`/courses/${course.id}/modules/${module.id}/items/${nextItem.id}`}>
-                                    Next
-                                    <ChevronRight className="ml-2 h-4 w-4" />
-                                </Link>
-                            </Button>
-                        ) : (
-                            <Button variant="outline" size="sm" disabled>
-                                Next
-                                <ChevronRight className="ml-2 h-4 w-4" />
-                            </Button>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
                     {/* Main Content */}
                     <div className="lg:col-span-3">
                         <Card>
                             <CardHeader>
                                 <div className="flex items-center justify-between">
-                                    <CardTitle className="flex items-center gap-2">
-                                        {getItemIcon(item.type)}
-                                        {item.title}
-                                    </CardTitle>
-
-                                    {/* Item Metadata */}
-                                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                        <span className="capitalize">{item.type}</span>
-                                        {item.duration && (
-                                            <>
-                                                <span>•</span>
-                                                <div className="flex items-center gap-1">
-                                                    <Clock className="h-3 w-3" />
-                                                    {formatDuration(item.duration)}
-                                                </div>
-                                            </>
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2">
+                                            {getItemIcon(itemType)}
+                                            {item.title}
+                                        </CardTitle>
+                                        {item.description && (
+                                            <CardDescription className="mt-2">
+                                                {item.description}
+                                            </CardDescription>
                                         )}
-                                        <span>•</span>
-                                        <div className="flex items-center gap-1">
-                                            {item.is_required ? (
-                                                <>
-                                                    <CheckCircle className="h-3 w-3 text-green-500" />
-                                                    Required
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <AlertCircle className="h-3 w-3 text-orange-500" />
-                                                    Optional
-                                                </>
-                                            )}
-                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        {itemType === 'lecture' && item.itemable && (item.itemable as Lecture).duration && (
+                                            <div className="flex items-center gap-1">
+                                                <Clock className="h-4 w-4" />
+                                                {formatDuration((item.itemable as Lecture).duration)}
+                                            </div>
+                                        )}
+                                        {item.view_count && item.view_count > 0 && (
+                                            <div className="flex items-center gap-1">
+                                                <span>{item.view_count} views</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-
-                                {item.description && (
-                                    <CardDescription>{item.description}</CardDescription>
-                                )}
                             </CardHeader>
                             <CardContent>
                                 {renderContent()}
                             </CardContent>
                         </Card>
 
-                        {/* Navigation to Next/Previous Items */}
-                        {(previousItem || nextItem) && (
-                            <div className="flex justify-between gap-4 mt-6">
-                                {previousItem ? (
-                                    <Card className="flex-1 hover:shadow-md transition-shadow">
-                                        <CardContent className="p-4">
-                                            <Link
-                                                href={`/courses/${course.id}/modules/${module.id}/items/${previousItem.id}`}
-                                                className="block"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-                                                    <div>
-                                                        <p className="text-xs text-muted-foreground">Previous</p>
-                                                        <p className="font-medium text-sm">{previousItem.title}</p>
-                                                    </div>
-                                                </div>
-                                            </Link>
-                                        </CardContent>
-                                    </Card>
-                                ) : (
-                                    <div className="flex-1" />
-                                )}
+                        {/* Previous/Next Navigation */}
+                        <div className="flex justify-between mt-6">
+                            {previousItem ? (
+                                <Button variant="outline" asChild>
+                                    <Link href={`/courses/${course.id}/modules/${module.id}/items/${previousItem.id}`}>
+                                        <ChevronLeft className="mr-2 h-4 w-4" />
+                                        Previous: {previousItem.title}
+                                    </Link>
+                                </Button>
+                            ) : (
+                                <div />
+                            )}
 
-                                {nextItem ? (
-                                    <Card className="flex-1 hover:shadow-md transition-shadow">
-                                        <CardContent className="p-4">
-                                            <Link
-                                                href={`/courses/${course.id}/modules/${module.id}/items/${nextItem.id}`}
-                                                className="block"
-                                            >
-                                                <div className="flex items-center gap-3 justify-end text-right">
-                                                    <div>
-                                                        <p className="text-xs text-muted-foreground">Next</p>
-                                                        <p className="font-medium text-sm">{nextItem.title}</p>
-                                                    </div>
-                                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                                </div>
-                                            </Link>
-                                        </CardContent>
-                                    </Card>
-                                ) : (
-                                    <div className="flex-1" />
-                                )}
-                            </div>
-                        )}
+                            {nextItem ? (
+                                <Button asChild>
+                                    <Link href={`/courses/${course.id}/modules/${module.id}/items/${nextItem.id}`}>
+                                        Next: {nextItem.title}
+                                        <ChevronRight className="ml-2 h-4 w-4" />
+                                    </Link>
+                                </Button>
+                            ) : (
+                                <div />
+                            )}
+                        </div>
                     </div>
 
-                    {/* Enhanced Sidebar Navigation */}
-                    <div className="space-y-6">
+                    {/* Sidebar */}
+                    <div className="lg:col-span-1">
                         <ModuleNavigation
                             course={course}
                             module={module}
                             currentItem={item}
-                            completedItems={[]} // This would come from backend
                         />
-
-                        {/* Item Details Card */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">Item Details</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div>
-                                    <div className="flex justify-between text-sm">
-                                        <span>Type</span>
-                                        <span className="capitalize">{item.type}</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="flex justify-between text-sm">
-                                        <span>Position</span>
-                                        <span>{currentIndex + 1} of {items.length}</span>
-                                    </div>
-                                </div>
-                                {item.duration && (
-                                    <div>
-                                        <div className="flex justify-between text-sm">
-                                            <span>Duration</span>
-                                            <span className="flex items-center gap-1">
-                                                <Clock className="h-3 w-3" />
-                                                {formatDuration(item.duration)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
-                                <div>
-                                    <div className="flex justify-between text-sm">
-                                        <span>Required</span>
-                                        <span className="flex items-center gap-1">
-                                            {item.is_required ? (
-                                                <>
-                                                    <CheckCircle className="h-3 w-3 text-green-500" />
-                                                    Yes
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <AlertCircle className="h-3 w-3 text-orange-500" />
-                                                    No
-                                                </>
-                                            )}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="flex justify-between text-sm">
-                                        <span>Created</span>
-                                        <span>{new Date(item.created_at).toLocaleDateString()}</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Quick Actions for Instructors */}
-                        {isInstructor && (
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-lg">Actions</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-2">
-                                    <Button variant="outline" size="sm" asChild className="w-full justify-start">
-                                        <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}/edit`}>
-                                            <Edit className="mr-2 h-4 w-4" />
-                                            Edit Item
-                                        </Link>
-                                    </Button>
-                                    <Button variant="outline" size="sm" asChild className="w-full justify-start">
-                                        <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
-                                            <FileText className="mr-2 h-4 w-4" />
-                                            Add New Item
-                                        </Link>
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        )}
                     </div>
                 </div>
             </div>

@@ -97,13 +97,7 @@ class Course extends Model
         return $this->hasMany(Assignment::class);
     }
 
-    /**
-     * Get the exams for this course.
-     */
-    public function exams(): HasMany
-    {
-        return $this->hasMany(Exam::class);
-    }
+
 
     /**
      * Get the announcements for this course.
@@ -192,6 +186,14 @@ class Course extends Model
     }
 
     /**
+     * Check if course is draft.
+     */
+    public function isDraft(): bool
+    {
+        return $this->status === 'draft';
+    }
+
+    /**
      * Check if course is archived.
      */
     public function isArchived(): bool
@@ -237,7 +239,6 @@ class Course extends Model
             'total_published_modules' => $this->modules()->where('is_published', true)->count(),
             'total_assignments' => $this->assignments()->count(),
             'total_assessments' => $this->assessments()->count(),
-            'total_exams' => $this->exams()->count(),
             'total_announcements' => $this->announcements()->count(),
             'total_discussions' => $this->discussions()->count(),
             'enrollment_rate' => $this->calculateEnrollmentRate(),
@@ -258,33 +259,30 @@ class Course extends Model
 
     /**
      * Calculate completion rate based on module progress.
+     * Note: This is a simplified implementation that calculates overall engagement
+     * rather than per-user completion since we don't currently track user-specific views.
      */
     public function calculateCompletionRate(): float
     {
-        $totalModules = $this->modules()->where('is_published', true)->count();
-        if ($totalModules === 0) {
+        $totalItems = $this->modules()
+            ->where('is_published', true)
+            ->withCount('moduleItems')
+            ->get()
+            ->sum('module_items_count');
+
+        if ($totalItems === 0) {
             return 0;
         }
 
-        $students = $this->getStudents();
-        if ($students->count() === 0) {
-            return 0;
-        }
+        $viewedItems = $this->modules()
+            ->where('is_published', true)
+            ->withCount(['moduleItems' => function ($query) {
+                $query->where('view_count', '>', 0);
+            }])
+            ->get()
+            ->sum('module_items_count');
 
-        $totalProgress = 0;
-        foreach ($students as $student) {
-            $completedModules = $this->modules()
-                ->where('is_published', true)
-                ->whereHas('moduleItems', function ($query) use ($student) {
-                    $query->whereHas('views', function ($q) use ($student) {
-                        $q->where('user_id', $student->id);
-                    });
-                })
-                ->count();
-            $totalProgress += $completedModules;
-        }
-
-        return round(($totalProgress / ($totalModules * $students->count())) * 100, 2);
+        return round(($viewedItems / $totalItems) * 100, 2);
     }
 
     /**
@@ -324,7 +322,7 @@ class Course extends Model
 
         // Recent submissions
         $submissions = $this->assessments()
-            ->with(['submissions' => function ($query) {
+            ->with(['submissions' => function ($query) use ($limit) {
                 $query->latest()->limit($limit);
             }])
             ->get()
@@ -341,7 +339,7 @@ class Course extends Model
 
         // Sort by created_at and return limited results
         usort($activities, function ($a, $b) {
-            return $b['created_at']->compare($a['created_at']);
+            return $b['created_at'] <=> $a['created_at'];
         });
 
         return array_slice($activities, 0, $limit);
@@ -412,39 +410,35 @@ class Course extends Model
 
     /**
      * Get course progress for a specific user.
+     * Note: This returns general course engagement metrics since we don't currently
+     * track user-specific progress. In a production system, you'd want to implement
+     * proper user progress tracking.
      */
     public function getUserProgress(int $userId): array
     {
         $totalModules = $this->modules()->where('is_published', true)->count();
-        $completedModules = 0;
         $totalItems = 0;
-        $completedItems = 0;
+        $viewedItems = 0;
 
         foreach ($this->modules()->where('is_published', true)->get() as $module) {
             $moduleItems = $module->moduleItems;
             $totalItems += $moduleItems->count();
 
-            $moduleCompleted = true;
             foreach ($moduleItems as $item) {
-                if (!$item->views()->where('user_id', $userId)->exists()) {
-                    $moduleCompleted = false;
-                } else {
-                    $completedItems++;
+                if ($item->view_count > 0) {
+                    $viewedItems++;
                 }
-            }
-
-            if ($moduleCompleted) {
-                $completedModules++;
             }
         }
 
         return [
             'total_modules' => $totalModules,
-            'completed_modules' => $completedModules,
+            'completed_modules' => 0, // Cannot track without user-specific data
             'total_items' => $totalItems,
-            'completed_items' => $completedItems,
-            'module_progress' => $totalModules > 0 ? round(($completedModules / $totalModules) * 100, 2) : 0,
-            'item_progress' => $totalItems > 0 ? round(($completedItems / $totalItems) * 100, 2) : 0,
+            'completed_items' => $viewedItems,
+            'module_progress' => 0, // Cannot track without user-specific data
+            'item_progress' => $totalItems > 0 ? round(($viewedItems / $totalItems) * 100, 2) : 0,
+            'note' => 'Progress shown is general course engagement, not user-specific'
         ];
     }
 }

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('image')->nullable();
             $table->string('background_color', 7)->nullable();
-            $table->enum('status', ['published', 'archived'])->default('published');
+            $table->enum('status', ['draft', 'published', 'archived'])->default('draft');
             $table->json('files')->nullable();
             $table->timestamps();
             $table->softDeletes();

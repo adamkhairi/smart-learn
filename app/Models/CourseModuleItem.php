@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -21,23 +22,14 @@ class CourseModuleItem extends Model
     protected $fillable = [
         'title',
         'description',
-        'type',
-        'url',
-        'content',
         'course_module_id',
+        'itemable_id',
+        'itemable_type',
         'order',
-        'duration',
         'is_required',
-        'file_name',
-        'file_type',
-        'file_size',
-        'metadata',
         'status',
-        'is_processed',
         'view_count',
         'last_viewed_at',
-        'allow_download',
-        'track_completion',
     ];
 
     /**
@@ -49,15 +41,9 @@ class CourseModuleItem extends Model
     {
         return [
             'order' => 'integer',
-            'duration' => 'integer',
             'is_required' => 'boolean',
-            'file_size' => 'integer',
-            'metadata' => 'array',
-            'is_processed' => 'boolean',
             'view_count' => 'integer',
             'last_viewed_at' => 'datetime',
-            'allow_download' => 'boolean',
-            'track_completion' => 'boolean',
         ];
     }
 
@@ -75,6 +61,14 @@ class CourseModuleItem extends Model
     public function course()
     {
         return $this->hasOneThrough(Course::class, CourseModule::class, 'id', 'id', 'course_module_id', 'course_id');
+    }
+
+    /**
+     * Get the itemable model (Lecture, Assessment, Assignment).
+     */
+    public function itemable(): MorphTo
+    {
+        return $this->morphTo();
     }
 
     // === STATUS METHODS ===
@@ -96,14 +90,6 @@ class CourseModuleItem extends Model
     }
 
     /**
-     * Check if item is being processed.
-     */
-    public function isProcessing(): bool
-    {
-        return $this->status === 'processing';
-    }
-
-    /**
      * Check if item is required.
      */
     public function isRequired(): bool
@@ -114,35 +100,19 @@ class CourseModuleItem extends Model
     // === TYPE CHECKING METHODS ===
 
     /**
-     * Check if item is a video.
+     * Check if item is a lecture.
      */
-    public function isVideo(): bool
+    public function isLecture(): bool
     {
-        return $this->type === 'video';
+        return $this->itemable_type === Lecture::class;
     }
 
     /**
-     * Check if item is a document.
+     * Check if item is an assessment.
      */
-    public function isDocument(): bool
+    public function isAssessment(): bool
     {
-        return $this->type === 'document';
-    }
-
-    /**
-     * Check if item is a link.
-     */
-    public function isLink(): bool
-    {
-        return $this->type === 'link';
-    }
-
-    /**
-     * Check if item is a quiz.
-     */
-    public function isQuiz(): bool
-    {
-        return $this->type === 'quiz';
+        return $this->itemable_type === Assessment::class;
     }
 
     /**
@@ -150,7 +120,145 @@ class CourseModuleItem extends Model
      */
     public function isAssignment(): bool
     {
-        return $this->type === 'assignment';
+        return $this->itemable_type === Assignment::class;
+    }
+
+    // === CONVENIENCE METHODS ===
+
+    /**
+     * Get the item type name.
+     */
+    public function getItemTypeName(): string
+    {
+        return match($this->itemable_type) {
+            Lecture::class => 'lecture',
+            Assessment::class => 'assessment',
+            Assignment::class => 'assignment',
+            default => 'unknown'
+        };
+    }
+
+    /**
+     * Get the item's duration if applicable.
+     */
+    public function getDuration(): ?int
+    {
+        if ($this->isLecture() && $this->itemable) {
+            return $this->itemable->duration;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get formatted duration.
+     */
+    public function getFormattedDuration(): ?string
+    {
+        $duration = $this->getDuration();
+
+        if (!$duration) {
+            return null;
+        }
+
+        $minutes = floor($duration / 60);
+        $seconds = $duration % 60;
+
+        return sprintf('%d:%02d', $minutes, $seconds);
+    }
+
+    /**
+     * Increment view count for this item.
+     */
+    public function incrementViews(): void
+    {
+        $this->increment('view_count');
+        $this->update(['last_viewed_at' => now()]);
+    }
+
+    // === SCOPES ===
+
+    /**
+     * Scope to get items for a specific module.
+     */
+    public function scopeForModule($query, int $moduleId)
+    {
+        return $query->where('course_module_id', $moduleId);
+    }
+
+    /**
+     * Scope to get items by type.
+     */
+    public function scopeByType($query, string $type)
+    {
+        return $query->where('itemable_type', $type);
+    }
+
+    /**
+     * Scope to get lectures.
+     */
+    public function scopeLectures($query)
+    {
+        return $query->where('itemable_type', Lecture::class);
+    }
+
+    /**
+     * Scope to get assessments.
+     */
+    public function scopeAssessments($query)
+    {
+        return $query->where('itemable_type', Assessment::class);
+    }
+
+    /**
+     * Scope to get assignments.
+     */
+    public function scopeAssignments($query)
+    {
+        return $query->where('itemable_type', Assignment::class);
+    }
+
+    /**
+     * Scope to get required items.
+     */
+    public function scopeRequired($query)
+    {
+        return $query->where('is_required', true);
+    }
+
+    /**
+     * Scope to get published items.
+     */
+    public function scopePublished($query)
+    {
+        return $query->where('status', 'published');
+    }
+
+    /**
+     * Scope to order by item order.
+     */
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('order');
+    }
+
+    /**
+     * Scope to get most viewed items.
+     */
+    public function scopeMostViewed($query, int $limit = 10)
+    {
+        return $query->orderBy('view_count', 'desc')->limit($limit);
+    }
+
+    /**
+     * Scope to search items.
+     */
+    public function scopeSearch($query, string $search)
+    {
+        return $query->where(function ($q) use ($search) {
+            $q->where('title', 'like', "%{$search}%")
+              ->orWhere('description', 'like', "%{$search}%");
+        });
     }
 
     // === URL AND CONTENT PROCESSING ===
@@ -160,8 +268,8 @@ class CourseModuleItem extends Model
      */
     public function getYouTubeVideoId(): ?string
     {
-        if ($this->isVideo() && str_contains($this->url, 'youtu')) {
-            preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $this->url, $matches);
+        if ($this->isLecture() && $this->itemable && str_contains($this->itemable->url, 'youtu')) {
+            preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $this->itemable->url, $matches);
             return $matches[1] ?? null;
         }
 
@@ -191,8 +299,8 @@ class CourseModuleItem extends Model
      */
     public function getDownloadUrl(): ?string
     {
-        if ($this->isDocument() && $this->url) {
-            return Storage::disk('public')->url($this->url);
+        if ($this->isLecture() && $this->itemable && $this->itemable->url) {
+            return Storage::disk('public')->url($this->itemable->url);
         }
         return null;
     }
@@ -202,10 +310,10 @@ class CourseModuleItem extends Model
      */
     public function getFormattedFileSize(): ?string
     {
-        if (!$this->file_size) return null;
+        if (!$this->itemable || !$this->itemable->file_size) return null;
 
         $units = ['B', 'KB', 'MB', 'GB'];
-        $bytes = $this->file_size;
+        $bytes = $this->itemable->file_size;
 
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
             $bytes /= 1024;
@@ -215,31 +323,13 @@ class CourseModuleItem extends Model
     }
 
     /**
-     * Get formatted duration.
-     */
-    public function getFormattedDuration(): ?string
-    {
-        if (!$this->duration) return null;
-
-        $hours = floor($this->duration / 3600);
-        $minutes = floor(($this->duration % 3600) / 60);
-        $seconds = $this->duration % 60;
-
-        if ($hours > 0) {
-            return sprintf('%d:%02d:%02d', $hours, $minutes, $seconds);
-        }
-
-        return sprintf('%d:%02d', $minutes, $seconds);
-    }
-
-    /**
      * Get content preview (truncated).
      */
     public function getContentPreview(int $length = 150): ?string
     {
-        if (!$this->content) return null;
+        if (!$this->itemable || !$this->itemable->content) return null;
 
-        return Str::limit(strip_tags($this->content), $length);
+        return Str::limit(strip_tags($this->itemable->content), $length);
     }
 
     // === METADATA HELPERS ===
@@ -249,7 +339,7 @@ class CourseModuleItem extends Model
      */
     public function getMetadata(string $key, $default = null)
     {
-        return data_get($this->metadata, $key, $default);
+        return data_get($this->itemable->metadata, $key, $default);
     }
 
     /**
@@ -257,9 +347,9 @@ class CourseModuleItem extends Model
      */
     public function setMetadata(string $key, $value): void
     {
-        $metadata = $this->metadata ?? [];
+        $metadata = $this->itemable->metadata ?? [];
         data_set($metadata, $key, $value);
-        $this->metadata = $metadata;
+        $this->itemable->metadata = $metadata;
     }
 
     /**
@@ -267,29 +357,20 @@ class CourseModuleItem extends Model
      */
     public function addMetadata(array $data): void
     {
-        $this->metadata = array_merge($this->metadata ?? [], $data);
+        $this->itemable->metadata = array_merge($this->itemable->metadata ?? [], $data);
     }
 
     // === ANALYTICS ===
-
-    /**
-     * Increment view count.
-     */
-    public function incrementViews(): void
-    {
-        $this->increment('view_count');
-        $this->update(['last_viewed_at' => now()]);
-    }
 
     /**
      * Get engagement score based on views and duration.
      */
     public function getEngagementScore(): float
     {
-        if (!$this->duration || $this->view_count === 0) return 0;
+        if (!$this->itemable || !$this->itemable->duration || $this->view_count === 0) return 0;
 
         // Simple engagement calculation: views per minute of content
-        return round($this->view_count / ($this->duration / 60), 2);
+        return round($this->view_count / ($this->itemable->duration / 60), 2);
     }
 
     // === FILE MANAGEMENT ===
@@ -300,8 +381,8 @@ class CourseModuleItem extends Model
     protected static function booted(): void
     {
         static::deleting(function (CourseModuleItem $item) {
-            if ($item->isDocument() && $item->url) {
-                Storage::disk('public')->delete($item->url);
+            if ($item->isLecture() && $item->itemable && $item->itemable->url) {
+                Storage::disk('public')->delete($item->itemable->url);
             }
         });
     }
@@ -311,76 +392,8 @@ class CourseModuleItem extends Model
      */
     public function fileExists(): bool
     {
-        if (!$this->isDocument() || !$this->url) return false;
+        if (!$this->isLecture() || !$this->itemable || !$this->itemable->url) return false;
 
-        return Storage::disk('public')->exists($this->url);
-    }
-
-    // === SCOPES ===
-
-    /**
-     * Scope to get items for a specific module.
-     */
-    public function scopeForModule($query, int $moduleId)
-    {
-        return $query->where('course_module_id', $moduleId);
-    }
-
-    /**
-     * Scope to get items by type.
-     */
-    public function scopeByType($query, string $type)
-    {
-        return $query->where('type', $type);
-    }
-
-    /**
-     * Scope to get required items.
-     */
-    public function scopeRequired($query)
-    {
-        return $query->where('is_required', true);
-    }
-
-    /**
-     * Scope to get published items.
-     */
-    public function scopePublished($query)
-    {
-        return $query->where('status', 'published');
-    }
-
-    /**
-     * Scope to get processed items.
-     */
-    public function scopeProcessed($query)
-    {
-        return $query->where('is_processed', true);
-    }
-
-    /**
-     * Scope to order by item order.
-     */
-    public function scopeOrdered($query)
-    {
-        return $query->orderBy('order');
-    }
-
-    /**
-     * Scope to get most viewed items.
-     */
-    public function scopeMostViewed($query, int $limit = 10)
-    {
-        return $query->orderByDesc('view_count')->limit($limit);
-    }
-
-    /**
-     * Scope to search items by title and description.
-     */
-    public function scopeSearch($query, string $search)
-    {
-        return $query->where('title', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhere('content', 'like', "%{$search}%");
+        return Storage::disk('public')->exists($this->itemable->url);
     }
 }

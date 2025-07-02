@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Comment extends Model
@@ -19,7 +21,8 @@ class Comment extends Model
     protected $fillable = [
         'content',
         'user_id',
-        'article_id',
+        'commentable_id',
+        'commentable_type',
         'parent_id',
     ];
 
@@ -32,11 +35,11 @@ class Comment extends Model
     }
 
     /**
-     * Get the article this comment belongs to.
+     * Get the commentable model (Article, Lecture, etc.).
      */
-    public function article(): BelongsTo
+    public function commentable(): MorphTo
     {
-        return $this->belongsTo(Article::class);
+        return $this->morphTo();
     }
 
     /**
@@ -50,9 +53,17 @@ class Comment extends Model
     /**
      * Get the child comments (replies).
      */
-    public function replies()
+    public function replies(): HasMany
     {
         return $this->hasMany(Comment::class, 'parent_id');
+    }
+
+    /**
+     * Get likes for this comment.
+     */
+    public function likes()
+    {
+        return $this->morphMany(Like::class, 'likeable');
     }
 
     /**
@@ -64,10 +75,27 @@ class Comment extends Model
     }
 
     /**
-     * Scope to get comments for a specific article.
+     * Scope to get comments for a specific commentable model.
      */
-    public function scopeForArticle($query, int $articleId)
+    public function scopeForCommentable($query, string $type, int $id)
     {
-        return $query->where('article_id', $articleId);
+        return $query->where('commentable_type', $type)
+                    ->where('commentable_id', $id);
+    }
+
+    /**
+     * Scope to get comments for articles.
+     */
+    public function scopeForArticles($query)
+    {
+        return $query->where('commentable_type', Article::class);
+    }
+
+    /**
+     * Scope to get comments for lectures.
+     */
+    public function scopeForLectures($query)
+    {
+        return $query->where('commentable_type', Lecture::class);
     }
 }

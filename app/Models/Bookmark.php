@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Bookmark extends Model
 {
@@ -17,7 +18,8 @@ class Bookmark extends Model
      */
     protected $fillable = [
         'user_id',
-        'article_id',
+        'bookmarkable_id',
+        'bookmarkable_type',
     ];
 
     /**
@@ -29,19 +31,20 @@ class Bookmark extends Model
     }
 
     /**
-     * Get the article that was bookmarked.
+     * Get the bookmarkable model (Article, Lecture, etc.).
      */
-    public function article(): BelongsTo
+    public function bookmarkable(): MorphTo
     {
-        return $this->belongsTo(Article::class);
+        return $this->morphTo();
     }
 
     /**
-     * Scope to get bookmarks for a specific article.
+     * Scope to get bookmarks for a specific bookmarkable model.
      */
-    public function scopeForArticle($query, int $articleId)
+    public function scopeForBookmarkable($query, string $type, int $id)
     {
-        return $query->where('article_id', $articleId);
+        return $query->where('bookmarkable_type', $type)
+                    ->where('bookmarkable_id', $id);
     }
 
     /**
@@ -50,5 +53,21 @@ class Bookmark extends Model
     public function scopeByUser($query, int $userId)
     {
         return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Scope to get bookmarks for articles.
+     */
+    public function scopeForArticles($query)
+    {
+        return $query->where('bookmarkable_type', Article::class);
+    }
+
+    /**
+     * Scope to get bookmarks for lectures.
+     */
+    public function scopeForLectures($query)
+    {
+        return $query->where('bookmarkable_type', Lecture::class);
     }
 }

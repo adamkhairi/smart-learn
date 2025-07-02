@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UserRequest;
 use App\Models\User;
 use App\Models\Course;
+use App\Actions\Users\CreateUserAction;
+use App\Actions\Users\UpdateUserAction;
+use App\Actions\Users\DeleteUserAction;
+use App\Actions\Users\ManageUserCoursesAction;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -18,8 +21,7 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::withCourseAssignments()
-                    ->withCount(['enrollments', 'createdCourses', 'submissions']);
+        $query = User::withCount(['enrollments', 'createdCourses', 'submissions']);
 
         // Apply search filter
         if ($request->filled('search')) {
@@ -27,15 +29,15 @@ class UserController extends Controller
         }
 
         // Apply role filter
-        if ($request->filled('role')) {
+        if ($request->filled('role') && $request->role !== 'all') {
             $query->role($request->role);
         }
 
         // Apply status filter
-        if ($request->filled('status')) {
+        if ($request->filled('status') && $request->status !== 'all') {
             if ($request->status === 'active') {
                 $query->active();
-            } elseif ($request->status === 'inactive') {
+            } else {
                 $query->where('is_active', false);
             }
         }
@@ -67,30 +69,16 @@ class UserController extends Controller
     /**
      * Store a newly created user.
      */
-    public function store(Request $request)
+    public function store(UserRequest $request, CreateUserAction $createUserAction)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'username' => 'nullable|string|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'role' => ['required', Rule::in(['admin', 'instructor', 'student'])],
-            'mobile' => 'nullable|string|max:20',
-            'is_active' => 'boolean',
-        ]);
+        try {
+            $createUserAction->execute($request->validated());
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'username' => $validated['username'],
-            'password' => Hash::make($validated['password']),
-            'role' => $validated['role'],
-            'mobile' => $validated['mobile'] ?? null,
-            'is_active' => $validated['is_active'] ?? true,
-        ]);
-
-        return redirect()->route('admin.users.index')
-                        ->with('success', 'User created successfully.');
+            return redirect()->route('admin.users.index')
+                            ->with('success', 'User created successfully.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Failed to create user. Please try again.']);
+        }
     }
 
     /**
@@ -98,23 +86,14 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        $user->load([
-            'enrollments',
-            'createdCourses',
-            'instructorCourses',
-            'adminCourses',
-            'submissions',
-            'articles',
-            'followers',
-            'follows'
-        ]);
+        $user->load(['enrollments', 'createdCourses']);
 
         return Inertia::render('Admin/Users/Show', [
             'user' => $user,
             'stats' => $user->getStats(),
             'availableCourses' => Course::whereDoesntHave('enrolledUsers', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
-            })->get()
+            })->select('id', 'name', 'description')->get()
         ]);
     }
 
@@ -123,67 +102,48 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        $user->load(['enrollments', 'createdCourses']);
+        $user->load('enrollments');
 
         return Inertia::render('Admin/Users/Edit', [
             'user' => $user,
-            'availableCourses' => Course::all()
+            'availableCourses' => Course::whereDoesntHave('enrolledUsers', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })->select('id', 'name', 'description')->get()
         ]);
     }
 
     /**
      * Update the specified user.
      */
-    public function update(Request $request, User $user)
+    public function update(UserRequest $request, User $user, UpdateUserAction $updateUserAction)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'username' => ['nullable', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'role' => ['required', Rule::in(['admin', 'instructor', 'student'])],
-            'mobile' => 'nullable|string|max:20',
-            'is_active' => 'boolean',
-            'password' => 'nullable|string|min:8|confirmed',
-        ]);
+        try {
+            $updateUserAction->execute($user, $request->validated());
 
-        $updateData = [
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'username' => $validated['username'],
-            'role' => $validated['role'],
-            'mobile' => $validated['mobile'] ?? null,
-            'is_active' => $validated['is_active'] ?? true,
-        ];
-
-        if (!empty($validated['password'])) {
-            $updateData['password'] = Hash::make($validated['password']);
+            return redirect()->route('admin.users.index')
+                            ->with('success', 'User updated successfully.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Failed to update user. Please try again.']);
         }
-
-        $user->update($updateData);
-
-        return redirect()->route('admin.users.index')
-                        ->with('success', 'User updated successfully.');
     }
 
     /**
      * Remove the specified user.
      */
-    public function destroy(User $user)
+    public function destroy(User $user, DeleteUserAction $deleteUserAction)
     {
         if ($user->id === auth()->id()) {
-            return back()->with('error', 'You cannot delete your own account.');
+            return back()->withErrors(['error' => 'You cannot delete your own account.']);
         }
 
-        DB::transaction(function () use ($user) {
-            // Remove all course enrollments
-            $user->enrollments()->detach();
+        try {
+            $deleteUserAction->execute($user);
 
-            // Delete the user
-            $user->delete();
-        });
-
-        return redirect()->route('admin.users.index')
-                        ->with('success', 'User deleted successfully.');
+            return redirect()->route('admin.users.index')
+                            ->with('success', 'User deleted successfully.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Failed to delete user. Please try again.']);
+        }
     }
 
     /**
@@ -192,59 +152,73 @@ class UserController extends Controller
     public function toggleActive(User $user)
     {
         if ($user->id === auth()->id()) {
-            return back()->with('error', 'You cannot deactivate your own account.');
+            return back()->withErrors(['error' => 'You cannot deactivate your own account.']);
         }
 
-        $user->toggleActive();
+        try {
+            $user->toggleActive();
 
-        return back()->with('success', 'User status updated successfully.');
+            $status = $user->is_active ? 'activated' : 'deactivated';
+            return back()->with('success', "User {$status} successfully.");
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Failed to update user status. Please try again.']);
+        }
     }
 
     /**
      * Assign user to course.
      */
-    public function assignToCourse(Request $request, User $user)
+    public function assignToCourse(Request $request, User $user, ManageUserCoursesAction $manageCoursesAction)
     {
         $validated = $request->validate([
             'course_id' => 'required|exists:courses,id',
             'role' => ['required', Rule::in(['student', 'instructor', 'admin'])],
         ]);
 
-        $course = Course::findOrFail($validated['course_id']);
-        $user->assignToCourse($course, $validated['role']);
+        try {
+            $manageCoursesAction->assignToCourse($user, $validated['course_id'], $validated['role']);
 
-        return back()->with('success', 'User assigned to course successfully.');
+            return back()->with('success', 'User assigned to course successfully.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
     }
 
     /**
      * Remove user from course.
      */
-    public function removeFromCourse(Request $request, User $user)
+    public function removeFromCourse(Request $request, User $user, ManageUserCoursesAction $manageCoursesAction)
     {
         $validated = $request->validate([
             'course_id' => 'required|exists:courses,id',
         ]);
 
-        $course = Course::findOrFail($validated['course_id']);
-        $user->removeFromCourse($course);
+        try {
+            $manageCoursesAction->removeFromCourse($user, $validated['course_id']);
 
-        return back()->with('success', 'User removed from course successfully.');
+            return back()->with('success', 'User removed from course successfully.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
     }
 
     /**
      * Update user role in a specific course.
      */
-    public function updateCourseRole(Request $request, User $user)
+    public function updateCourseRole(Request $request, User $user, ManageUserCoursesAction $manageCoursesAction)
     {
         $validated = $request->validate([
             'course_id' => 'required|exists:courses,id',
             'role' => ['required', Rule::in(['student', 'instructor', 'admin'])],
         ]);
 
-        $course = Course::findOrFail($validated['course_id']);
-        $user->assignToCourse($course, $validated['role']);
+        try {
+            $manageCoursesAction->updateCourseRole($user, $validated['course_id'], $validated['role']);
 
-        return back()->with('success', 'User role updated successfully.');
+            return back()->with('success', 'User role updated successfully.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -263,10 +237,10 @@ class UserController extends Controller
             ],
             'recent_registrations' => User::orderBy('created_at', 'desc')->limit(5)->get(),
             'top_instructors' => User::role('instructor')
-                                   ->withCount('createdCourses')
-                                   ->orderBy('created_courses_count', 'desc')
-                                   ->limit(5)
-                                   ->get(),
+                               ->withCount('createdCourses')
+                               ->orderBy('created_courses_count', 'desc')
+                               ->limit(5)
+                               ->get(),
         ];
 
         return Inertia::render('Admin/Users/Stats', [

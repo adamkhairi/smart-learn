@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, useForm, Link, router } from '@inertiajs/react';
-import { ArrowLeft, Save, Plus, X } from 'lucide-react';
+import { ArrowLeft, Save, Plus, X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +16,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import AppLayout from '@/layouts/app-layout';
+import { useFlashToast } from '@/hooks/use-flash-toast';
+import { useToast } from '@/hooks/use-toast';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface Course {
     id: number;
@@ -52,7 +56,16 @@ interface Props {
 }
 
 export default function EditUser({ user, availableCourses }: Props) {
-    const { data, setData, put, processing, errors } = useForm({
+    const [newCourseId, setNewCourseId] = useState<string>('');
+    const [newCourseRole, setNewCourseRole] = useState<string>('student');
+    const [searchTerm, setSearchTerm] = useState<string>('');
+
+    // Initialize toast notifications
+    useFlashToast();
+    const { success, error } = useToast();
+    const { confirm, confirmDialog } = useConfirmDialog();
+
+    const { data, setData, put, processing, errors: formErrors } = useForm({
         name: user.name,
         email: user.email,
         username: user.username,
@@ -68,41 +81,83 @@ export default function EditUser({ user, availableCourses }: Props) {
         put(route('admin.users.update', user.id));
     };
 
-    const handleAssignCourse = (courseId: number, role: string) => {
+    const handleAssignCourse = () => {
+        if (!newCourseId || !newCourseRole) return;
+
+        const courseName = availableCourses.find(c => c.id.toString() === newCourseId)?.name || 'course';
+
         router.post(route('admin.users.assign-course', user.id), {
-            course_id: courseId,
-            role: role,
+            course_id: parseInt(newCourseId),
+            role: newCourseRole,
+        }, {
+            onSuccess: () => {
+                setNewCourseId('');
+                setNewCourseRole('student');
+                setSearchTerm('');
+                success(`${user.name} has been assigned to ${courseName} successfully!`);
+            },
+            onError: () => {
+                error('Failed to assign user to course. Please try again.');
+            }
         });
     };
 
-    const handleRemoveCourse = (courseId: number) => {
-        router.delete(route('admin.users.remove-course', user.id), {
-            data: { course_id: courseId },
+    const handleRemoveCourse = (courseId: number, courseName: string) => {
+        confirm({
+            title: 'Remove User from Course',
+            description: `Are you sure you want to remove ${user.name} from "${courseName}"? This action cannot be undone.`,
+            variant: 'destructive',
+            confirmText: 'Remove',
+            onConfirm: () => {
+                router.delete(route('admin.users.remove-course', user.id), {
+                    data: { course_id: courseId },
+                    onSuccess: () => {
+                        success(`${user.name} has been removed from ${courseName} successfully.`);
+                    },
+                    onError: () => {
+                        error('Failed to remove user from course. Please try again.');
+                    }
+                });
+            }
         });
     };
 
     const handleUpdateCourseRole = (courseId: number, role: string) => {
+        const courseName = user.enrollments.find(c => c.id === courseId)?.name || 'course';
+
         router.patch(route('admin.users.update-course-role', user.id), {
             course_id: courseId,
             role: role,
+        }, {
+            onSuccess: () => {
+                success(`${user.name}'s role in ${courseName} has been updated to ${role}.`);
+            },
+            onError: () => {
+                error('Failed to update user role. Please try again.');
+            }
         });
     };
 
     const getRoleBadge = (role: string) => {
-        if (role === 'admin') {
-            return <Badge variant="destructive">{role}</Badge>;
-        } else if (role === 'instructor') {
-            return <Badge variant="default">{role}</Badge>;
-        } else {
-            return <Badge variant="secondary">{role}</Badge>;
-        }
+        const config = {
+            admin: { variant: 'destructive' as const, label: 'Admin' },
+            instructor: { variant: 'default' as const, label: 'Instructor' },
+            student: { variant: 'secondary' as const, label: 'Student' },
+        };
+        const { variant, label } = config[role as keyof typeof config] || config.student;
+        return <Badge variant={variant}>{label}</Badge>;
+    };
+
+    const getInitials = (name: string) => {
+        return name.split(' ').map(n => n[0]).join('').toUpperCase();
     };
 
     return (
-        <>
+        <AppLayout>
             <Head title={`Edit User - ${user.name}`} />
 
-            <div className="space-y-6">
+            <div className="space-y-6 pt-4">
+
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -116,7 +171,7 @@ export default function EditUser({ user, availableCourses }: Props) {
                             <Avatar>
                                 <AvatarImage src={user.photo} />
                                 <AvatarFallback>
-                                    {user.name.split(' ').map(n => n[0]).join('')}
+                                    {getInitials(user.name)}
                                 </AvatarFallback>
                             </Avatar>
                             <div>
@@ -145,8 +200,9 @@ export default function EditUser({ user, availableCourses }: Props) {
                                             type="text"
                                             value={data.name}
                                             onChange={(e) => setData('name', e.target.value)}
+                                            className={formErrors.name ? 'border-red-500' : ''}
                                         />
-                                        <InputError message={errors.name} />
+                                        <InputError message={formErrors.name} />
                                     </div>
 
                                     <div className="space-y-2">
@@ -156,8 +212,9 @@ export default function EditUser({ user, availableCourses }: Props) {
                                             type="email"
                                             value={data.email}
                                             onChange={(e) => setData('email', e.target.value)}
+                                            className={formErrors.email ? 'border-red-500' : ''}
                                         />
-                                        <InputError message={errors.email} />
+                                        <InputError message={formErrors.email} />
                                     </div>
                                 </div>
 
@@ -169,8 +226,9 @@ export default function EditUser({ user, availableCourses }: Props) {
                                             type="text"
                                             value={data.username}
                                             onChange={(e) => setData('username', e.target.value)}
+                                            className={formErrors.username ? 'border-red-500' : ''}
                                         />
-                                        <InputError message={errors.username} />
+                                        <InputError message={formErrors.username} />
                                     </div>
 
                                     <div className="space-y-2">
@@ -180,8 +238,9 @@ export default function EditUser({ user, availableCourses }: Props) {
                                             type="tel"
                                             value={data.mobile}
                                             onChange={(e) => setData('mobile', e.target.value)}
+                                            className={formErrors.mobile ? 'border-red-500' : ''}
                                         />
-                                        <InputError message={errors.mobile} />
+                                        <InputError message={formErrors.mobile} />
                                     </div>
                                 </div>
 
@@ -194,8 +253,9 @@ export default function EditUser({ user, availableCourses }: Props) {
                                             value={data.password}
                                             onChange={(e) => setData('password', e.target.value)}
                                             placeholder="Leave blank to keep current"
+                                            className={formErrors.password ? 'border-red-500' : ''}
                                         />
-                                        <InputError message={errors.password} />
+                                        <InputError message={formErrors.password} />
                                     </div>
 
                                     <div className="space-y-2">
@@ -205,16 +265,20 @@ export default function EditUser({ user, availableCourses }: Props) {
                                             type="password"
                                             value={data.password_confirmation}
                                             onChange={(e) => setData('password_confirmation', e.target.value)}
+                                            className={formErrors.password_confirmation ? 'border-red-500' : ''}
                                         />
-                                        <InputError message={errors.password_confirmation} />
+                                        <InputError message={formErrors.password_confirmation} />
                                     </div>
                                 </div>
 
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label htmlFor="role">Role *</Label>
-                                        <Select value={data.role} onValueChange={(value) => setData('role', value as 'admin' | 'instructor' | 'student')}>
-                                            <SelectTrigger>
+                                        <Select
+                                            value={data.role}
+                                            onValueChange={(value) => setData('role', value as 'admin' | 'instructor' | 'student')}
+                                        >
+                                            <SelectTrigger className={formErrors.role ? 'border-red-500' : ''}>
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -223,12 +287,12 @@ export default function EditUser({ user, availableCourses }: Props) {
                                                 <SelectItem value="admin">Admin</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                        <InputError message={errors.role} />
+                                        <InputError message={formErrors.role} />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label>Status</Label>
-                                        <div className="flex items-center space-x-2">
+                                        <Label>Account Status</Label>
+                                        <div className="flex items-center space-x-2 pt-2">
                                             <Checkbox
                                                 id="is_active"
                                                 checked={data.is_active}
@@ -238,11 +302,11 @@ export default function EditUser({ user, availableCourses }: Props) {
                                                 Active account
                                             </Label>
                                         </div>
-                                        <InputError message={errors.is_active} />
+                                        <InputError message={formErrors.is_active} />
                                     </div>
                                 </div>
 
-                                <div className="flex justify-end space-x-4">
+                                <div className="flex justify-end space-x-4 pt-4">
                                     <Link href={route('admin.users.index')}>
                                         <Button type="button" variant="outline">
                                             Cancel
@@ -262,15 +326,15 @@ export default function EditUser({ user, availableCourses }: Props) {
                         {/* Current Enrollments */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Current Course Enrollments</CardTitle>
+                                <CardTitle>Course Enrollments ({user.enrollments.length})</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-3">
                                     {user.enrollments.length > 0 ? (
                                         user.enrollments.map((course) => (
                                             <div key={course.id} className="flex items-center justify-between p-3 border rounded-lg">
-                                                <div>
-                                                    <div className="font-medium">{course.name}</div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="font-medium truncate">{course.name}</div>
                                                     <div className="text-sm text-muted-foreground">
                                                         {getRoleBadge(course.pivot.enrolled_as)}
                                                     </div>
@@ -292,7 +356,7 @@ export default function EditUser({ user, availableCourses }: Props) {
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        onClick={() => handleRemoveCourse(course.id)}
+                                                        onClick={() => handleRemoveCourse(course.id, course.name)}
                                                     >
                                                         <X className="h-4 w-4" />
                                                     </Button>
@@ -312,44 +376,95 @@ export default function EditUser({ user, availableCourses }: Props) {
                         {availableCourses.length > 0 && (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Assign to New Course</CardTitle>
+                                    <CardTitle>Assign to Course</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="space-y-3">
-                                        {availableCourses.map((course) => (
-                                            <div key={course.id} className="flex items-center justify-between p-3 border rounded-lg">
-                                                <div>
-                                                    <div className="font-medium">{course.name}</div>
-                                                    <div className="text-sm text-muted-foreground">{course.description}</div>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <Select onValueChange={(value) => handleAssignCourse(course.id, value)}>
-                                                        <SelectTrigger className="w-32">
-                                                            <SelectValue placeholder="Role" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="student">Student</SelectItem>
-                                                            <SelectItem value="instructor">Instructor</SelectItem>
-                                                            <SelectItem value="admin">Admin</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleAssignCourse(course.id, 'student')}
-                                                    >
-                                                        <Plus className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
+                                    <div className="space-y-4">
+                                        {/* Search for courses */}
+                                        <div className="space-y-2">
+                                            <Label>Search Courses</Label>
+                                            <div className="relative">
+                                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                                <Input
+                                                    placeholder="Search courses..."
+                                                    value={searchTerm}
+                                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                                    className="pl-10"
+                                                />
                                             </div>
-                                        ))}
+                                        </div>
+
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <div className="space-y-2">
+                                                <Label>Course ({availableCourses.filter(course =>
+                                                    course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                    course.description.toLowerCase().includes(searchTerm.toLowerCase())
+                                                ).length} found)</Label>
+                                                <Select value={newCourseId} onValueChange={setNewCourseId}>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select course" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {availableCourses
+                                                            .filter(course =>
+                                                                course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                                course.description.toLowerCase().includes(searchTerm.toLowerCase())
+                                                            )
+                                                            .map((course) => (
+                                                            <SelectItem key={course.id} value={course.id.toString()}>
+                                                                <div>
+                                                                    <div className="font-medium">{course.name}</div>
+                                                                    <div className="text-xs text-muted-foreground truncate max-w-60">
+                                                                        {course.description}
+                                                                    </div>
+                                                                </div>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Role</Label>
+                                                <Select value={newCourseRole} onValueChange={setNewCourseRole}>
+                                                    <SelectTrigger>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="student">Student</SelectItem>
+                                                        <SelectItem value="instructor">Instructor</SelectItem>
+                                                        <SelectItem value="admin">Admin</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            onClick={handleAssignCourse}
+                                            disabled={!newCourseId || !newCourseRole}
+                                            className="w-full"
+                                        >
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Assign to Course
+                                        </Button>
                                     </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {availableCourses.length === 0 && (
+                            <Card>
+                                <CardContent className="text-center py-8">
+                                    <p className="text-muted-foreground">
+                                        User is enrolled in all available courses
+                                    </p>
                                 </CardContent>
                             </Card>
                         )}
                     </div>
                 </div>
             </div>
-        </>
+
+            {/* Confirmation Dialog */}
+            {confirmDialog}
+        </AppLayout>
     );
 }

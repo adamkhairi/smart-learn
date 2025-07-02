@@ -7,22 +7,36 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Save, FileText, Play, Link as LinkIcon, HelpCircle, ClipboardList, Upload } from 'lucide-react';
+import { ArrowLeft, Save, Play, HelpCircle, ClipboardList } from 'lucide-react';
 import { useState } from 'react';
 
 function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) {
     const [selectedType, setSelectedType] = useState<string>('');
 
-    const { data, setData, post, processing, errors, progress } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         title: '',
         description: '',
-        type: '' as 'video' | 'document' | 'link' | 'quiz' | 'assignment',
-        url: '',
-        content: '',
-        file: null as File | null,
-        order: nextOrder,
+        item_type: '' as 'lecture' | 'assessment' | 'assignment',
+        // Lecture fields
+        video_url: '',
         duration: '',
+        content: '',
+        // Assessment fields
+        assessment_title: '',
+        max_score: '',
+        assessment_type: 'quiz' as 'quiz' | 'exam' | 'project',
+        questions_type: 'online' as 'online' | 'file',
+        submission_type: 'online' as 'online' | 'written',
+        // Assignment fields
+        assignment_title: '',
+        total_points: '',
+        assignment_type: '',
+        started_at: '',
+        expired_at: '',
+        // Common fields
+        order: nextOrder,
         is_required: false,
+        status: 'published' as 'draft' | 'published',
     });
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -37,20 +51,28 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
         e.preventDefault();
 
         // Ensure type is set
-        if (!data.type) {
-            console.error('Type not selected');
+        if (!data.item_type) {
+            console.error('Item type not selected');
             return;
         }
 
         // Type-specific validation
-        if (data.type === 'video' && !data.duration) {
-            console.error('Duration required for video');
+        if (data.item_type === 'lecture' && !data.video_url) {
+            console.error('Video URL required for lecture');
             return;
         }
 
-        // For file uploads, we need to use forceFormData option
+        if (data.item_type === 'assessment' && !data.assessment_title) {
+            console.error('Assessment title required');
+            return;
+        }
+
+        if (data.item_type === 'assignment' && !data.assignment_title) {
+            console.error('Assignment title required');
+            return;
+        }
+
         const options = {
-            forceFormData: data.type === 'document',
             onSuccess: () => {
                 console.log('Module item created successfully');
             },
@@ -66,38 +88,34 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
         console.log('Changing type to:', type);
         setSelectedType(type);
 
-        // Properly set the form data type
         setData(prev => ({
             ...prev,
-            type: type as 'video' | 'document' | 'link' | 'quiz' | 'assignment',
+            item_type: type as 'lecture' | 'assessment' | 'assignment',
             // Reset type-specific fields
-            url: '',
+            video_url: '',
             content: '',
-            file: null,
-            duration: type === 'video' ? prev.duration : '',
+            duration: '',
+            assessment_title: '',
+            max_score: '',
+            assignment_title: '',
+            total_points: '',
+            assignment_type: '',
+            started_at: '',
+            expired_at: '',
         }));
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] || null;
-        console.log('File selected:', file?.name);
-        setData('file', file);
     };
 
     // Validation helpers
     const isFormValid = () => {
-        if (!data.title.trim() || !data.type) return false;
+        if (!data.title.trim() || !data.item_type) return false;
 
-        switch (data.type) {
-            case 'video':
-                return data.url.trim() && data.duration.trim();
-            case 'link':
-                return data.url.trim();
-            case 'document':
-                return data.file !== null;
-            case 'quiz':
+        switch (data.item_type) {
+            case 'lecture':
+                return data.video_url.trim();
+            case 'assessment':
+                return data.assessment_title.trim();
             case 'assignment':
-                return data.content.trim();
+                return data.assignment_title.trim();
             default:
                 return false;
         }
@@ -105,31 +123,17 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
 
     const itemTypes = [
         {
-            value: 'video',
-            label: 'Video',
+            value: 'lecture',
+            label: 'Lecture',
             icon: <Play className="h-4 w-4" />,
             description: 'Video content (YouTube, Vimeo, etc.)',
             color: 'text-blue-500'
         },
         {
-            value: 'document',
-            label: 'Document',
-            icon: <FileText className="h-4 w-4" />,
-            description: 'PDF, Word, PowerPoint, or other files',
-            color: 'text-green-500'
-        },
-        {
-            value: 'link',
-            label: 'External Link',
-            icon: <LinkIcon className="h-4 w-4" />,
-            description: 'Links to external resources',
-            color: 'text-purple-500'
-        },
-        {
-            value: 'quiz',
-            label: 'Quiz',
+            value: 'assessment',
+            label: 'Assessment',
             icon: <HelpCircle className="h-4 w-4" />,
-            description: 'Interactive quiz or assessment',
+            description: 'Quiz, exam, or project assessment',
             color: 'text-orange-500'
         },
         {
@@ -143,9 +147,6 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
 
     const getSubmitButtonText = () => {
         if (processing) {
-            if (data.type === 'document' && progress) {
-                return `Uploading... ${Math.round(progress.percentage || 0)}%`;
-            }
             return 'Adding...';
         }
         return 'Add Item';
@@ -187,7 +188,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                     {/* Item Type Selection */}
                                     <div className="space-y-3">
                                         <Label>Item Type *</Label>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                             {itemTypes.map((type) => (
                                                 <div
                                                     key={type.value}
@@ -198,209 +199,285 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     }`}
                                                     onClick={() => handleTypeChange(type.value)}
                                                 >
-                                                    <div className="flex items-center gap-3 mb-2">
-                                                        <span className={type.color}>{type.icon}</span>
-                                                        <span className="font-medium">{type.label}</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={type.color}>
+                                                            {type.icon}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-medium">{type.label}</div>
+                                                            <div className="text-sm text-muted-foreground">
+                                                                {type.description}
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {type.description}
-                                                    </p>
                                                 </div>
                                             ))}
                                         </div>
-                                        {errors.type && (
-                                            <p className="text-sm text-red-500">{errors.type}</p>
+                                        {errors.item_type && (
+                                            <p className="text-sm text-destructive">{errors.item_type}</p>
                                         )}
                                     </div>
 
-                                    {/* Basic Information */}
+                                    {/* Common Fields */}
                                     <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="title">Item Title *</Label>
+                                        <div>
+                                            <Label htmlFor="title">Module Item Title *</Label>
                                             <Input
                                                 id="title"
                                                 type="text"
                                                 value={data.title}
                                                 onChange={(e) => setData('title', e.target.value)}
-                                                placeholder="Enter item title"
-                                                className={errors.title ? 'border-red-500' : ''}
-                                                required
+                                                placeholder="Enter the module item title"
+                                                className={errors.title ? 'border-destructive' : ''}
                                             />
                                             {errors.title && (
-                                                <p className="text-sm text-red-500">{errors.title}</p>
+                                                <p className="text-sm text-destructive mt-1">{errors.title}</p>
                                             )}
                                         </div>
 
-                                        <div className="space-y-2">
+                                        <div>
                                             <Label htmlFor="description">Description</Label>
                                             <Textarea
                                                 id="description"
                                                 value={data.description}
                                                 onChange={(e) => setData('description', e.target.value)}
-                                                placeholder="Describe this item..."
+                                                placeholder="Enter a description for this item"
                                                 rows={3}
-                                                className={errors.description ? 'border-red-500' : ''}
+                                                className={errors.description ? 'border-destructive' : ''}
                                             />
                                             {errors.description && (
-                                                <p className="text-sm text-red-500">{errors.description}</p>
+                                                <p className="text-sm text-destructive mt-1">{errors.description}</p>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* Type-specific fields */}
-                                    {(selectedType === 'video' || selectedType === 'link') && (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="url">
-                                                {selectedType === 'video' ? 'Video URL *' : 'Link URL *'}
-                                            </Label>
-                                            <Input
-                                                id="url"
-                                                type="url"
-                                                value={data.url}
-                                                onChange={(e) => setData('url', e.target.value)}
-                                                placeholder={
-                                                    selectedType === 'video'
-                                                        ? "https://www.youtube.com/watch?v=..."
-                                                        : "https://example.com"
-                                                }
-                                                className={errors.url ? 'border-red-500' : ''}
-                                                required
-                                            />
-                                            {errors.url && (
-                                                <p className="text-sm text-red-500">{errors.url}</p>
-                                            )}
+                                    {/* Type-specific Fields */}
+                                    {data.item_type === 'lecture' && (
+                                        <div className="space-y-4 border-t pt-4">
+                                            <h3 className="font-medium">Lecture Content</h3>
+
+                                            <div>
+                                                <Label htmlFor="video_url">Video URL *</Label>
+                                                <Input
+                                                    id="video_url"
+                                                    type="url"
+                                                    value={data.video_url}
+                                                    onChange={(e) => setData('video_url', e.target.value)}
+                                                    placeholder="https://youtube.com/watch?v=..."
+                                                    className={errors.video_url ? 'border-destructive' : ''}
+                                                />
+                                                {errors.video_url && (
+                                                    <p className="text-sm text-destructive mt-1">{errors.video_url}</p>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <Label htmlFor="duration">Duration (seconds)</Label>
+                                                <Input
+                                                    id="duration"
+                                                    type="number"
+                                                    value={data.duration}
+                                                    onChange={(e) => setData('duration', e.target.value)}
+                                                    placeholder="e.g., 300 for 5 minutes"
+                                                    className={errors.duration ? 'border-destructive' : ''}
+                                                />
+                                                {errors.duration && (
+                                                    <p className="text-sm text-destructive mt-1">{errors.duration}</p>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <Label htmlFor="content">Additional Content</Label>
+                                                <Textarea
+                                                    id="content"
+                                                    value={data.content}
+                                                    onChange={(e) => setData('content', e.target.value)}
+                                                    placeholder="Additional lecture notes or description"
+                                                    rows={4}
+                                                    className={errors.content ? 'border-destructive' : ''}
+                                                />
+                                                {errors.content && (
+                                                    <p className="text-sm text-destructive mt-1">{errors.content}</p>
+                                                )}
+                                            </div>
                                         </div>
                                     )}
 
-                                    {selectedType === 'document' && (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="file">Upload File *</Label>
-                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                                                <div className="text-center">
-                                                    <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                                    {data.item_type === 'assessment' && (
+                                        <div className="space-y-4 border-t pt-4">
+                                            <h3 className="font-medium">Assessment Settings</h3>
+
+                                            <div>
+                                                <Label htmlFor="assessment_title">Assessment Title *</Label>
+                                                <Input
+                                                    id="assessment_title"
+                                                    type="text"
+                                                    value={data.assessment_title}
+                                                    onChange={(e) => setData('assessment_title', e.target.value)}
+                                                    placeholder="Enter assessment title"
+                                                    className={errors.assessment_title ? 'border-destructive' : ''}
+                                                />
+                                                {errors.assessment_title && (
+                                                    <p className="text-sm text-destructive mt-1">{errors.assessment_title}</p>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label htmlFor="max_score">Maximum Score</Label>
                                                     <Input
-                                                        id="file"
-                                                        type="file"
-                                                        accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.xls,.xlsx"
-                                                        onChange={handleFileChange}
-                                                        className="hidden"
-                                                        required
+                                                        id="max_score"
+                                                        type="number"
+                                                        value={data.max_score}
+                                                        onChange={(e) => setData('max_score', e.target.value)}
+                                                        placeholder="100"
+                                                        className={errors.max_score ? 'border-destructive' : ''}
                                                     />
-                                                    <label
-                                                        htmlFor="file"
-                                                        className="cursor-pointer text-sm font-medium text-primary hover:text-primary/80"
+                                                    {errors.max_score && (
+                                                        <p className="text-sm text-destructive mt-1">{errors.max_score}</p>
+                                                    )}
+                                                </div>
+
+                                                <div>
+                                                    <Label htmlFor="assessment_type">Assessment Type</Label>
+                                                    <select
+                                                        id="assessment_type"
+                                                        value={data.assessment_type}
+                                                        onChange={(e) => setData('assessment_type', e.target.value as 'quiz' | 'exam' | 'project')}
+                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                                                     >
-                                                        Choose file to upload
-                                                    </label>
-                                                    <p className="text-xs text-muted-foreground mt-1">
-                                                        PDF, Word, PowerPoint, Excel, or text files (max 10MB)
-                                                    </p>
-                                                    {data.file && (
-                                                        <p className="text-sm text-green-600 mt-2">
-                                                            Selected: {data.file.name}
-                                                        </p>
+                                                        <option value="quiz">Quiz</option>
+                                                        <option value="exam">Exam</option>
+                                                        <option value="project">Project</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {data.item_type === 'assignment' && (
+                                        <div className="space-y-4 border-t pt-4">
+                                            <h3 className="font-medium">Assignment Settings</h3>
+
+                                            <div>
+                                                <Label htmlFor="assignment_title">Assignment Title *</Label>
+                                                <Input
+                                                    id="assignment_title"
+                                                    type="text"
+                                                    value={data.assignment_title}
+                                                    onChange={(e) => setData('assignment_title', e.target.value)}
+                                                    placeholder="Enter assignment title"
+                                                    className={errors.assignment_title ? 'border-destructive' : ''}
+                                                />
+                                                {errors.assignment_title && (
+                                                    <p className="text-sm text-destructive mt-1">{errors.assignment_title}</p>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label htmlFor="total_points">Total Points</Label>
+                                                    <Input
+                                                        id="total_points"
+                                                        type="number"
+                                                        value={data.total_points}
+                                                        onChange={(e) => setData('total_points', e.target.value)}
+                                                        placeholder="100"
+                                                        className={errors.total_points ? 'border-destructive' : ''}
+                                                    />
+                                                    {errors.total_points && (
+                                                        <p className="text-sm text-destructive mt-1">{errors.total_points}</p>
+                                                    )}
+                                                </div>
+
+                                                <div>
+                                                    <Label htmlFor="assignment_type">Assignment Type</Label>
+                                                    <Input
+                                                        id="assignment_type"
+                                                        type="text"
+                                                        value={data.assignment_type}
+                                                        onChange={(e) => setData('assignment_type', e.target.value)}
+                                                        placeholder="e.g., essay, project, homework"
+                                                        className={errors.assignment_type ? 'border-destructive' : ''}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label htmlFor="started_at">Start Date</Label>
+                                                    <Input
+                                                        id="started_at"
+                                                        type="datetime-local"
+                                                        value={data.started_at}
+                                                        onChange={(e) => setData('started_at', e.target.value)}
+                                                        className={errors.started_at ? 'border-destructive' : ''}
+                                                    />
+                                                    {errors.started_at && (
+                                                        <p className="text-sm text-destructive mt-1">{errors.started_at}</p>
+                                                    )}
+                                                </div>
+
+                                                <div>
+                                                    <Label htmlFor="expired_at">Due Date</Label>
+                                                    <Input
+                                                        id="expired_at"
+                                                        type="datetime-local"
+                                                        value={data.expired_at}
+                                                        onChange={(e) => setData('expired_at', e.target.value)}
+                                                        className={errors.expired_at ? 'border-destructive' : ''}
+                                                    />
+                                                    {errors.expired_at && (
+                                                        <p className="text-sm text-destructive mt-1">{errors.expired_at}</p>
                                                     )}
                                                 </div>
                                             </div>
-                                            {errors.file && (
-                                                <p className="text-sm text-red-500">{errors.file}</p>
-                                            )}
                                         </div>
                                     )}
 
-                                    {(selectedType === 'quiz' || selectedType === 'assignment') && (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="content">Content *</Label>
-                                            <Textarea
-                                                id="content"
-                                                value={data.content}
-                                                onChange={(e) => setData('content', e.target.value)}
-                                                placeholder={
-                                                    selectedType === 'quiz'
-                                                        ? "Quiz instructions and questions..."
-                                                        : "Assignment description and requirements..."
-                                                }
-                                                rows={8}
-                                                className={errors.content ? 'border-red-500' : ''}
-                                                required
+                                    {/* Additional Options */}
+                                    <div className="space-y-4 border-t pt-4">
+                                        <h3 className="font-medium">Options</h3>
+
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id="is_required"
+                                                checked={data.is_required}
+                                                onCheckedChange={(checked) => setData('is_required', Boolean(checked))}
                                             />
-                                            {errors.content && (
-                                                <p className="text-sm text-red-500">{errors.content}</p>
-                                            )}
+                                            <Label htmlFor="is_required">
+                                                This item is required for course completion
+                                            </Label>
                                         </div>
-                                    )}
 
-                                    {/* Duration (for videos) */}
-                                    {selectedType === 'video' && (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="duration">Duration (seconds) *</Label>
-                                            <Input
-                                                id="duration"
-                                                type="number"
-                                                min="0"
-                                                value={data.duration}
-                                                onChange={(e) => setData('duration', e.target.value)}
-                                                placeholder="e.g., 300 for 5 minutes"
-                                                className={errors.duration ? 'border-red-500' : ''}
-                                                required
-                                            />
-                                            {errors.duration && (
-                                                <p className="text-sm text-red-500">{errors.duration}</p>
-                                            )}
-                                            <p className="text-xs text-muted-foreground">
-                                                Duration helps students plan their learning time
-                                            </p>
+                                        <div>
+                                            <Label htmlFor="status">Status</Label>
+                                            <select
+                                                id="status"
+                                                value={data.status}
+                                                onChange={(e) => setData('status', e.target.value as 'draft' | 'published')}
+                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                                            >
+                                                <option value="published">Published</option>
+                                                <option value="draft">Draft</option>
+                                            </select>
                                         </div>
-                                    )}
-
-                                    {/* Order */}
-                                    <div className="space-y-2">
-                                        <Label htmlFor="order">Order</Label>
-                                        <Input
-                                            id="order"
-                                            type="number"
-                                            min="1"
-                                            value={data.order}
-                                            onChange={(e) => setData('order', parseInt(e.target.value) || 1)}
-                                            className={errors.order ? 'border-red-500' : ''}
-                                        />
-                                        {errors.order && (
-                                            <p className="text-sm text-red-500">{errors.order}</p>
-                                        )}
                                     </div>
 
-                                    {/* Required checkbox */}
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id="is_required"
-                                            checked={data.is_required}
-                                            onCheckedChange={(checked) => setData('is_required', Boolean(checked))}
-                                        />
-                                        <Label htmlFor="is_required" className="cursor-pointer">
-                                            This item is required for course completion
-                                        </Label>
-                                    </div>
-
-                                    {/* Submit Actions */}
-                                    <div className="flex items-center gap-4 pt-6 border-t">
-                                        <Button
-                                            type="submit"
-                                            disabled={processing || !isFormValid()}
-                                            className="min-w-[120px]"
-                                        >
-                                            <Save className="mr-2 h-4 w-4" />
-                                            {getSubmitButtonText()}
-                                        </Button>
-                                        <Button type="button" variant="outline" asChild disabled={processing}>
+                                    {/* Submit Button */}
+                                    <div className="flex justify-end gap-2 pt-4">
+                                        <Button type="button" variant="outline" asChild>
                                             <Link href={`/courses/${course.id}/modules/${module.id}`}>
                                                 Cancel
                                             </Link>
                                         </Button>
-                                        {!isFormValid() && (
-                                            <p className="text-sm text-muted-foreground">
-                                                Please fill in all required fields
-                                            </p>
-                                        )}
+                                        <Button
+                                            type="submit"
+                                            disabled={!isFormValid() || processing}
+                                        >
+                                            <Save className="mr-2 h-4 w-4" />
+                                            {getSubmitButtonText()}
+                                        </Button>
                                     </div>
                                 </form>
                             </CardContent>
@@ -408,52 +485,36 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                     </div>
 
                     {/* Sidebar */}
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-lg">📋 Module Info</CardTitle>
+                                <CardTitle className="text-lg">Tips</CardTitle>
                             </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span>Module</span>
-                                        <span>{module.title}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span>Current Items</span>
-                                        <span>{nextOrder - 1}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span>This Item</span>
-                                        <span>#{nextOrder}</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">💡 Tips</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div>
-                                    <h4 className="font-medium text-sm mb-2">Content Quality</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Use clear, descriptive titles and provide helpful descriptions.
-                                    </p>
-                                </div>
-                                <div>
-                                    <h4 className="font-medium text-sm mb-2">Organization</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Order items logically from basic concepts to advanced topics.
-                                    </p>
-                                </div>
-                                <div>
-                                    <h4 className="font-medium text-sm mb-2">Engagement</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Mix different content types to keep students engaged.
-                                    </p>
-                                </div>
+                            <CardContent className="space-y-3 text-sm">
+                                {data.item_type === 'lecture' && (
+                                    <>
+                                        <p>• Use YouTube or Vimeo URLs for best performance</p>
+                                        <p>• Duration helps with progress tracking</p>
+                                        <p>• Add notes in the content section</p>
+                                    </>
+                                )}
+                                {data.item_type === 'assessment' && (
+                                    <>
+                                        <p>• Set appropriate maximum scores</p>
+                                        <p>• Choose the right assessment type</p>
+                                        <p>• Questions can be added after creation</p>
+                                    </>
+                                )}
+                                {data.item_type === 'assignment' && (
+                                    <>
+                                        <p>• Set clear due dates</p>
+                                        <p>• Specify total points for grading</p>
+                                        <p>• Use descriptive assignment types</p>
+                                    </>
+                                )}
+                                {!data.item_type && (
+                                    <p>Select an item type to see specific tips.</p>
+                                )}
                             </CardContent>
                         </Card>
                     </div>

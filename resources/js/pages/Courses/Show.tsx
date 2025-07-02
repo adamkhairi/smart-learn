@@ -24,7 +24,6 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
     const { canManageCourse } = useAuth();
     const isInstructor = canManageCourse(course.created_by);
     const isStudent = userEnrollment?.enrolled_as === 'student';
-
     // Filter content based on user role
     const publishedModules = course.modules?.filter(module => module.is_published) || [];
 
@@ -90,61 +89,63 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                     </div>
                 </div>
 
-                {/* Course Stats Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card className="border-l-4 border-l-blue-500">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                                    <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                {/* Course Stats Overview - Hidden for Students */}
+                {!isStudent && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <Card className="border-l-4 border-l-blue-500">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                                        <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-muted-foreground">Students</p>
+                                        <p className="text-2xl font-bold">{course.enrolled_users?.length || 0}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Students</p>
-                                    <p className="text-2xl font-bold">{course.enrolled_users?.length || 0}</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-l-4 border-l-green-500">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                                        <BookOpen className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-muted-foreground">Modules</p>
+                                        <p className="text-2xl font-bold">{visibleModules.length}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="border-l-4 border-l-green-500">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                                    <BookOpen className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            </CardContent>
+                        </Card>
+                        <Card className="border-l-4 border-l-purple-500">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                                        <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-muted-foreground">Assignments</p>
+                                        <p className="text-2xl font-bold">{course.assignments?.length || 0}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Modules</p>
-                                    <p className="text-2xl font-bold">{visibleModules.length}</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-l-4 border-l-orange-500">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                                        <MessageSquare className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-muted-foreground">Discussions</p>
+                                        <p className="text-2xl font-bold">{course.discussions?.length || 0}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="border-l-4 border-l-purple-500">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                                    <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Assignments</p>
-                                    <p className="text-2xl font-bold">{course.assignments?.length || 0}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="border-l-4 border-l-orange-500">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                                    <MessageSquare className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Discussions</p>
-                                    <p className="text-2xl font-bold">{course.discussions?.length || 0}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
 
                 {/* Main Content Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -387,12 +388,12 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                     <div className="space-y-6">
                         {/* Course Image */}
                         {course.image && (
-                            <Card>
+                            <Card className="overflow-hidden p-0">
                                 <CardContent className="p-0">
                                     <img
                                         src={`/storage/${course.image}`}
                                         alt={course.name}
-                                        className="w-full h-48 object-cover rounded-t-lg"
+                                        className="w-full h-48 object-cover"
                                     />
                                     <div className="p-4">
                                         <p className="text-sm text-muted-foreground">Course Banner</p>

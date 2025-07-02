@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CourseModuleShowPageProps } from '@/types';
+import { BreadcrumbItem, CourseModuleShowPageProps, CourseModuleItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,13 +19,11 @@ import {
     GripVertical,
     Play,
     FileText,
-    Link as LinkIcon,
     HelpCircle,
     ClipboardList,
     Clock,
     CheckCircle,
     XCircle,
-    Download,
     ExternalLink
 } from 'lucide-react';
 import { useState } from 'react';
@@ -117,45 +115,52 @@ function Show({ course, module }: CourseModuleShowPageProps) {
     const handleDrop = (e: React.DragEvent, targetItemId: number) => {
         e.preventDefault();
 
-        const moduleItems = module.moduleItems || module.module_items || module.items;
-        if (!draggedItem || draggedItem === targetItemId || !moduleItems) {
+        if (!draggedItem || draggedItem === targetItemId) {
             setDraggedItem(null);
             return;
         }
 
-        const draggedIndex = moduleItems.findIndex(item => item.id === draggedItem);
-        const targetIndex = moduleItems.findIndex(item => item.id === targetItemId);
+        const items = module.moduleItems || module.module_items || module.items || [];
+        const draggedIndex = items.findIndex(item => item.id === draggedItem);
+        const targetIndex = items.findIndex(item => item.id === targetItemId);
 
-        if (draggedIndex === -1 || targetIndex === -1) return;
+        if (draggedIndex === -1 || targetIndex === -1) {
+            setDraggedItem(null);
+            return;
+        }
 
-        // Create new order array
-        const reorderedItems = [...moduleItems];
-        const [draggedItem_] = reorderedItems.splice(draggedIndex, 1);
-        reorderedItems.splice(targetIndex, 0, draggedItem_);
-
-        // Update order values
-        const itemsWithNewOrder = reorderedItems.map((item, index) => ({
-            id: item.id,
-            order: index + 1
-        }));
-
-        // Send update to backend
-        router.patch(`/courses/${course.id}/modules/${module.id}/items/order`, {
-            items: itemsWithNewOrder
+        // Simple API call to update order
+        router.patch(`/courses/${course.id}/modules/${module.id}/items/${draggedItem}/reorder`, {
+            target_position: targetIndex + 1
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setDraggedItem(null);
+            },
+            onError: (errors) => {
+                console.error('Failed to reorder items:', errors);
+                setDraggedItem(null);
+            }
         });
-
-        setDraggedItem(null);
     };
 
-    const getItemIcon = (type: string) => {
-        switch (type) {
-            case 'video':
+    // Helper function to get item type from polymorphic relationship
+    const getItemType = (item: CourseModuleItem): 'lecture' | 'assessment' | 'assignment' | 'unknown' => {
+        if (item.item_type_name) return item.item_type_name;
+
+        if (item.itemable_type?.includes('Lecture')) return 'lecture';
+        if (item.itemable_type?.includes('Assessment')) return 'assessment';
+        if (item.itemable_type?.includes('Assignment')) return 'assignment';
+
+        return 'unknown';
+    };
+
+    const getItemIcon = (itemType: string) => {
+        switch (itemType) {
+            case 'lecture':
                 return <Play className="h-4 w-4 text-blue-500" />;
-            case 'document':
-                return <FileText className="h-4 w-4 text-green-500" />;
-            case 'link':
-                return <LinkIcon className="h-4 w-4 text-purple-500" />;
-            case 'quiz':
+            case 'assessment':
                 return <HelpCircle className="h-4 w-4 text-orange-500" />;
             case 'assignment':
                 return <ClipboardList className="h-4 w-4 text-red-500" />;
@@ -169,6 +174,18 @@ function Show({ course, module }: CourseModuleShowPageProps) {
         const minutes = Math.floor(duration / 60);
         const seconds = duration % 60;
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    // Helper function to get external URL from polymorphic content
+    const getExternalUrl = (item: CourseModuleItem): string | null => {
+        if (!item.itemable) return null;
+
+        const itemType = getItemType(item);
+        if (itemType === 'lecture') {
+            return (item.itemable as any)?.video_url || null;
+        }
+
+        return null;
     };
 
     return (
@@ -299,7 +316,7 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                                             )}
 
                                             <div className="flex items-center gap-3">
-                                                {getItemIcon(item.type)}
+                                                {getItemIcon(getItemType(item))}
                                                 <Badge variant="outline" className="text-xs">
                                                     {index + 1}
                                                 </Badge>
@@ -316,7 +333,7 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                                                 </div>
 
                                                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                    <span className="capitalize">{item.type}</span>
+                                                    <span className="capitalize">{getItemType(item)}</span>
                                                     {item.duration && (
                                                         <>
                                                             <span>•</span>
@@ -340,22 +357,10 @@ function Show({ course, module }: CourseModuleShowPageProps) {
 
                                         <div className="flex items-center gap-2">
                                             {/* Quick Access Actions */}
-                                            {item.type === 'document' && item.url && (
+                                            {getItemType(item) === 'lecture' && getExternalUrl(item) && (
                                                 <Button variant="ghost" size="sm" asChild>
                                                     <a
-                                                        href={`/storage/${item.url}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                    >
-                                                        <Download className="h-4 w-4" />
-                                                    </a>
-                                                </Button>
-                                            )}
-
-                                            {(item.type === 'video' || item.type === 'link') && item.url && (
-                                                <Button variant="ghost" size="sm" asChild>
-                                                    <a
-                                                        href={item.url}
+                                                        href={getExternalUrl(item) || '#'}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                     >

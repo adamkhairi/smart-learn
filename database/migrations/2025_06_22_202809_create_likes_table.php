@@ -14,14 +14,14 @@ return new class extends Migration
         Schema::create('likes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('article_id')->constrained('articles')->cascadeOnDelete();
+            $table->morphs('likeable'); // Creates likeable_id and likeable_type columns
             $table->timestamps();
 
             // Unique constraint to prevent duplicate likes
-            $table->unique(['user_id', 'article_id']);
+            $table->unique(['user_id', 'likeable_id', 'likeable_type']);
 
             // Indexes
-            $table->index('article_id');
+            $table->index(['likeable_id', 'likeable_type']);
         });
     }
 

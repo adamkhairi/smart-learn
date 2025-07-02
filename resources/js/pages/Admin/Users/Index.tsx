@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import AppSidebarLayout from '@/layouts/app/app-sidebar-layout';
+import AppLayout from '@/layouts/app-layout';
 import {
     Plus,
     Search,
@@ -13,7 +13,8 @@ import {
     UserX,
     Users,
     BookOpen,
-    TrendingUp
+    TrendingUp,
+    AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,8 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useFlashToast } from '@/hooks/use-flash-toast';
 
 interface User {
     id: number;
@@ -74,15 +77,29 @@ interface Props {
         instructors: number;
         admins: number;
     };
+    flash?: {
+        success?: string;
+        error?: string;
+    };
+    errors?: Record<string, string>;
 }
 
-export default function UsersIndex({ users, filters, stats }: Props) {
+export default function UsersIndex({ users, filters, stats, flash, errors }: Props) {
+    // Initialize toast notifications
+    useFlashToast();
+
     const [search, setSearch] = useState(filters.search || '');
     const [roleFilter, setRoleFilter] = useState(filters.role || 'all');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
+    const [loading, setLoading] = useState(false);
 
     const handleSearch = () => {
-        const searchParams: Record<string, string> = { search };
+        setLoading(true);
+        const searchParams: Record<string, string> = {};
+
+        if (search.trim()) {
+            searchParams.search = search.trim();
+        }
 
         if (roleFilter !== 'all') {
             searchParams.role = roleFilter;
@@ -92,43 +109,85 @@ export default function UsersIndex({ users, filters, stats }: Props) {
             searchParams.status = statusFilter;
         }
 
-        router.get(route('admin.users.index'), searchParams, { preserveState: true });
+        router.get(route('admin.users.index'), searchParams, {
+            preserveState: true,
+            onFinish: () => setLoading(false)
+        });
     };
 
-    const handleToggleActive = (userId: number) => {
-        router.patch(route('admin.users.toggle-active', userId));
+    const handleToggleActive = (userId: number, userName: string) => {
+        if (confirm(`Are you sure you want to toggle the status for ${userName}?`)) {
+            router.patch(route('admin.users.toggle-active', userId));
+        }
     };
 
-    const handleDelete = (userId: number) => {
-        if (confirm('Are you sure you want to delete this user?')) {
+    const handleDelete = (userId: number, userName: string) => {
+        if (confirm(`Are you sure you want to delete ${userName}? This action cannot be undone.`)) {
             router.delete(route('admin.users.destroy', userId));
         }
     };
 
-    const getRoleBadge = (role: string) => {
-        if (role === 'admin') {
-            return <Badge variant="destructive">{role}</Badge>;
-        } else if (role === 'instructor') {
-            return <Badge variant="default">{role}</Badge>;
-        } else {
-            return <Badge variant="secondary">{role}</Badge>;
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSearch();
         }
+    };
+
+    const clearFilters = () => {
+        setSearch('');
+        setRoleFilter('all');
+        setStatusFilter('all');
+        router.get(route('admin.users.index'));
+    };
+
+    const getRoleBadge = (role: string) => {
+        const config = {
+            admin: { variant: 'destructive' as const, label: 'Admin' },
+            instructor: { variant: 'default' as const, label: 'Instructor' },
+            student: { variant: 'secondary' as const, label: 'Student' },
+        };
+        const { variant, label } = config[role as keyof typeof config] || config.student;
+        return <Badge variant={variant}>{label}</Badge>;
     };
 
     const getStatusBadge = (isActive: boolean) => {
         return isActive ? (
-            <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
+            <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                Active
+            </Badge>
         ) : (
-            <Badge variant="secondary" className="bg-gray-100 text-gray-800">Inactive</Badge>
+            <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
+                Inactive
+            </Badge>
         );
     };
 
+    const getInitials = (name: string) => {
+        return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    };
+
     return (
-        <AppSidebarLayout>
+        <AppLayout>
             <Head title="User Management" />
-            <div className="p-6 space-y-6">
+
+            <div className="space-y-6 pt-4">
+                {/* Flash Messages */}
+                {flash?.success && (
+                    <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{flash.success}</AlertDescription>
+                    </Alert>
+                )}
+
+                {(flash?.error || errors?.error) && (
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{flash?.error || errors?.error}</AlertDescription>
+                    </Alert>
+                )}
+
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
                         <p className="text-muted-foreground">
@@ -200,11 +259,8 @@ export default function UsersIndex({ users, filters, stats }: Props) {
                                         placeholder="Search users..."
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                        onKeyPress={handleKeyPress}
                                     />
-                                    <Button onClick={handleSearch} size="sm">
-                                        <Search className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </div>
                             <div className="space-y-2">
@@ -234,9 +290,13 @@ export default function UsersIndex({ users, filters, stats }: Props) {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="flex items-end">
-                                <Button onClick={handleSearch} className="w-full">
-                                    Apply Filters
+                            <div className="flex items-end gap-2">
+                                <Button onClick={handleSearch} disabled={loading} className="flex-1">
+                                    <Search className="mr-2 h-4 w-4" />
+                                    {loading ? 'Searching...' : 'Search'}
+                                </Button>
+                                <Button variant="outline" onClick={clearFilters}>
+                                    Clear
                                 </Button>
                             </div>
                         </div>
@@ -249,79 +309,106 @@ export default function UsersIndex({ users, filters, stats }: Props) {
                         <CardTitle>Users ({users.total})</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
-                            {users.data.map((user) => (
-                                <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                                    <div className="flex items-center space-x-4">
-                                        <Avatar>
-                                            <AvatarImage src={user.photo} />
-                                            <AvatarFallback>
-                                                {user.name.split(' ').map(n => n[0]).join('')}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <div className="font-medium">{user.name}</div>
-                                            <div className="text-sm text-muted-foreground">{user.email}</div>
-                                            <div className="text-xs text-muted-foreground">@{user.username}</div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center space-x-4">
-                                        <div className="text-right">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                {getRoleBadge(user.role)}
-                                                {getStatusBadge(user.is_active)}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground space-x-4">
-                                                <span>{user.enrollments_count} enrollments</span>
-                                                <span>{user.created_courses_count} courses</span>
-                                                <span>{user.submissions_count} submissions</span>
-                                            </div>
-                                        </div>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="sm">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={route('admin.users.show', user.id)}>
-                                                        <Eye className="mr-2 h-4 w-4" />
-                                                        View
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={route('admin.users.edit', user.id)}>
-                                                        <Edit className="mr-2 h-4 w-4" />
-                                                        Edit
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleToggleActive(user.id)}>
-                                                    {user.is_active ? (
-                                                        <>
-                                                            <UserX className="mr-2 h-4 w-4" />
-                                                            Deactivate
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <UserCheck className="mr-2 h-4 w-4" />
-                                                            Activate
-                                                        </>
-                                                    )}
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={() => handleDelete(user.id)}
-                                                    className="text-red-600"
+                        {users.data.length > 0 ? (
+                            <div className="space-y-4">
+                                {users.data.map((user) => (
+                                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                                        <div className="flex items-center space-x-4">
+                                            <Avatar>
+                                                <AvatarImage src={user.photo} />
+                                                <AvatarFallback>
+                                                    {getInitials(user.name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <Link
+                                                    href={route('admin.users.show', user.id)}
+                                                    className="font-medium hover:text-primary transition-colors cursor-pointer"
                                                 >
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                                    {user.name}
+                                                </Link>
+                                                <div className="text-sm text-muted-foreground">{user.email}</div>
+                                                {user.username && (
+                                                    <div className="text-xs text-muted-foreground">@{user.username}</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center space-x-4">
+                                            <div className="text-right hidden sm:block">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    {getRoleBadge(user.role)}
+                                                    {getStatusBadge(user.is_active)}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground space-x-4">
+                                                    <span>{user.enrollments_count} enrollments</span>
+                                                    <span>{user.created_courses_count} courses</span>
+                                                    <span>{user.submissions_count} submissions</span>
+                                                </div>
+                                            </div>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="sm">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={route('admin.users.show', user.id)}>
+                                                            <Eye className="mr-2 h-4 w-4" />
+                                                            View
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={route('admin.users.edit', user.id)}>
+                                                            <Edit className="mr-2 h-4 w-4" />
+                                                            Edit
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleToggleActive(user.id, user.name)}>
+                                                        {user.is_active ? (
+                                                            <>
+                                                                <UserX className="mr-2 h-4 w-4" />
+                                                                Deactivate
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <UserCheck className="mr-2 h-4 w-4" />
+                                                                Activate
+                                                            </>
+                                                        )}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleDelete(user.id, user.name)}
+                                                        className="text-red-600"
+                                                    >
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8">
+                                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                <p className="text-lg font-medium">No users found</p>
+                                <p className="text-muted-foreground">
+                                    {search || roleFilter !== 'all' || statusFilter !== 'all'
+                                        ? 'Try adjusting your filters or search terms.'
+                                        : 'Get started by creating your first user.'}
+                                </p>
+                                {!(search || roleFilter !== 'all' || statusFilter !== 'all') && (
+                                    <Link href={route('admin.users.create')} className="mt-4 inline-block">
+                                        <Button>
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Add First User
+                                        </Button>
+                                    </Link>
+                                )}
+                            </div>
+                        )}
 
                         {/* Pagination */}
                         {users.last_page > 1 && (
@@ -332,21 +419,19 @@ export default function UsersIndex({ users, filters, stats }: Props) {
                                             <Link
                                                 key={index}
                                                 href={link.url}
-                                                className={`px-3 py-2 text-sm rounded-md ${
+                                                className={`px-3 py-2 text-sm rounded-md transition-colors ${
                                                     link.active
                                                         ? 'bg-primary text-primary-foreground'
                                                         : 'bg-background border hover:bg-accent'
                                                 }`}
-                                            >
-                                                {link.label}
-                                            </Link>
+                                                dangerouslySetInnerHTML={{ __html: link.label }}
+                                            />
                                         ) : (
                                             <span
                                                 key={index}
                                                 className="px-3 py-2 text-sm rounded-md bg-muted text-muted-foreground cursor-not-allowed"
-                                            >
-                                                {link.label}
-                                            </span>
+                                                dangerouslySetInnerHTML={{ __html: link.label }}
+                                            />
                                         )
                                     ))}
                                 </nav>
@@ -355,6 +440,6 @@ export default function UsersIndex({ users, filters, stats }: Props) {
                     </CardContent>
                 </Card>
             </div>
-        </AppSidebarLayout>
+        </AppLayout>
     );
 }

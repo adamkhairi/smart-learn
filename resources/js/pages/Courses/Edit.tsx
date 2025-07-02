@@ -1,13 +1,15 @@
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem, CourseEditPageProps } from '@/types';
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Upload, Palette, Save } from 'lucide-react';
+import { ArrowLeft, Upload, Palette, Save, X } from 'lucide-react';
+import { useState } from 'react';
+import InputError from '@/components/input-error';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -21,33 +23,77 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function Edit({ course }: CourseEditPageProps) {
-    const { data, setData, put, processing, errors } = useForm({
+    const [formData, setFormData] = useState({
         name: course.name,
         description: course.description || '',
-        image: null as File | null,
-        background_color: course.background_color || '',
+        background_color: course.background_color || '#3B82F6',
         status: course.status,
+        image: null as File | null,
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        put(`/courses/${course.id}`);
+    const [imagePreview, setImagePreview] = useState<string | null>(
+        course.image ? (course.image.startsWith('http') ? course.image : `/storage/${course.image}`) : null
+    );
+
+    const [processing, setProcessing] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const handleInputChange = (field: string, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] || null;
-        setData('image', file);
+        const file = e.target.files?.[0];
+        if (file) {
+            setFormData(prev => ({ ...prev, image: file }));
+            setImagePreview(URL.createObjectURL(file));
+        }
+    };
+
+    const removeImage = () => {
+        setFormData(prev => ({ ...prev, image: null }));
+        setImagePreview(course.image ? `/storage/${course.image}` : null);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setProcessing(true);
+
+        const data = new FormData();
+        data.append('_method', 'PUT');
+        data.append('name', formData.name);
+        data.append('description', formData.description);
+        data.append('background_color', formData.background_color);
+        data.append('status', formData.status);
+
+        if (formData.image) {
+            data.append('image', formData.image);
+        }
+
+        router.post(`/courses/${course.id}`, data, {
+            onSuccess: () => {
+                setProcessing(false);
+            },
+            onError: (errors) => {
+                setErrors(errors);
+                setProcessing(false);
+            }
+        });
     };
 
     const generateRandomColor = () => {
-        const color = '#' + Math.floor(Math.random()*16777215).toString(16);
-        setData('background_color', color);
+        const colors = [
+            '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+            '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
+        ];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        setFormData(prev => ({ ...prev, background_color: randomColor }));
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Edit ${course.name}`} />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" asChild>
                         <Link href={`/courses/${course.id}`}>
@@ -88,22 +134,20 @@ function Edit({ course }: CourseEditPageProps) {
                                         <Input
                                             id="name"
                                             type="text"
-                                            value={data.name}
-                                            onChange={(e) => setData('name', e.target.value)}
+                                            value={formData.name}
+                                            onChange={(e) => handleInputChange('name', e.target.value)}
                                             placeholder="Enter course name"
                                             className={errors.name ? 'border-red-500' : ''}
                                         />
-                                        {errors.name && (
-                                            <p className="text-sm text-red-500">{errors.name}</p>
-                                        )}
+                                        {errors.name && <InputError message={errors.name} />}
                                     </div>
 
                                     {/* Course Status */}
                                     <div className="space-y-2">
                                         <Label htmlFor="status">Status *</Label>
                                         <Select
-                                            value={data.status}
-                                            onValueChange={(value) => setData('status', value as 'published' | 'archived')}
+                                            value={formData.status}
+                                            onValueChange={(value) => handleInputChange('status', value)}
                                         >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select status" />
@@ -113,9 +157,7 @@ function Edit({ course }: CourseEditPageProps) {
                                                 <SelectItem value="archived">Archived</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                        {errors.status && (
-                                            <p className="text-sm text-red-500">{errors.status}</p>
-                                        )}
+                                        {errors.status && <InputError message={errors.status} />}
                                     </div>
                                 </div>
 
@@ -124,15 +166,13 @@ function Edit({ course }: CourseEditPageProps) {
                                     <Label htmlFor="description">Description</Label>
                                     <Textarea
                                         id="description"
-                                        value={data.description}
-                                        onChange={(e) => setData('description', e.target.value)}
+                                        value={formData.description}
+                                        onChange={(e) => handleInputChange('description', e.target.value)}
                                         placeholder="Describe your course objectives, target audience, and what students will learn..."
                                         rows={8}
                                         className={errors.description ? 'border-red-500' : ''}
                                     />
-                                    {errors.description && (
-                                        <p className="text-sm text-red-500">{errors.description}</p>
-                                    )}
+                                    {errors.description && <InputError message={errors.description} />}
                                 </div>
                             </div>
 
@@ -150,49 +190,56 @@ function Edit({ course }: CourseEditPageProps) {
                                     <div className="space-y-4">
                                         <Label htmlFor="image">Course Image</Label>
 
-                                        {/* Current Image Preview */}
-                                        {course.image && (
+                                        {/* Image Preview */}
+                                        {imagePreview ? (
                                             <div className="relative">
                                                 <img
-                                                    src={`/storage/${course.image}`}
-                                                    alt="Current course image"
+                                                    src={imagePreview}
+                                                    alt="Course preview"
                                                     className="w-full h-32 object-cover rounded-lg border"
                                                 />
-                                                <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                                                    Current
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    className="absolute top-2 right-2"
+                                                    onClick={removeImage}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                                {!formData.image && course.image && (
+                                                    <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                                                        Current
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+                                                <div className="text-center">
+                                                    <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                                                    <div className="mt-2">
+                                                        <Input
+                                                            id="image"
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={handleImageChange}
+                                                            className="hidden"
+                                                        />
+                                                        <Label htmlFor="image" className="cursor-pointer">
+                                                            <Button variant="outline" size="sm" type="button" asChild>
+                                                                <span>Choose new image</span>
+                                                            </Button>
+                                                        </Label>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        PNG, JPG, GIF up to 2MB<br/>
+                                                        Recommended: 1200x630px
+                                                    </p>
                                                 </div>
                                             </div>
                                         )}
 
-                                        {/* File Upload */}
-                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
-                                            <div className="text-center">
-                                                <Upload className="mx-auto h-8 w-8 text-gray-400" />
-                                                <div className="mt-2">
-                                                    <Input
-                                                        id="image"
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={handleImageChange}
-                                                        className="hidden"
-                                                    />
-                                                    <label
-                                                        htmlFor="image"
-                                                        className="cursor-pointer text-sm font-medium text-primary hover:text-primary/80"
-                                                    >
-                                                        Choose new image
-                                                    </label>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground mt-1">
-                                                    PNG, JPG, GIF up to 2MB<br/>
-                                                    Recommended: 1200x630px
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {errors.image && (
-                                            <p className="text-sm text-red-500">{errors.image}</p>
-                                        )}
+                                        {errors.image && <InputError message={errors.image} />}
                                     </div>
 
                                     {/* Background Color */}
@@ -203,23 +250,20 @@ function Edit({ course }: CourseEditPageProps) {
                                             {/* Color Preview */}
                                             <div
                                                 className="w-full h-20 rounded-lg border shadow-sm"
-                                                style={{ backgroundColor: data.background_color || '#f3f4f6' }}
+                                                style={{ backgroundColor: formData.background_color || '#f3f4f6' }}
                                             />
 
                                             {/* Color Controls */}
                                             <div className="flex items-center gap-3">
-                                                <Input
-                                                    id="background_color"
-                                                    type="color"
-                                                    value={data.background_color}
-                                                    onChange={(e) => setData('background_color', e.target.value)}
-                                                    className="w-16 h-10 p-1 border rounded cursor-pointer"
+                                                <div
+                                                    className="w-8 h-8 rounded border"
+                                                    style={{ backgroundColor: formData.background_color }}
                                                 />
                                                 <Input
                                                     type="text"
-                                                    value={data.background_color}
-                                                    onChange={(e) => setData('background_color', e.target.value)}
-                                                    placeholder="#000000"
+                                                    value={formData.background_color}
+                                                    onChange={(e) => handleInputChange('background_color', e.target.value)}
+                                                    placeholder="#3B82F6"
                                                     className="font-mono text-sm"
                                                 />
                                                 <Button
@@ -234,9 +278,7 @@ function Edit({ course }: CourseEditPageProps) {
                                             </div>
                                         </div>
 
-                                        {errors.background_color && (
-                                            <p className="text-sm text-red-500">{errors.background_color}</p>
-                                        )}
+                                        {errors.background_color && <InputError message={errors.background_color} />}
                                     </div>
                                 </div>
                             </div>

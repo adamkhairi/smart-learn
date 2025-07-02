@@ -20,12 +20,17 @@ class Lecture extends Model
     protected $fillable = [
         'title',
         'description',
+        'content',
         'video_url',
+        'youtube_id',
         'duration',
+        'metadata',
         'course_id',
         'course_module_id',
+        'created_by',
         'order',
         'is_published',
+        'view_count',
     ];
 
     /**
@@ -39,7 +44,17 @@ class Lecture extends Model
             'duration' => 'integer',
             'order' => 'integer',
             'is_published' => 'boolean',
+            'view_count' => 'integer',
+            'metadata' => 'array',
         ];
+    }
+
+    /**
+     * Get the user who created this lecture.
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**
@@ -64,6 +79,38 @@ class Lecture extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(LectureComment::class);
+    }
+
+    /**
+     * Get the polymorphic comments for this lecture.
+     */
+    public function polymorphicComments()
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+
+    /**
+     * Get likes for this lecture.
+     */
+    public function likes()
+    {
+        return $this->morphMany(Like::class, 'likeable');
+    }
+
+    /**
+     * Get bookmarks for this lecture.
+     */
+    public function bookmarks()
+    {
+        return $this->morphMany(Bookmark::class, 'bookmarkable');
+    }
+
+    /**
+     * Get the course module item this lecture belongs to.
+     */
+    public function moduleItem()
+    {
+        return $this->morphOne(CourseModuleItem::class, 'itemable');
     }
 
     /**

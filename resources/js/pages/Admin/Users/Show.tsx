@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
@@ -6,7 +6,6 @@ import {
     Mail,
     Phone,
     Calendar,
-    Plus,
     X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,7 @@ import {
     SelectValue
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import AppLayout from '@/layouts/app-layout';
 
 interface Course {
     id: number;
@@ -66,21 +66,9 @@ interface Stats {
 interface Props {
     user: User;
     stats: Stats;
-    availableCourses: Course[];
 }
 
-export default function ShowUser({ user, stats, availableCourses }: Props) {
-    const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
-    const [selectedRole, setSelectedRole] = useState<string>('student');
-
-    const handleAssignCourse = () => {
-        if (selectedCourse && selectedRole) {
-            router.post(route('admin.users.assign-course', user.id), {
-                course_id: selectedCourse,
-                role: selectedRole,
-            });
-        }
-    };
+export default function ShowUser({ user, stats }: Props) {
 
     const handleRemoveCourse = (courseId: number) => {
         router.delete(route('admin.users.remove-course', user.id), {
@@ -122,7 +110,7 @@ export default function ShowUser({ user, stats, availableCourses }: Props) {
     };
 
     return (
-        <>
+        <AppLayout>
             <Head title={`User Details - ${user.name}`} />
 
             <div className="space-y-6">
@@ -293,49 +281,23 @@ export default function ShowUser({ user, stats, availableCourses }: Props) {
                             </CardContent>
                         </Card>
 
-                        {/* Assign to New Course */}
-                        {availableCourses.length > 0 && (
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Assign to New Course</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        <div className="flex items-center space-x-2">
-                                            <Select value={selectedCourse?.toString() || undefined} onValueChange={(value) => setSelectedCourse(parseInt(value))}>
-                                                <SelectTrigger className="flex-1">
-                                                    <SelectValue placeholder="Select a course" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {availableCourses.map((course) => (
-                                                        <SelectItem key={course.id} value={course.id.toString()}>
-                                                            {course.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <Select value={selectedRole} onValueChange={setSelectedRole}>
-                                                <SelectTrigger className="w-32">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="student">Student</SelectItem>
-                                                    <SelectItem value="instructor">Instructor</SelectItem>
-                                                    <SelectItem value="admin">Admin</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <Button onClick={handleAssignCourse} disabled={!selectedCourse}>
-                                                <Plus className="mr-2 h-4 w-4" />
-                                                Assign
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
+                        {/* Course Management Notice */}
+                        <Card>
+                            <CardContent className="text-center py-6">
+                                <p className="text-muted-foreground mb-4">
+                                    Need to assign this user to new courses or manage their enrollments?
+                                </p>
+                                <Link href={route('admin.users.edit', user.id)}>
+                                    <Button>
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Edit User
+                                    </Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </div>
-        </>
+        </AppLayout>
     );
 }

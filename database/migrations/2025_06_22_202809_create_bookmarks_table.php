@@ -14,14 +14,14 @@ return new class extends Migration
         Schema::create('bookmarks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('article_id')->constrained('articles')->cascadeOnDelete();
+            $table->morphs('bookmarkable'); // Creates bookmarkable_id and bookmarkable_type columns
             $table->timestamps();
 
             // Unique constraint to prevent duplicate bookmarks
-            $table->unique(['user_id', 'article_id']);
+            $table->unique(['user_id', 'bookmarkable_id', 'bookmarkable_type']);
 
             // Indexes
-            $table->index('article_id');
+            $table->index(['bookmarkable_id', 'bookmarkable_type']);
         });
     }
 

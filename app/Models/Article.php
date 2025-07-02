@@ -50,34 +50,28 @@ class Article extends Model
     /**
      * Get the likes for this article.
      */
-    public function likes(): HasMany
+    public function likes()
     {
-        return $this->hasMany(Like::class);
+        return $this->morphMany(Like::class, 'likeable');
     }
 
     /**
      * Get the comments for this article.
      */
-    public function comments(): HasMany
+    public function comments()
     {
-        return $this->hasMany(Comment::class);
+        return $this->morphMany(Comment::class, 'commentable');
     }
 
     /**
      * Get the bookmarks for this article.
      */
-    public function bookmarks(): HasMany
+    public function bookmarks()
     {
-        return $this->hasMany(Bookmark::class);
+        return $this->morphMany(Bookmark::class, 'bookmarkable');
     }
 
-    /**
-     * Get the views for this article.
-     */
-    public function views(): HasMany
-    {
-        return $this->hasMany(View::class);
-    }
+
 
     /**
      * Get the count of likes for this article.

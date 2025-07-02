@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import AppSidebarLayout from '@/layouts/app/app-sidebar-layout';
+import AppLayout from '@/layouts/app-layout';
 
 interface Course {
   id: number;
@@ -89,7 +89,7 @@ export default function Index({ courses, creators, filters }: Props) {
   };
 
   return (
-    <AppSidebarLayout>
+    <AppLayout>
       <Head title="Course Management" />
 
       <div className="p-6 space-y-6">
@@ -338,6 +338,6 @@ export default function Index({ courses, creators, filters }: Props) {
           </div>
         )}
       </div>
-    </AppSidebarLayout>
+    </AppLayout>
   );
 }

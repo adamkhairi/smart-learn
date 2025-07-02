@@ -294,8 +294,8 @@ export default function Landing() {
                 <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-4 md:flex-row md:justify-between md:px-8">
                     <p>&copy; {new Date().getFullYear()} SmartLearn. All rights reserved.</p>
                     <div className="flex gap-4">
-                        <Link href="#">Privacy</Link>
-                        <Link href="#">Terms</Link>
+                        <Link href="#" className="hover:text-[#f53003] dark:hover:text-[#FF4433]">Privacy</Link>
+                        <Link href="#" className="hover:text-[#f53003] dark:hover:text-[#FF4433]">Terms</Link>
                     </div>
                 </div>
             </footer>

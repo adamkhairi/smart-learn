@@ -78,6 +78,38 @@ class Assessment extends Model
     }
 
     /**
+     * Get likes for this assessment.
+     */
+    public function likes()
+    {
+        return $this->morphMany(Like::class, 'likeable');
+    }
+
+    /**
+     * Get bookmarks for this assessment.
+     */
+    public function bookmarks()
+    {
+        return $this->morphMany(Bookmark::class, 'bookmarkable');
+    }
+
+    /**
+     * Get comments for this assessment.
+     */
+    public function comments()
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+
+    /**
+     * Get the course module item this assessment belongs to.
+     */
+    public function moduleItem()
+    {
+        return $this->morphOne(CourseModuleItem::class, 'itemable');
+    }
+
+    /**
      * Check if assessment is published.
      */
     public function isPublished(): bool

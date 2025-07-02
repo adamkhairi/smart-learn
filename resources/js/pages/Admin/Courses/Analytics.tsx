@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import AppLayout from '@/layouts/app-layout';
 
 interface Course {
   id: number;
@@ -21,7 +22,6 @@ interface Stats {
   total_published_modules: number;
   total_assignments: number;
   total_assessments: number;
-  total_exams: number;
   total_announcements: number;
   total_discussions: number;
   enrollment_rate: number;
@@ -71,7 +71,7 @@ export default function Analytics({ course, stats, recentActivity, enrollmentTre
   };
 
   return (
-    <>
+    <AppLayout>
       <Head title={`${course.name} - Analytics`} />
 
       <div className="space-y-6">
@@ -133,7 +133,7 @@ export default function Analytics({ course, stats, recentActivity, enrollmentTre
             <CardContent>
               <div className="text-2xl font-bold">{stats.total_assignments}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.total_assessments} assessments, {stats.total_exams} exams
+                {stats.total_assessments} assessments
               </p>
             </CardContent>
           </Card>
@@ -332,6 +332,6 @@ export default function Analytics({ course, stats, recentActivity, enrollmentTre
           </Card>
         </div>
       </div>
-    </>
+    </AppLayout>
   );
 }

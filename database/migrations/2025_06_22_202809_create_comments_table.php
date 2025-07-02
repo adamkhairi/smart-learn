@@ -15,13 +15,13 @@ return new class extends Migration
             $table->id();
             $table->longText('content');
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('article_id')->constrained('articles')->cascadeOnDelete();
+            $table->morphs('commentable'); // Creates commentable_id and commentable_type columns
             $table->foreignId('parent_id')->nullable()->constrained('comments')->cascadeOnDelete();
             $table->timestamps();
             $table->softDeletes();
 
             // Indexes
-            $table->index(['article_id', 'parent_id']);
+            $table->index(['commentable_id', 'commentable_type']);
             $table->index('user_id');
             $table->index('parent_id');
         });

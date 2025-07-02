@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Courses;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Courses\CourseModuleItemRequest;
+use App\Models\Assignment;
+use App\Models\Assessment;
 use App\Models\Course;
 use App\Models\CourseModule;
 use App\Models\CourseModuleItem;
+use App\Models\Lecture;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -53,36 +56,82 @@ class CourseModuleItemController extends Controller
 
         try {
             $validated = $request->validated();
-            $validated['course_module_id'] = $module->id;
 
             // If no order specified, set it to the end
             if (!isset($validated['order'])) {
                 $validated['order'] = $module->moduleItems()->max('order') + 1;
             }
 
-            // Handle file upload for document type
-            if ($request->hasFile('file') && $validated['type'] === 'document') {
-                $file = $request->file('file');
+            // Create the appropriate itemable model based on type
+            $itemable = null;
 
-                // Generate unique filename
-                $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
-                    . '.' . $file->getClientOriginalExtension();
+            switch ($validated['item_type']) {
+                case 'lecture':
+                    $itemable = Lecture::create([
+                        'title' => $validated['title'],
+                        'description' => $validated['description'],
+                        'video_url' => $validated['video_url'] ?? null,
+                        'duration' => $validated['duration'] ?? null,
+                        'content' => $validated['content'] ?? null,
+                        'course_id' => $course->id,
+                        'course_module_id' => $module->id,
+                        'created_by' => auth()->id(),
+                        'order' => $validated['order'],
+                        'is_published' => ($validated['status'] ?? 'published') === 'published',
+                    ]);
+                    break;
 
-                // Store file
-                $path = $file->storeAs('modules/documents', $filename, 'public');
-                $validated['url'] = $path;
+                case 'assessment':
+                    $itemable = Assessment::create([
+                        'title' => $validated['assessment_title'],
+                        'type' => $validated['assessment_type'] ?? 'quiz',
+                        'max_score' => $validated['max_score'] ?? 100,
+                        'questions_type' => $validated['questions_type'] ?? 'online',
+                        'submission_type' => $validated['submission_type'] ?? 'online',
+                        'visibility' => ($validated['status'] ?? 'published') === 'published' ? 'published' : 'unpublished',
+                        'course_id' => $course->id,
+                        'created_by' => auth()->id(),
+                    ]);
+                    break;
+
+                case 'assignment':
+                    $itemable = Assignment::create([
+                        'title' => $validated['assignment_title'],
+                        'assignment_type' => $validated['assignment_type'] ?? 'general',
+                        'total_points' => $validated['total_points'] ?? 100,
+                        'status' => 'open', // Default status
+                        'visibility' => true,
+                        'started_at' => $validated['started_at'] ?? now(),
+                        'expired_at' => $validated['expired_at'] ?? null,
+                        'course_id' => $course->id,
+                        'created_by' => auth()->id(),
+                    ]);
+                    break;
+
+                default:
+                    throw new Exception('Invalid item type specified.');
             }
 
-            $item = CourseModuleItem::create($validated);
+            // Create the CourseModuleItem with polymorphic relationship
+            $moduleItem = CourseModuleItem::create([
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'course_module_id' => $module->id,
+                'itemable_id' => $itemable->id,
+                'itemable_type' => get_class($itemable),
+                'order' => $validated['order'],
+                'is_required' => $validated['is_required'] ?? false,
+                'status' => $validated['status'] ?? 'published',
+            ]);
 
             return redirect()
                 ->route('courses.modules.show', [$course, $module])
-                ->with('success', "Module item '{$item->title}' created successfully!");
+                ->with('success', "Module item '{$moduleItem->title}' created successfully!");
 
         } catch (Exception $e) {
             return back()
                 ->withInput()
-                ->withErrors(['error' => 'Failed to create module item. Please try again.']);
+                ->withErrors(['error' => 'Failed to create module item. Please try again. Error: ' . $e->getMessage()]);
         }
     }
 
@@ -97,6 +146,9 @@ class CourseModuleItemController extends Controller
         if ($module->course_id !== $course->id || $item->course_module_id !== $module->id) {
             abort(404);
         }
+
+        // Load the polymorphic relationship
+        $item->load('itemable');
 
         // Load module with all items for navigation
         $module->load(['moduleItems' => function ($query) {
@@ -127,6 +179,9 @@ class CourseModuleItemController extends Controller
             abort(404);
         }
 
+        // Load the polymorphic relationship
+        $item->load('itemable');
+
         return Inertia::render('Courses/Modules/Items/Edit', [
             'course' => $course->load('creator'),
             'module' => $module,
@@ -154,25 +209,52 @@ class CourseModuleItemController extends Controller
                 $this->reorderItems($module, $item, $validated['order']);
             }
 
-            // Handle file upload for document type
-            if ($request->hasFile('file') && $validated['type'] === 'document') {
-                // Delete old file if exists
-                if ($item->url && $item->type === 'document') {
-                    Storage::disk('public')->delete($item->url);
+            // Update the polymorphic itemable model
+            if ($item->itemable) {
+                switch ($validated['item_type']) {
+                    case 'lecture':
+                        $item->itemable->update([
+                            'title' => $validated['title'],
+                            'description' => $validated['description'],
+                            'video_url' => $validated['video_url'] ?? null,
+                            'duration' => $validated['duration'] ?? null,
+                            'content' => $validated['content'] ?? null,
+                            'is_published' => ($validated['status'] ?? 'published') === 'published',
+                        ]);
+                        break;
+
+                    case 'assessment':
+                        $item->itemable->update([
+                            'title' => $validated['assessment_title'],
+                            'type' => $validated['assessment_type'] ?? 'quiz',
+                            'max_score' => $validated['max_score'] ?? 100,
+                            'questions_type' => $validated['questions_type'] ?? 'online',
+                            'submission_type' => $validated['submission_type'] ?? 'online',
+                            'visibility' => ($validated['status'] ?? 'published') === 'published' ? 'published' : 'unpublished',
+                        ]);
+                        break;
+
+                    case 'assignment':
+                        $item->itemable->update([
+                            'title' => $validated['assignment_title'],
+                            'assignment_type' => $validated['assignment_type'] ?? 'general',
+                            'total_points' => $validated['total_points'] ?? 100,
+                            'started_at' => $validated['started_at'] ?? $item->itemable->started_at,
+                            'expired_at' => $validated['expired_at'] ?? null,
+                            'visibility' => ($validated['status'] ?? 'published') === 'published',
+                        ]);
+                        break;
                 }
-
-                $file = $request->file('file');
-
-                // Generate unique filename
-                $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
-                    . '.' . $file->getClientOriginalExtension();
-
-                // Store new file
-                $path = $file->storeAs('modules/documents', $filename, 'public');
-                $validated['url'] = $path;
             }
 
-            $item->update($validated);
+            // Update the CourseModuleItem
+            $item->update([
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'order' => $validated['order'],
+                'is_required' => $validated['is_required'] ?? false,
+                'status' => $validated['status'] ?? 'published',
+            ]);
 
             return redirect()
                 ->route('courses.modules.show', [$course, $module])
@@ -181,7 +263,7 @@ class CourseModuleItemController extends Controller
         } catch (Exception $e) {
             return back()
                 ->withInput()
-                ->withErrors(['error' => 'Failed to update module item. Please try again.']);
+                ->withErrors(['error' => 'Failed to update module item. Please try again. Error: ' . $e->getMessage()]);
         }
     }
 
@@ -200,11 +282,12 @@ class CourseModuleItemController extends Controller
         try {
             $itemTitle = $item->title;
 
-            // Delete associated file if exists
-            if ($item->url && $item->type === 'document') {
-                Storage::disk('public')->delete($item->url);
+            // Delete the polymorphic itemable model first
+            if ($item->itemable) {
+                $item->itemable->delete();
             }
 
+            // Delete the CourseModuleItem
             $item->delete();
 
             // Reorder remaining items
