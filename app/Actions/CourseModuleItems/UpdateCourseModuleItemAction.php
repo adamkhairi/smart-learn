@@ -1,0 +1,77 @@
+<?php
+
+namespace App\Actions\CourseModuleItems;
+
+use App\Models\CourseModuleItem;
+use Exception;
+use Illuminate\Support\Facades\DB;
+use App\Models\Lecture;
+use App\Models\Assessment;
+use App\Models\Assignment;
+
+class UpdateCourseModuleItemAction
+{
+    public function execute(CourseModuleItem $item, array $data): CourseModuleItem
+    {
+        return DB::transaction(function () use ($item, $data) {
+            $this->updateItemable($item, $data);
+
+            $item->update([
+                'title' => $data['title'],
+                'description' => $data['description'] ?? null,
+                'is_required' => $data['is_required'] ?? false,
+                'status' => $data['status'] ?? 'published',
+            ]);
+
+            return $item;
+        });
+    }
+
+    private function updateItemable(CourseModuleItem $item, array $data): void
+    {
+        if (!$item->itemable) {
+            return;
+        }
+
+        switch ($data['item_type']) {
+            case 'lecture':
+                $item->itemable()->update([
+                    'title' => $data['title'],
+                    'description' => $data['description'] ?? null,
+                    'video_url' => $data['video_url'] ?? null,
+                    'duration' => $data['duration'] ?? null,
+                    'content_json' => $data['content_json'] ?? null,
+                    'content_html' => $data['content_html'] ?? null,
+                    'is_published' => ($data['status'] ?? 'published') === 'published',
+                ]);
+                break;
+            case 'assessment':
+                $item->itemable()->update([
+                    'title' => $data['assessment_title'],
+                    'type' => $data['assessment_type'] ?? 'quiz',
+                    'max_score' => $data['max_score'] ?? 100,
+                    'visibility' => ($data['status'] ?? 'published') === 'published' ? 'published' : 'unpublished',
+                    'content_json' => $data['assessment_content_json'] ? json_decode($data['assessment_content_json'], true) : null,
+                    'content_html' => $data['assessment_content_html'] ?? null,
+                    'instructions' => $data['assessment_instructions_json'] ? json_decode($data['assessment_instructions_json'], true) : null,
+                ]);
+                break;
+            case 'assignment':
+                $item->itemable()->update([
+                    'title' => $data['assignment_title'],
+                    'assignment_type' => $data['assignment_type'] ?? 'general',
+                    'total_points' => $data['total_points'] ?? 100,
+                    'started_at' => $data['started_at'] ?? now(),
+                    'expired_at' => $data['expired_at'] ?? null,
+                    'visibility' => ($data['status'] ?? 'published') === 'published',
+                    'content_json' => $data['assignment_content_json'] ? json_decode($data['assignment_content_json'], true) : null,
+                    'content_html' => $data['assignment_content_html'] ?? null,
+                    'instructions' => $data['assignment_instructions_json'] ? json_decode($data['assignment_instructions_json'], true) : null,
+                    'rubric' => $data['assignment_rubric_json'] ? json_decode($data['assignment_rubric_json'], true) : null,
+                ]);
+                break;
+            default:
+                throw new Exception('Invalid item type specified for update.');
+        }
+    }
+}

@@ -47,6 +47,19 @@ class CourseModuleItemRequest extends FormRequest
                 $rules['assessment_type'] = ['nullable', Rule::in(['quiz', 'exam', 'project'])];
                 $rules['questions_type'] = ['nullable', Rule::in(['online', 'file'])];
                 $rules['submission_type'] = ['nullable', Rule::in(['online', 'written'])];
+                $rules['assessment_content_json'] = 'nullable|string|max:200000';
+                $rules['assessment_content_html'] = 'nullable|string|max:500000';
+                $rules['assessment_instructions_json'] = 'nullable|string|max:100000';
+                $rules['assessment_instructions_html'] = 'nullable|string|max:200000';
+                $rules['questions'] = 'nullable|array';
+                $rules['questions.*.id'] = 'required|string';
+                $rules['questions.*.type'] = ['required', Rule::in(['MCQ', 'Essay'])];
+                $rules['questions.*.question_text'] = 'required|string|max:10000';
+                $rules['questions.*.points'] = 'required|integer|min:1|max:100';
+                $rules['questions.*.choices'] = 'nullable|array';
+                $rules['questions.*.answer'] = 'nullable|string|max:500';
+                $rules['questions.*.keywords'] = 'nullable|array';
+                $rules['questions.*.keywords.*'] = 'string|max:100';
                 break;
 
             case 'assignment':
@@ -55,6 +68,12 @@ class CourseModuleItemRequest extends FormRequest
                 $rules['assignment_type'] = 'nullable|string|max:255';
                 $rules['started_at'] = 'nullable|date';
                 $rules['expired_at'] = 'nullable|date|after:started_at';
+                $rules['assignment_content_json'] = 'nullable|string|max:200000';
+                $rules['assignment_content_html'] = 'nullable|string|max:500000';
+                $rules['assignment_instructions_json'] = 'nullable|string|max:100000';
+                $rules['assignment_instructions_html'] = 'nullable|string|max:200000';
+                $rules['assignment_rubric_json'] = 'nullable|string|max:100000';
+                $rules['assignment_rubric_html'] = 'nullable|string|max:200000';
                 break;
         }
 

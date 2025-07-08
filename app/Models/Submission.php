@@ -27,6 +27,7 @@ class Submission extends Model
         'auto_grading_status',
         'finished',
         'score',
+        'feedback',
         'graded_at',
         'graded_by',
         'submitted_at',

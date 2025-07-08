@@ -1,6 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { CourseModuleItemShowPageProps, Lecture, Assessment, Assignment } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { getDisplayableContent, getContentPreview, hasContent } from '@/lib/content-renderer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,10 +19,17 @@ import {
     Clock,
     AlertCircle,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Upload,
+    Paperclip,
+    X,
+    CheckCircle,
+    Star
 } from 'lucide-react';
+import { ChangeEvent } from 'react';
+import { Label } from '@/components/ui/label';
 
-function Show({ course, module, item }: CourseModuleItemShowPageProps) {
+function Show({ course, module, item, userSubmission }: CourseModuleItemShowPageProps) {
     const { canManageCourse } = useAuth();
     const isInstructor = canManageCourse(course.created_by);
 
@@ -79,37 +87,12 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
     };
 
     // Helper function to get displayable HTML content
-    const getDisplayContent = (lecture: Lecture): string | null => {
-        // First, try to use HTML content if available
-        if (lecture.content_html) {
-            return lecture.content_html;
-        }
-
-        // Second, try to convert JSON content to HTML
-        if (lecture.content_json) {
-            try {
-                const parsed = JSON.parse(lecture.content_json);
-                if (parsed && parsed.root) {
-                    return convertLexicalToHTML(parsed);
-                }
-            } catch {
-                // If JSON parsing fails, return null
-                return null;
-            }
-        }
-
-        // Fallback to legacy content field only if it's not JSON
-        if (lecture.content) {
-            // Check if it looks like JSON (starts with { and ends with })
-            const trimmed = lecture.content.trim();
-            if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-                // This is likely JSON, don't display it as HTML
-                return null;
-            }
-            return lecture.content;
-        }
-
-        return null;
+    const getDisplayContent = (contentData: {
+        content_html?: string;
+        content_json?: string | object;
+        content?: string;
+    }): string => {
+        return getDisplayableContent(contentData);
     };
 
     // Helper function to convert Lexical JSON to HTML
@@ -185,7 +168,11 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
     const LectureContent = ({ lecture }: { lecture: Lecture }) => {
         const videoUrl = lecture.video_url ?? lecture.youtube_id;
         const embedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) : null;
-        const displayContent = getDisplayContent(lecture);
+        const displayContent = getDisplayContent({
+            content_html: lecture.content_html,
+            content_json: lecture.content_json,
+            content: lecture.content
+        });
 
         return (
             <div className="space-y-6">
@@ -237,6 +224,380 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
         );
     };
 
+    const AssignmentContent = ({ assignment }: { assignment: Assignment }) => {
+        const isOpen = assignment.status === 'open';
+        const isEnded = assignment.status === 'ended';
+
+        const { data, setData, post, processing, reset } = useForm({
+            submission_file: null as File | null,
+        });
+
+        // Check if user has already submitted
+        const hasSubmitted = !!userSubmission;
+
+        const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+            if (e.target.files && e.target.files.length > 0) {
+                setData('submission_file', e.target.files[0]);
+            }
+        };
+
+        const handleRemoveFile = () => {
+            setData('submission_file', null);
+        };
+
+        const handleSubmit = () => {
+            if (data.submission_file) {
+                post(`/assignments/${assignment.id}/submit`, {
+                    onSuccess: () => {
+                        // Reset form and show success
+                        reset();
+                        // The page will reload with updated userSubmission data
+                    },
+                });
+            }
+        };
+
+        return (
+            <div className="space-y-6">
+                {/* Assignment Header */}
+                <div className={`border rounded-lg p-4 ${
+                    isOpen ? 'bg-green-50 border-green-200' :
+                    isEnded ? 'bg-red-50 border-red-200' :
+                    'bg-yellow-50 border-yellow-200'
+                }`}>
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                            <ClipboardList className={`h-5 w-5 ${
+                                isOpen ? 'text-green-600' :
+                                isEnded ? 'text-red-600' :
+                                'text-yellow-600'
+                            }`} />
+                            <h3 className={`font-semibold ${
+                                isOpen ? 'text-green-800' :
+                                isEnded ? 'text-red-800' :
+                                'text-yellow-800'
+                            }`}>
+                                Assignment
+                            </h3>
+                        </div>
+                        <Badge variant={
+                            isOpen ? 'default' :
+                            isEnded ? 'destructive' :
+                            'secondary'
+                        }>
+                            {assignment.status.replace('-', ' ')}
+                        </Badge>
+                    </div>
+                    <div className={`text-sm space-y-1 ${
+                        isOpen ? 'text-green-700' :
+                        isEnded ? 'text-red-700' :
+                        'text-yellow-700'
+                    }`}>
+                        {assignment.total_points && (
+                            <p>Points: {assignment.total_points}</p>
+                        )}
+                        {assignment.expired_at && (
+                            <p>Due: {new Date(assignment.expired_at).toLocaleDateString()}</p>
+                        )}
+                        {assignment.assignment_type && (
+                            <p>Type: {assignment.assignment_type}</p>
+                        )}
+                    </div>
+                </div>
+
+                {/* Assignment Content */}
+                {assignment.content_html && (
+                    <div className="bg-white border rounded-lg p-6">
+                        <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Assignment Description
+                        </h4>
+                        <div
+                            className="prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: assignment.content_html }}
+                        />
+                    </div>
+                )}
+
+                {/* Assignment Instructions */}
+                {assignment.instructions && Object.keys(assignment.instructions).length > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <h4 className="font-semibold text-lg mb-4 flex items-center gap-2 text-blue-800">
+                            <AlertCircle className="h-5 w-5" />
+                            Instructions
+                        </h4>
+                        <div className="prose prose-sm max-w-none text-blue-900">
+                            {typeof assignment.instructions === 'string' ? (
+                                <p>{assignment.instructions}</p>
+                            ) : (
+                                <div dangerouslySetInnerHTML={{
+                                    __html: convertLexicalToHTML(assignment.instructions)
+                                }} />
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Grading Rubric */}
+                {assignment.rubric && Object.keys(assignment.rubric).length > 0 && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+                        <h4 className="font-semibold text-lg mb-4 flex items-center gap-2 text-amber-800">
+                            <Star className="h-5 w-5" />
+                            Grading Rubric
+                        </h4>
+                        <div className="prose prose-sm max-w-none text-amber-900">
+                            {typeof assignment.rubric === 'string' ? (
+                                <p>{assignment.rubric}</p>
+                            ) : (
+                                <div dangerouslySetInnerHTML={{
+                                    __html: convertLexicalToHTML(assignment.rubric)
+                                }} />
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Show submitted files if user has already submitted */}
+                {hasSubmitted && userSubmission && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center gap-3 mb-2">
+                            <CheckCircle className="h-5 w-5 text-blue-600" />
+                            <h3 className="font-semibold text-blue-800">Submission Completed</h3>
+                        </div>
+                        <div className="text-sm text-blue-700 space-y-2">
+                            <p>Submitted: {new Date(userSubmission.submitted_at).toLocaleString()}</p>
+                            {userSubmission.files && userSubmission.files.length > 0 && (
+                                <div>
+                                    <p className="font-medium mb-1">Submitted Files:</p>
+                                    {userSubmission.files.map((file, index) => (
+                                        <div key={index} className="flex items-center gap-2 p-2 bg-white rounded border">
+                                            <Paperclip className="h-4 w-4" />
+                                            <span className="flex-1">{file.split('/').pop()}</span>
+                                            <a
+                                                href={`/storage/${file}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 hover:text-blue-800"
+                                            >
+                                                <Download className="h-4 w-4" />
+                                            </a>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {userSubmission.score !== null && (
+                                <p className="font-medium">
+                                    Grade: {userSubmission.score} / {assignment.total_points}
+                                </p>
+                            )}
+                            {userSubmission.feedback && (
+                                <div>
+                                    <p className="font-medium mb-1">Feedback:</p>
+                                    <p className="text-sm bg-white p-2 rounded border">{userSubmission.feedback}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Only show submission form if assignment is open and user hasn't submitted */}
+                {isOpen && !hasSubmitted && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                            <Upload className="h-5 w-5" />
+                            Submit Your Work
+                        </h4>
+                        <div className="space-y-3">
+                            {data.submission_file ? (
+                                <div className="flex items-center justify-between rounded-md border bg-white p-3">
+                                    <div className="flex items-center gap-2">
+                                        <Paperclip className="h-5 w-5" />
+                                        <span className="text-sm font-medium">{data.submission_file.name}</span>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleRemoveFile}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center w-full">
+                                    <Label
+                                        htmlFor="file-upload"
+                                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-white hover:bg-gray-50"
+                                    >
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <Upload className="w-10 h-10 mb-3 text-muted-foreground" />
+                                            <p className="mb-2 text-sm text-muted-foreground">
+                                                <span className="font-semibold">Click to upload</span> or drag and drop
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">PDF, DOCX, ZIP, etc. (MAX. 10MB)</p>
+                                        </div>
+                                        <input id="file-upload" type="file" className="hidden" onChange={handleFileChange} />
+                                    </Label>
+                                </div>
+                            )}
+                            <Button className="w-full" onClick={handleSubmit} disabled={!data.submission_file || processing}>
+                                <ClipboardList className="mr-2 h-4 w-4" />
+                                {processing ? 'Submitting...' : 'Submit Assignment'}
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Show message if assignment is closed and user hasn't submitted */}
+                {!isOpen && !hasSubmitted && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                        <p className="text-gray-600">
+                            {isEnded ? 'This assignment has ended.' : 'This assignment is not yet available.'}
+                        </p>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const AssessmentContent = ({ assessment }: { assessment: Assessment }) => {
+        return (
+            <div className="space-y-6">
+                {/* Assessment Header */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                            <HelpCircle className="h-5 w-5 text-blue-600" />
+                            <h3 className="font-semibold text-blue-800">
+                                {assessment.type.charAt(0).toUpperCase() + assessment.type.slice(1)} Assessment
+                            </h3>
+                        </div>
+                        <Badge variant={assessment.visibility === 'published' ? 'default' : 'secondary'}>
+                            {assessment.visibility}
+                        </Badge>
+                    </div>
+                    <div className="text-sm text-blue-700 space-y-1">
+                        {assessment.max_score && (
+                            <p>Max Score: {assessment.max_score} points</p>
+                        )}
+                        {assessment.time_limit && (
+                            <p>Time Limit: {formatDuration(assessment.time_limit * 60)}</p>
+                        )}
+                        {assessment.questions_type && (
+                            <p>Question Type: {assessment.questions_type}</p>
+                        )}
+                        {assessment.submission_type && (
+                            <p>Submission Type: {assessment.submission_type}</p>
+                        )}
+                        {assessment.available_from && (
+                            <p>Available From: {new Date(assessment.available_from).toLocaleString()}</p>
+                        )}
+                        {assessment.available_until && (
+                            <p>Available Until: {new Date(assessment.available_until).toLocaleString()}</p>
+                        )}
+                    </div>
+                </div>
+
+                {/* Assessment Content */}
+                {assessment.content_html && (
+                    <div className="bg-white border rounded-lg p-6">
+                        <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Assessment Description
+                        </h4>
+                        <div
+                            className="prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: assessment.content_html }}
+                        />
+                    </div>
+                )}
+
+                {/* Assessment Instructions */}
+                {assessment.instructions && Object.keys(assessment.instructions).length > 0 && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+                        <h4 className="font-semibold text-lg mb-4 flex items-center gap-2 text-amber-800">
+                            <AlertCircle className="h-5 w-5" />
+                            Instructions
+                        </h4>
+                        <div className="prose prose-sm max-w-none text-amber-900">
+                            {typeof assessment.instructions === 'string' ? (
+                                <p>{assessment.instructions}</p>
+                            ) : (
+                                <div dangerouslySetInnerHTML={{
+                                    __html: convertLexicalToHTML(assessment.instructions)
+                                }} />
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Assessment Settings */}
+                {(assessment.randomize_questions || assessment.show_results !== undefined) && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-sm mb-2 text-gray-700">Assessment Settings</h4>
+                        <div className="text-sm text-gray-600 space-y-1">
+                            {assessment.randomize_questions && (
+                                <p>• Questions will be randomized</p>
+                            )}
+                            {assessment.show_results !== undefined && (
+                                <p>• Results will {assessment.show_results ? 'be shown' : 'not be shown'} after submission</p>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Questions Preview (if questions exist) */}
+                {assessment.questions && assessment.questions.length > 0 && (
+                    <div className="bg-white border rounded-lg p-6">
+                        <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                            <HelpCircle className="h-5 w-5" />
+                            Questions Preview
+                        </h4>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            This assessment contains {assessment.questions.length} question{assessment.questions.length > 1 ? 's' : ''}
+                        </p>
+                        <div className="space-y-2">
+                            {assessment.questions.slice(0, 3).map((question) => (
+                                <div key={question.id} className="border border-gray-200 rounded p-3">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                            Question {question.question_number}
+                                        </span>
+                                        <span className="text-xs bg-blue-100 px-2 py-1 rounded text-blue-700">
+                                            {question.type}
+                                        </span>
+                                        <span className="text-xs text-gray-500">
+                                            {question.points} point{question.points > 1 ? 's' : ''}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm">{question.question_text?.substring(0, 100)}{question.question_text && question.question_text.length > 100 ? '...' : ''}</p>
+                                </div>
+                            ))}
+                            {assessment.questions.length > 3 && (
+                                <p className="text-sm text-muted-foreground">
+                                    ...and {assessment.questions.length - 3} more questions
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                    <Button className="flex-1">
+                        <HelpCircle className="mr-2 h-4 w-4" />
+                        Start Assessment
+                    </Button>
+                    {assessment.files && assessment.files.length > 0 && (
+                        <Button variant="outline">
+                            <Download className="mr-2 h-4 w-4" />
+                            Download Materials
+                        </Button>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     const renderContent = () => {
         if (!item.itemable) {
             return (
@@ -255,98 +616,12 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
 
             case 'assessment': {
                 const assessment = item.itemable as Assessment;
-                return (
-                    <div className="space-y-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <div className="flex items-center gap-3 mb-2">
-                                <HelpCircle className="h-5 w-5 text-blue-600" />
-                                <h3 className="font-semibold text-blue-800">
-                                    {assessment.type.charAt(0).toUpperCase() + assessment.type.slice(1)} Assessment
-                                </h3>
-                            </div>
-                            <div className="text-sm text-blue-700 space-y-1">
-                                {assessment.max_score && (
-                                    <p>Max Score: {assessment.max_score} points</p>
-                                )}
-                                {assessment.duration && (
-                                    <p>Duration: {formatDuration(assessment.duration)}</p>
-                                )}
-                                <p>Status: {assessment.visibility}</p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <Button className="flex-1">
-                                <HelpCircle className="mr-2 h-4 w-4" />
-                                Start Assessment
-                            </Button>
-                            {assessment.files && assessment.files.length > 0 && (
-                                <Button variant="outline">
-                                    <Download className="h-4 w-4" />
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                );
+                return <AssessmentContent assessment={assessment} />;
             }
 
             case 'assignment': {
                 const assignment = item.itemable as Assignment;
-                const isOpen = assignment.status === 'open';
-                const isEnded = assignment.status === 'ended';
-
-                return (
-                    <div className="space-y-4">
-                        <div className={`border rounded-lg p-4 ${
-                            isOpen ? 'bg-green-50 border-green-200' :
-                            isEnded ? 'bg-red-50 border-red-200' :
-                            'bg-yellow-50 border-yellow-200'
-                        }`}>
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-3">
-                                    <ClipboardList className={`h-5 w-5 ${
-                                        isOpen ? 'text-green-600' :
-                                        isEnded ? 'text-red-600' :
-                                        'text-yellow-600'
-                                    }`} />
-                                    <h3 className={`font-semibold ${
-                                        isOpen ? 'text-green-800' :
-                                        isEnded ? 'text-red-800' :
-                                        'text-yellow-800'
-                                    }`}>
-                                        Assignment
-                                    </h3>
-                                </div>
-                                <Badge variant={
-                                    isOpen ? 'default' :
-                                    isEnded ? 'destructive' :
-                                    'secondary'
-                                }>
-                                    {assignment.status.replace('-', ' ')}
-                                </Badge>
-                            </div>
-                            <div className={`text-sm space-y-1 ${
-                                isOpen ? 'text-green-700' :
-                                isEnded ? 'text-red-700' :
-                                'text-yellow-700'
-                            }`}>
-                                {assignment.total_points && (
-                                    <p>Points: {assignment.total_points}</p>
-                                )}
-                                {assignment.expired_at && (
-                                    <p>Due: {new Date(assignment.expired_at).toLocaleDateString()}</p>
-                                )}
-                            </div>
-                        </div>
-
-                        {isOpen && (
-                            <Button className="w-full">
-                                <ClipboardList className="mr-2 h-4 w-4" />
-                                Submit Assignment
-                            </Button>
-                        )}
-                    </div>
-                );
+                return <AssignmentContent assignment={assignment} />;
             }
 
             default:

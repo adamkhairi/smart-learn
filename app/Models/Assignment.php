@@ -22,6 +22,10 @@ class Assignment extends Model
         'assignment_type',
         'title',
         'description',
+        'content_json',
+        'content_html',
+        'instructions',
+        'rubric',
         'total_points',
         'status',
         'visibility',
@@ -45,6 +49,9 @@ class Assignment extends Model
             'total_points' => 'integer',
             'visibility' => 'boolean',
             'questions' => 'array',
+            'content_json' => 'json',
+            'instructions' => 'json',
+            'rubric' => 'json',
         ];
     }
 
@@ -91,6 +98,14 @@ class Assignment extends Model
     public function submissions(): HasMany
     {
         return $this->hasMany(Submission::class);
+    }
+
+    /**
+     * Get the questions for this assignment.
+     */
+    public function questions(): HasMany
+    {
+        return $this->hasMany(Question::class);
     }
 
     /**

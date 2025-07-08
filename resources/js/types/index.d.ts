@@ -150,6 +150,10 @@ export interface Assignment {
     course_id: number;
     title: string;
     description?: string;
+    content_json?: Record<string, unknown>;
+    content_html?: string;
+    instructions?: Record<string, unknown>;
+    rubric?: Record<string, unknown>;
     assignment_type?: string;
     total_points?: number;
     status: 'coming-soon' | 'open' | 'ended';
@@ -182,6 +186,14 @@ export interface Assessment {
     questions_type?: string;
     submission_type?: string;
     visibility: 'published' | 'unpublished';
+    content_json?: Record<string, unknown>;
+    content_html?: string;
+    instructions?: Record<string, unknown>;
+    time_limit?: number;
+    randomize_questions?: boolean;
+    show_results?: boolean;
+    available_from?: string;
+    available_until?: string;
     created_by?: number;
     files?: string[];
     created_at: string;
@@ -202,15 +214,28 @@ export interface Assessment {
 export interface Question {
     id: number;
     assessment_id: number;
+    assignment_id?: number;
     question_number: number;
     points: number;
     type: 'MCQ' | 'Essay' | 'TrueFalse';
+    question_text: string;
     auto_graded: boolean;
     choices?: Record<string, string>;
     answer?: string;
     keywords?: string[];
+    text_match?: boolean;
     created_at: string;
     updated_at: string;
+}
+
+export interface QuestionFormData {
+    id: string;
+    type: 'MCQ' | 'Essay';
+    question_text: string;
+    points: number;
+    choices?: Record<string, string>;
+    answer?: string;
+    keywords?: string[];
 }
 
 export interface Submission {
@@ -219,17 +244,33 @@ export interface Submission {
     course_id: number;
     assessment_id?: number;
     assignment_id?: number;
-    answers: Record<string, unknown>;
-    submitted_at?: string;
-    plagiarism_status: string;
-    auto_grading_status: string;
+    files?: string[];
+    plagiarism_status?: string;
+    auto_grading_status?: string;
+    finished: boolean;
     score?: number;
+    feedback?: string;
+    graded_at?: string;
+    graded_by?: number;
+    submitted_at: string;
+    number_of_exam_joins?: number;
+    answers?: Record<string, unknown>;
     created_at: string;
     updated_at: string;
+    grade?: Grade;
     user?: User;
-    course?: Course;
-    assessment?: Assessment;
     assignment?: Assignment;
+    assessment?: Assessment;
+}
+
+export interface Grade {
+    id: number;
+    user_id: number;
+    submission_id: number;
+    score: number;
+    feedback?: string;
+    created_at: string;
+    updated_at: string;
 }
 
 // Polymorphic relationship interfaces
@@ -356,6 +397,7 @@ export interface CourseModuleCreatePageProps extends PageProps {
 export interface CourseModuleShowPageProps extends PageProps {
     course: Course;
     module: CourseModule;
+    userSubmission?: Submission;
 }
 
 export interface CourseModuleEditPageProps extends PageProps {
@@ -373,6 +415,7 @@ export interface CourseModuleItemShowPageProps extends PageProps {
     course: Course;
     module: CourseModule;
     item: CourseModuleItem;
+    userSubmission?: Submission;
 }
 
 export interface CourseModuleItemEditPageProps extends PageProps {

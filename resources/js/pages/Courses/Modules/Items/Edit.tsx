@@ -51,6 +51,18 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 assignment_type: '',
                 started_at: '',
                 expired_at: '',
+                // Assignment content fields
+                assignment_content_json: '',
+                assignment_content_html: '',
+                assignment_instructions_json: '',
+                assignment_instructions_html: '',
+                assignment_rubric_json: '',
+                assignment_rubric_html: '',
+                // Assessment content fields
+                assessment_content_json: '',
+                assessment_content_html: '',
+                assessment_instructions_json: '',
+                assessment_instructions_html: '',
             };
         } else if (itemType === 'assessment' && item.itemable) {
             const assessment = item.itemable as Assessment;
@@ -71,6 +83,18 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 assignment_type: '',
                 started_at: '',
                 expired_at: '',
+                // Assignment content fields
+                assignment_content_json: '',
+                assignment_content_html: '',
+                assignment_instructions_json: '',
+                assignment_instructions_html: '',
+                assignment_rubric_json: '',
+                assignment_rubric_html: '',
+                // Assessment content fields
+                assessment_content_json: assessment.content_json ? JSON.stringify(assessment.content_json) : '',
+                assessment_content_html: assessment.content_html || '',
+                assessment_instructions_json: assessment.instructions ? JSON.stringify(assessment.instructions) : '',
+                assessment_instructions_html: '',
             };
         } else if (itemType === 'assignment' && item.itemable) {
             const assignment = item.itemable as Assignment;
@@ -91,6 +115,18 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 assignment_type: assignment.assignment_type || '',
                 started_at: assignment.started_at ? assignment.started_at.slice(0, 16) : '',
                 expired_at: assignment.expired_at ? assignment.expired_at.slice(0, 16) : '',
+                // Assignment content fields
+                assignment_content_json: assignment.content_json ? JSON.stringify(assignment.content_json) : '',
+                assignment_content_html: assignment.content_html || '',
+                assignment_instructions_json: assignment.instructions ? JSON.stringify(assignment.instructions) : '',
+                assignment_instructions_html: '',
+                assignment_rubric_json: assignment.rubric ? JSON.stringify(assignment.rubric) : '',
+                assignment_rubric_html: '',
+                // Assessment content fields
+                assessment_content_json: '',
+                assessment_content_html: '',
+                assessment_instructions_json: '',
+                assessment_instructions_html: '',
             };
         }
 
@@ -112,6 +148,18 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             assignment_type: '',
             started_at: '',
             expired_at: '',
+            // Assignment content fields
+            assignment_content_json: '',
+            assignment_content_html: '',
+            assignment_instructions_json: '',
+            assignment_instructions_html: '',
+            assignment_rubric_json: '',
+            assignment_rubric_html: '',
+            // Assessment content fields
+            assessment_content_json: '',
+            assessment_content_html: '',
+            assessment_instructions_json: '',
+            assessment_instructions_html: '',
         };
     };
 
@@ -404,6 +452,34 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                     </select>
                                                 </div>
                                             </div>
+
+                                            {/* Assessment Content */}
+                                            <div>
+                                                <RichTextEditor
+                                                    id="assessment_content"
+                                                    label="Assessment Content"
+                                                    value={data.assessment_content_json}
+                                                    onChange={(json, html) => {
+                                                        setData('assessment_content_json', json);
+                                                        setData('assessment_content_html', html);
+                                                    }}
+                                                    error={errors.assessment_content_json}
+                                                />
+                                            </div>
+
+                                            {/* Assessment Instructions */}
+                                            <div>
+                                                <RichTextEditor
+                                                    id="assessment_instructions"
+                                                    label="Instructions"
+                                                    value={data.assessment_instructions_json}
+                                                    onChange={(json, html) => {
+                                                        setData('assessment_instructions_json', json);
+                                                        setData('assessment_instructions_html', html);
+                                                    }}
+                                                    error={errors.assessment_instructions_json}
+                                                />
+                                            </div>
                                         </div>
                                     )}
 
@@ -483,6 +559,48 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                         <p className="text-sm text-destructive mt-1">{errors.expired_at}</p>
                                                     )}
                                                 </div>
+                                            </div>
+
+                                            {/* Assignment Content */}
+                                            <div>
+                                                <RichTextEditor
+                                                    id="assignment_content"
+                                                    label="Assignment Content"
+                                                    value={data.assignment_content_json}
+                                                    onChange={(json, html) => {
+                                                        setData('assignment_content_json', json);
+                                                        setData('assignment_content_html', html);
+                                                    }}
+                                                    error={errors.assignment_content_json}
+                                                />
+                                            </div>
+
+                                            {/* Assignment Instructions */}
+                                            <div>
+                                                <RichTextEditor
+                                                    id="assignment_instructions"
+                                                    label="Instructions"
+                                                    value={data.assignment_instructions_json}
+                                                    onChange={(json, html) => {
+                                                        setData('assignment_instructions_json', json);
+                                                        setData('assignment_instructions_html', html);
+                                                    }}
+                                                    error={errors.assignment_instructions_json}
+                                                />
+                                            </div>
+
+                                            {/* Assignment Rubric */}
+                                            <div>
+                                                <RichTextEditor
+                                                    id="assignment_rubric"
+                                                    label="Grading Rubric"
+                                                    value={data.assignment_rubric_json}
+                                                    onChange={(json, html) => {
+                                                        setData('assignment_rubric_json', json);
+                                                        setData('assignment_rubric_html', html);
+                                                    }}
+                                                    error={errors.assignment_rubric_json}
+                                                />
                                             </div>
                                         </div>
                                     )}

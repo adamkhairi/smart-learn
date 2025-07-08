@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Courses\CourseController;
+use App\Http\Controllers\Courses\CourseModuleController;
+use App\Http\Controllers\Courses\CourseModuleItemController;
+use App\Http\Controllers\Courses\AssignmentController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -20,8 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('courses/{course}/stats', [CourseController::class, 'stats'])->name('courses.stats');
 
     // Course Module routes
-    Route::resource('courses.modules', App\Http\Controllers\Courses\CourseModuleController::class)
-        ->except(['index']);
+    Route::resource('courses.modules', CourseModuleController::class)->middleware(['auth']);
     Route::get('courses/{course}/modules', [App\Http\Controllers\Courses\CourseModuleController::class, 'index'])
         ->name('courses.modules.index');
     Route::patch('courses/{course}/modules/order', [App\Http\Controllers\Courses\CourseModuleController::class, 'updateOrder'])
@@ -32,12 +34,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('courses.modules.duplicate');
 
     // Course Module Item routes
-    Route::resource('courses.modules.items', App\Http\Controllers\Courses\CourseModuleItemController::class)
-        ->except(['index']);
+    Route::resource('courses.modules.items', CourseModuleItemController::class)->middleware(['auth']);
     Route::patch('courses/{course}/modules/{module}/items/order', [App\Http\Controllers\Courses\CourseModuleItemController::class, 'updateOrder'])
         ->name('courses.modules.items.updateOrder');
     Route::post('courses/{course}/modules/{module}/items/{item}/duplicate', [App\Http\Controllers\Courses\CourseModuleItemController::class, 'duplicate'])
         ->name('courses.modules.items.duplicate');
+
+    // Assignment routes
+    Route::post('assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->middleware('auth');
+    Route::get('assignments/{assignment}/submissions', [AssignmentController::class, 'submissions'])->middleware('auth');
+    Route::post('submissions/{submission}/grade', [AssignmentController::class, 'grade'])->middleware('auth');
 });
 
 require __DIR__.'/settings.php';

@@ -26,6 +26,14 @@ class Assessment extends Model
         'questions_type',
         'submission_type',
         'visibility',
+        'content_json',
+        'content_html',
+        'instructions',
+        'time_limit',
+        'randomize_questions',
+        'show_results',
+        'available_from',
+        'available_until',
         'course_id',
         'created_by',
         'files',
@@ -42,6 +50,13 @@ class Assessment extends Model
             'files' => 'array',
             'max_score' => 'integer',
             'weight' => 'integer',
+            'content_json' => 'json',
+            'instructions' => 'json',
+            'time_limit' => 'integer',
+            'randomize_questions' => 'boolean',
+            'show_results' => 'boolean',
+            'available_from' => 'datetime',
+            'available_until' => 'datetime',
         ];
     }
 

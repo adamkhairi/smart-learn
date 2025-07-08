@@ -17,6 +17,9 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Exception;
 use Illuminate\Http\RedirectResponse;
+use App\Actions\CourseModuleItems\CreateCourseModuleItemAction;
+use App\Actions\CourseModuleItems\UpdateCourseModuleItemAction;
+use Illuminate\Support\Facades\Auth;
 
 class CourseModuleItemController extends Controller
 {
@@ -45,93 +48,24 @@ class CourseModuleItemController extends Controller
     /**
      * Store a newly created module item.
      */
-    public function store(CourseModuleItemRequest $request, Course $course, CourseModule $module): RedirectResponse
-    {
+    public function store(
+        CourseModuleItemRequest $request,
+        Course $course,
+        CourseModule $module,
+        CreateCourseModuleItemAction $createCourseModuleItemAction
+    ): RedirectResponse {
         $this->authorize('update', $course);
 
-        // Ensure the module belongs to the course
         if ($module->course_id !== $course->id) {
             abort(404);
         }
 
         try {
-            $validated = $request->validated();
-
-            // If no order specified, set it to the end
-            if (!isset($validated['order'])) {
-                $validated['order'] = $module->moduleItems()->max('order') + 1;
-            }
-
-            // Create the appropriate itemable model based on type
-            $itemable = null;
-
-            switch ($validated['item_type']) {
-                case 'lecture':
-                    $itemable = Lecture::create([
-                        'title' => $validated['title'],
-                        'description' => $validated['description'],
-                        'video_url' => $validated['video_url'] ?? null,
-                        'duration' => $validated['duration'] ?? null,
-                        'content' => $validated['content'] ?? null,
-                        'content_json' => $validated['content_json'] ?? null,
-                        'content_html' => $validated['content_html'] ?? null,
-                        'course_id' => $course->id,
-                        'course_module_id' => $module->id,
-                        'created_by' => auth()->id(),
-                        'order' => $validated['order'],
-                        'is_published' => ($validated['status'] ?? 'published') === 'published',
-                    ]);
-                    break;
-
-                case 'assessment':
-                    $itemable = Assessment::create([
-                        'title' => $validated['assessment_title'],
-                        'type' => $validated['assessment_type'] ?? 'quiz',
-                        'max_score' => $validated['max_score'] ?? 100,
-                        'questions_type' => $validated['questions_type'] ?? 'online',
-                        'submission_type' => $validated['submission_type'] ?? 'online',
-                        'visibility' => ($validated['status'] ?? 'published') === 'published' ? 'published' : 'unpublished',
-                        'course_id' => $course->id,
-                        'created_by' => auth()->id(),
-                    ]);
-                    break;
-
-                case 'assignment':
-                    $itemable = Assignment::create([
-                        'title' => $validated['assignment_title'],
-                        'assignment_type' => $validated['assignment_type'] ?? 'general',
-                        'total_points' => $validated['total_points'] ?? 100,
-                        'status' => 'open', // Default status
-                        'visibility' => true,
-                        'started_at' => $validated['started_at'] ?? now(),
-                        'expired_at' => $validated['expired_at'] ?? null,
-                        'course_id' => $course->id,
-                        'created_by' => auth()->id(),
-                    ]);
-                    break;
-
-                default:
-                    throw new Exception('Invalid item type specified.');
-            }
-
-            // Create the CourseModuleItem with polymorphic relationship
-            $moduleItem = CourseModuleItem::create([
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'content_json' => $validated['content_json'] ?? null,
-                'content_html' => $validated['content_html'] ?? null,
-                'course_module_id' => $module->id,
-                'itemable_id' => $itemable->id,
-                'itemable_type' => get_class($itemable),
-                'order' => $validated['order'],
-                'is_required' => $validated['is_required'] ?? false,
-                'status' => $validated['status'] ?? 'published',
-            ]);
+            $moduleItem = $createCourseModuleItemAction->execute($course, $module, $request->validated());
 
             return redirect()
                 ->route('courses.modules.show', [$course, $module])
                 ->with('success', "Module item '{$moduleItem->title}' created successfully!");
-
         } catch (Exception $e) {
             return back()
                 ->withInput()
@@ -154,6 +88,14 @@ class CourseModuleItemController extends Controller
         // Load the polymorphic relationship
         $item->load('itemable');
 
+        // If this is an assignment, load user's submission
+        $userSubmission = null;
+        if ($item->isAssignment() && $item->itemable) {
+            $userSubmission = $item->itemable->submissions()
+                ->where('user_id', Auth::id())
+                ->first();
+        }
+
         // Load module with all items for navigation
         $module->load(['moduleItems' => function ($query) {
             $query->ordered();
@@ -166,6 +108,7 @@ class CourseModuleItemController extends Controller
             'course' => $course->load('creator'),
             'module' => $module,
             'item' => $item,
+            'userSubmission' => $userSubmission,
             // TODO: Add user progress tracking for completedItems
             'completedItems' => [], // This would come from user progress tracking
         ]);
@@ -196,78 +139,29 @@ class CourseModuleItemController extends Controller
     /**
      * Update the specified module item.
      */
-    public function update(CourseModuleItemRequest $request, Course $course, CourseModule $module, CourseModuleItem $item): RedirectResponse
-    {
+    public function update(
+        CourseModuleItemRequest $request,
+        Course $course,
+        CourseModule $module,
+        CourseModuleItem $item,
+        UpdateCourseModuleItemAction $updateCourseModuleItemAction
+    ): RedirectResponse {
         $this->authorize('update', $course);
 
-        // Ensure the hierarchy is correct
         if ($module->course_id !== $course->id || $item->course_module_id !== $module->id) {
             abort(404);
         }
 
         try {
-            $validated = $request->validated();
-
-            // Handle order changes
-            if (isset($validated['order']) && $validated['order'] !== $item->order) {
-                $this->reorderItems($module, $item, $validated['order']);
+            if (isset($request->validated()['order']) && $request->validated()['order'] !== $item->order) {
+                $this->reorderItems($module, $item, $request->validated()['order']);
             }
 
-            // Update the polymorphic itemable model
-            if ($item->itemable) {
-                switch ($validated['item_type']) {
-                    case 'lecture':
-                        $item->itemable->update([
-                            'title' => $validated['title'],
-                            'description' => $validated['description'],
-                            'video_url' => $validated['video_url'] ?? null,
-                            'duration' => $validated['duration'] ?? null,
-                            'content' => $validated['content'] ?? null,
-                            'content_json' => $validated['content_json'] ?? null,
-                            'content_html' => $validated['content_html'] ?? null,
-                            'is_published' => ($validated['status'] ?? 'published') === 'published',
-                        ]);
-                        break;
-
-                    case 'assessment':
-                        $item->itemable->update([
-                            'title' => $validated['assessment_title'],
-                            'type' => $validated['assessment_type'] ?? 'quiz',
-                            'max_score' => $validated['max_score'] ?? 100,
-                            'questions_type' => $validated['questions_type'] ?? 'online',
-                            'submission_type' => $validated['submission_type'] ?? 'online',
-                            'visibility' => ($validated['status'] ?? 'published') === 'published' ? 'published' : 'unpublished',
-                        ]);
-                        break;
-
-                    case 'assignment':
-                        $item->itemable->update([
-                            'title' => $validated['assignment_title'],
-                            'assignment_type' => $validated['assignment_type'] ?? 'general',
-                            'total_points' => $validated['total_points'] ?? 100,
-                            'started_at' => $validated['started_at'] ?? $item->itemable->started_at,
-                            'expired_at' => $validated['expired_at'] ?? null,
-                            'visibility' => ($validated['status'] ?? 'published') === 'published',
-                        ]);
-                        break;
-                }
-            }
-
-            // Update the CourseModuleItem
-            $item->update([
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'content_json' => $validated['content_json'] ?? null,
-                'content_html' => $validated['content_html'] ?? null,
-                'order' => $validated['order'],
-                'is_required' => $validated['is_required'] ?? false,
-                'status' => $validated['status'] ?? 'published',
-            ]);
+            $item = $updateCourseModuleItemAction->execute($item, $request->validated());
 
             return redirect()
                 ->route('courses.modules.show', [$course, $module])
                 ->with('success', "Module item '{$item->title}' updated successfully!");
-
         } catch (Exception $e) {
             return back()
                 ->withInput()

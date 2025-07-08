@@ -1,6 +1,8 @@
+import React, { useState, useMemo, useCallback } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem, CourseModuleShowPageProps, CourseModuleItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
+import { ContentPreview, QuestionPreview } from '@/components/content-preview';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,12 +24,9 @@ import {
     HelpCircle,
     ClipboardList,
     Clock,
-    CheckCircle,
-    XCircle,
     ExternalLink,
     MoreVertical
 } from 'lucide-react';
-import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import {
     DropdownMenu,
@@ -36,6 +35,218 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+
+// Memoized module item component for better performance
+const ModuleItemCard = React.memo<{
+    item: CourseModuleItem;
+    isInstructor: boolean;
+    isMobile: boolean;
+    draggedItem: number | null;
+    isProcessing: boolean;
+    onDragStart: (e: React.DragEvent, itemId: number) => void;
+    onDragOver: (e: React.DragEvent) => void;
+    onDrop: (e: React.DragEvent, itemId: number) => void;
+    onEdit: (itemId: number) => void;
+    onDelete: (itemId: number, title: string) => void;
+    onDuplicate: (itemId: number) => void;
+    courseId: number;
+    moduleId: number;
+}>(function ModuleItemCard({
+    item,
+    isInstructor,
+    isMobile,
+    draggedItem,
+    isProcessing,
+    onDragStart,
+    onDragOver,
+    onDrop,
+    onEdit,
+    onDelete,
+    onDuplicate,
+    courseId,
+    moduleId
+}) {
+    // Memoize item type calculation
+    const itemType = useMemo(() => {
+        if (item.item_type_name) return item.item_type_name;
+        if (item.itemable_type?.includes('Lecture')) return 'lecture';
+        if (item.itemable_type?.includes('Assessment')) return 'assessment';
+        if (item.itemable_type?.includes('Assignment')) return 'assignment';
+        return 'unknown';
+    }, [item.item_type_name, item.itemable_type]);
+
+    // Memoize icon
+    const itemIcon = useMemo(() => {
+        switch (itemType) {
+            case 'lecture':
+                return <Play className="h-4 w-4 text-blue-500" />;
+            case 'assessment':
+                return <HelpCircle className="h-4 w-4 text-orange-500" />;
+            case 'assignment':
+                return <ClipboardList className="h-4 w-4 text-red-500" />;
+            default:
+                return <FileText className="h-4 w-4" />;
+        }
+    }, [itemType]);
+
+    // Memoize external URL
+    const externalUrl = useMemo(() => {
+        if (!item.itemable) return null;
+        if (itemType === 'lecture') {
+            return (item.itemable as { video_url?: string })?.video_url || null;
+        }
+        return null;
+    }, [item.itemable, itemType]);
+
+    // Memoize duration formatting
+    const formattedDuration = useMemo(() => {
+        if (!item.duration) return null;
+        const minutes = Math.floor(item.duration / 60);
+        const seconds = item.duration % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }, [item.duration]);
+
+    return (
+        <Card
+            className={`group hover:shadow-md transition-all duration-200 ${
+                draggedItem === item.id ? 'opacity-50' : ''
+            }`}
+            draggable={isInstructor && !isMobile}
+            onDragStart={(e) => onDragStart(e, item.id)}
+            onDragOver={onDragOver}
+            onDrop={(e) => onDrop(e, item.id)}
+        >
+            <CardContent className="p-4 sm:p-6">
+                <div className="flex items-start gap-3 sm:gap-4">
+                    {/* Drag Handle & Icon */}
+                    <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+                        {isInstructor && !isMobile && (
+                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity" />
+                        )}
+                        {itemIcon}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-base sm:text-lg truncate">
+                                    {item.title}
+                                </h3>
+                                {item.description && (
+                                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                        {item.description}
+                                    </p>
+                                )}
+
+                                {/* Status Badge */}
+                                <div className="flex items-center gap-2 mt-2">
+                                    <Badge variant={item.is_required ? 'default' : 'secondary'} className="text-xs">
+                                        {item.is_required ? 'Required' : 'Optional'}
+                                    </Badge>
+                                    {item.status === 'draft' && (
+                                        <Badge variant="outline" className="text-xs">
+                                            Draft
+                                        </Badge>
+                                    )}
+                                </div>
+
+                                {/* Lazy-loaded content preview */}
+                                {item.itemable && itemType !== 'unknown' && (
+                                    <>
+                                        <ContentPreview
+                                            content={{
+                                                content_html: (item.itemable as Record<string, unknown>).content_html as string,
+                                                content_json: (item.itemable as Record<string, unknown>).content_json as string | object,
+                                                content: (item.itemable as Record<string, unknown>).content as string
+                                            }}
+                                            type={itemType as 'lecture' | 'assessment' | 'assignment'}
+                                        />
+
+                                        {/* Assessment Questions Preview */}
+                                        {itemType === 'assessment' && (item.itemable as Record<string, unknown>).questions && (
+                                            <QuestionPreview questions={(item.itemable as Record<string, unknown>).questions as Array<{id: number; question_text: string; type: string; points: number}>} />
+                                        )}
+                                    </>
+                                )}
+
+                                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                    <span>#{item.order}</span>
+                                    {formattedDuration && (
+                                        <span className="flex items-center gap-1">
+                                            <Clock className="h-3 w-3" />
+                                            {formattedDuration}
+                                        </span>
+                                    )}
+                                    {item.view_count > 0 && (
+                                        <span className="flex items-center gap-1">
+                                            <Eye className="h-3 w-3" />
+                                            {item.view_count} views
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 justify-end sm:justify-start mt-3">
+                            {/* Primary Action */}
+                            <Button
+                                size="sm"
+                                asChild
+                                className="flex-1 sm:flex-initial"
+                            >
+                                <Link href={`/courses/${courseId}/modules/${moduleId}/items/${item.id}`}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    <span className="hidden sm:inline">View</span>
+                                    <span className="sm:hidden">View</span>
+                                </Link>
+                            </Button>
+
+                            {/* External Link */}
+                            {externalUrl && (
+                                <Button variant="outline" size="sm" asChild>
+                                    <a href={externalUrl} target="_blank" rel="noopener noreferrer">
+                                        <ExternalLink className="h-4 w-4" />
+                                    </a>
+                                </Button>
+                            )}
+
+                            {/* Instructor Actions */}
+                            {isInstructor && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="sm" disabled={isProcessing}>
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                        <DropdownMenuItem onClick={() => onEdit(item.id)}>
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            Edit Item
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => onDuplicate(item.id)}>
+                                            <Copy className="mr-2 h-4 w-4" />
+                                            Duplicate
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            onClick={() => onDelete(item.id, item.title)}
+                                            className="text-red-600 focus:text-red-600"
+                                        >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+});
 
 function Show({ course, module }: CourseModuleShowPageProps) {
     const [draggedItem, setDraggedItem] = useState<number | null>(null);
@@ -55,16 +266,22 @@ function Show({ course, module }: CourseModuleShowPageProps) {
 
     const isInstructor = canManageCourse(course.created_by);
 
-    const handleTogglePublished = () => {
+    // Memoize module items to avoid recalculation
+    const moduleItems = useMemo(() => {
+        return module.moduleItems || module.module_items || module.items || [];
+    }, [module.moduleItems, module.module_items, module.items]);
+
+    // Callback handlers - useCallback to prevent unnecessary re-renders
+    const handleTogglePublished = useCallback(() => {
         setProcessingActions(prev => ({ ...prev, [module.id]: true }));
         patch(`/courses/${course.id}/modules/${module.id}/toggle-published`, {
             onFinish: () => {
                 setProcessingActions(prev => ({ ...prev, [module.id]: false }));
             }
         });
-    };
+    }, [module.id, course.id, patch]);
 
-    const handleDelete = () => {
+    const handleDelete = useCallback(() => {
         confirm({
             title: 'Delete Module',
             description: `Are you sure you want to delete "${module.title}"? This action cannot be undone and will remove all module items.`,
@@ -74,18 +291,22 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                 router.delete(`/courses/${course.id}/modules/${module.id}`);
             }
         });
-    };
+    }, [confirm, module.title, course.id, module.id]);
 
-    const handleDuplicate = () => {
+    const handleDuplicate = useCallback(() => {
         setProcessingActions(prev => ({ ...prev, [module.id]: true }));
         router.post(`/courses/${course.id}/modules/${module.id}/duplicate`, {}, {
             onFinish: () => {
                 setProcessingActions(prev => ({ ...prev, [module.id]: false }));
             }
         });
-    };
+    }, [module.id, course.id]);
 
-    const handleItemDelete = (itemId: number, itemTitle: string) => {
+    const handleItemEdit = useCallback((itemId: number) => {
+        router.visit(`/courses/${course.id}/modules/${module.id}/items/${itemId}/edit`);
+    }, [course.id, module.id]);
+
+    const handleItemDelete = useCallback((itemId: number, itemTitle: string) => {
         confirm({
             title: 'Delete Item',
             description: `Are you sure you want to delete "${itemTitle}"? This action cannot be undone.`,
@@ -100,28 +321,28 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                 });
             }
         });
-    };
+    }, [confirm, course.id, module.id]);
 
-    const handleItemDuplicate = (itemId: number) => {
+    const handleItemDuplicate = useCallback((itemId: number) => {
         setProcessingActions(prev => ({ ...prev, [itemId]: true }));
         router.post(`/courses/${course.id}/modules/${module.id}/items/${itemId}/duplicate`, {}, {
             onFinish: () => {
                 setProcessingActions(prev => ({ ...prev, [itemId]: false }));
             }
         });
-    };
+    }, [course.id, module.id]);
 
-    const handleDragStart = (e: React.DragEvent, itemId: number) => {
+    const handleDragStart = useCallback((e: React.DragEvent, itemId: number) => {
         setDraggedItem(itemId);
         e.dataTransfer.effectAllowed = 'move';
-    };
+    }, []);
 
-    const handleDragOver = (e: React.DragEvent) => {
+    const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-    };
+    }, []);
 
-    const handleDrop = (e: React.DragEvent, targetItemId: number) => {
+    const handleDrop = useCallback((e: React.DragEvent, targetItemId: number) => {
         e.preventDefault();
 
         if (!draggedItem || draggedItem === targetItemId) {
@@ -129,9 +350,8 @@ function Show({ course, module }: CourseModuleShowPageProps) {
             return;
         }
 
-        const items = module.moduleItems || module.module_items || module.items || [];
-        const draggedIndex = items.findIndex(item => item.id === draggedItem);
-        const targetIndex = items.findIndex(item => item.id === targetItemId);
+        const draggedIndex = moduleItems.findIndex(item => item.id === draggedItem);
+        const targetIndex = moduleItems.findIndex(item => item.id === targetItemId);
 
         if (draggedIndex === -1 || targetIndex === -1) {
             setDraggedItem(null);
@@ -152,50 +372,7 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                 setDraggedItem(null);
             }
         });
-    };
-
-    // Helper function to get item type from polymorphic relationship
-    const getItemType = (item: CourseModuleItem): 'lecture' | 'assessment' | 'assignment' | 'unknown' => {
-        if (item.item_type_name) return item.item_type_name;
-
-        if (item.itemable_type?.includes('Lecture')) return 'lecture';
-        if (item.itemable_type?.includes('Assessment')) return 'assessment';
-        if (item.itemable_type?.includes('Assignment')) return 'assignment';
-
-        return 'unknown';
-    };
-
-    const getItemIcon = (itemType: string) => {
-        switch (itemType) {
-            case 'lecture':
-                return <Play className="h-4 w-4 text-blue-500" />;
-            case 'assessment':
-                return <HelpCircle className="h-4 w-4 text-orange-500" />;
-            case 'assignment':
-                return <ClipboardList className="h-4 w-4 text-red-500" />;
-            default:
-                return <FileText className="h-4 w-4" />;
-        }
-    };
-
-    const formatDuration = (duration?: number) => {
-        if (!duration) return null;
-        const minutes = Math.floor(duration / 60);
-        const seconds = duration % 60;
-        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    };
-
-    // Helper function to get external URL from polymorphic content
-    const getExternalUrl = (item: CourseModuleItem): string | null => {
-        if (!item.itemable) return null;
-
-        const itemType = getItemType(item);
-        if (itemType === 'lecture') {
-            return (item.itemable as { video_url?: string })?.video_url || null;
-        }
-
-        return null;
-    };
+    }, [draggedItem, moduleItems, course.id, module.id]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -216,23 +393,15 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                         </div>
 
                         <div className="space-y-2">
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">{module.title}</h1>
-                                {module.is_published ? (
-                                    <Badge variant="default" className="self-start bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                        <CheckCircle className="mr-1 h-3 w-3" />
-                                        Published
-                                    </Badge>
-                                ) : (
-                                    <Badge variant="secondary" className="self-start bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-                                        <XCircle className="mr-1 h-3 w-3" />
-                                        Draft
-                                    </Badge>
-                                )}
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-2xl sm:text-3xl font-bold truncate">{module.title}</h1>
+                                <Badge variant={module.is_published ? 'default' : 'secondary'}>
+                                    {module.is_published ? 'Published' : 'Draft'}
+                                </Badge>
                             </div>
 
                             {module.description && (
-                                <p className="text-sm text-muted-foreground sm:text-base lg:text-lg">
+                                <p className="text-sm sm:text-base text-muted-foreground max-w-3xl">
                                     {module.description}
                                 </p>
                             )}
@@ -240,7 +409,7 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                             <div className="flex items-center gap-4 text-xs sm:text-sm text-muted-foreground">
                                 <span className="flex items-center gap-1">
                                     <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
-                                    {(module.moduleItems || module.module_items || module.items || []).length} items
+                                    {moduleItems.length} items
                                 </span>
                                 <span className="flex items-center gap-1">
                                     <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -252,95 +421,64 @@ function Show({ course, module }: CourseModuleShowPageProps) {
 
                     {/* Action Buttons - Responsive */}
                     {isInstructor && (
-                        <div className="flex shrink-0 items-center gap-2">
-                            {/* Mobile: Dropdown Menu */}
-                            {isMobile ? (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="sm">
-                                            <MoreVertical className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-48">
-                                        <DropdownMenuItem asChild>
-                                            <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
-                                                <Plus className="mr-2 h-4 w-4" />
-                                                Add Item
-                                            </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <Link href={`/courses/${course.id}/modules/${module.id}/edit`}>
-                                                <Edit className="mr-2 h-4 w-4" />
-                                                Edit Module
-                                            </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={handleTogglePublished}>
-                                            {module.is_published ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
-                                            {module.is_published ? 'Unpublish' : 'Publish'}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={handleDuplicate}>
-                                            <Copy className="mr-2 h-4 w-4" />
-                                            Duplicate
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            Delete Module
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            ) : (
-                                /* Desktop: Individual Buttons */
-                                <>
-                                    <Button asChild>
-                                        <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Add Item
-                                        </Link>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <Button variant="outline" size={isMobile ? "sm" : "default"} asChild>
+                                <Link href={`/courses/${course.id}/modules/${module.id}/edit`}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    <span className="hidden sm:inline">Edit Module</span>
+                                    <span className="sm:hidden">Edit</span>
+                                </Link>
+                            </Button>
+
+                            <LoadingButton
+                                variant="outline"
+                                size={isMobile ? "sm" : "default"}
+                                onClick={handleTogglePublished}
+                                loading={processingActions[module.id]}
+                            >
+                                {module.is_published ? (
+                                    <>
+                                        <EyeOff className="mr-2 h-4 w-4" />
+                                        <span className="hidden sm:inline">Unpublish</span>
+                                        <span className="sm:hidden">Hide</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        <span className="hidden sm:inline">Publish</span>
+                                        <span className="sm:hidden">Show</span>
+                                    </>
+                                )}
+                            </LoadingButton>
+
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size={isMobile ? "sm" : "default"}>
+                                        <MoreVertical className="h-4 w-4" />
                                     </Button>
-                                    <Button variant="outline" asChild>
-                                        <Link href={`/courses/${course.id}/modules/${module.id}/edit`}>
-                                            <Edit className="mr-2 h-4 w-4" />
-                                            Edit
-                                        </Link>
-                                    </Button>
-                                    <LoadingButton
-                                        variant="outline"
-                                        size="default"
-                                        loading={processingActions[module.id]}
-                                        onClick={handleTogglePublished}
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem onClick={handleDuplicate}>
+                                        <Copy className="mr-2 h-4 w-4" />
+                                        Duplicate Module
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        onClick={handleDelete}
+                                        className="text-red-600 focus:text-red-600"
                                     >
-                                        {module.is_published ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
-                                        {module.is_published ? 'Unpublish' : 'Publish'}
-                                    </LoadingButton>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" size="default">
-                                                <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={handleDuplicate}>
-                                                <Copy className="mr-2 h-4 w-4" />
-                                                Duplicate Module
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Delete Module
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </>
-                            )}
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete Module
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     )}
                 </div>
 
                 {/* Module Items List - Enhanced for Mobile */}
                 <div className="space-y-4 lg:space-y-6">
-                    {(module.moduleItems || module.module_items || module.items || []).length === 0 ? (
+                    {moduleItems.length === 0 ? (
                         <Card>
                             <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16">
                                 <FileText className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mb-4" />
@@ -363,195 +501,29 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                         </Card>
                     ) : (
                         <div className="space-y-3 sm:space-y-4">
-                            {(module.moduleItems || module.module_items || module.items || []).map((item) => {
-                                const itemType = getItemType(item);
-                                const externalUrl = getExternalUrl(item);
-                                const isProcessing = processingActions[item.id];
-
-                                return (
-                                    <Card
-                                        key={item.id}
-                                        className={`group hover:shadow-md transition-all duration-200 ${
-                                            draggedItem === item.id ? 'opacity-50' : ''
-                                        }`}
-                                        draggable={isInstructor && !isMobile}
-                                        onDragStart={(e) => handleDragStart(e, item.id)}
-                                        onDragOver={handleDragOver}
-                                        onDrop={(e) => handleDrop(e, item.id)}
-                                    >
-                                        <CardContent className="p-4 sm:p-6">
-                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                                                {/* Drag Handle & Item Info */}
-                                                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                                                    {/* Drag Handle - Desktop Only */}
-                                                    {isInstructor && !isMobile && (
-                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
-                                                            <GripVertical className="h-4 w-4 text-muted-foreground" />
-                                                        </div>
-                                                    )}
-
-                                                    {/* Item Type Icon */}
-                                                    <div className="flex-shrink-0">
-                                                        {getItemIcon(itemType)}
-                                                    </div>
-
-                                                    {/* Item Details */}
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-                                                            <h3 className="font-semibold text-sm sm:text-base line-clamp-1">
-                                                                {item.title}
-                                                            </h3>
-                                                            <div className="flex items-center gap-2">
-                                                                <Badge variant="outline" className="text-xs">
-                                                                    {itemType}
-                                                                </Badge>
-                                                                {item.status === 'published' ? (
-                                                                    <Badge variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                                                        Published
-                                                                    </Badge>
-                                                                ) : (
-                                                                    <Badge variant="secondary" className="text-xs">
-                                                                        Draft
-                                                                    </Badge>
-                                                                )}
-                                                                {item.is_required && (
-                                                                    <Badge variant="outline" className="text-xs border-red-200 text-red-700 dark:border-red-800 dark:text-red-300">
-                                                                        Required
-                                                                    </Badge>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {item.description && (
-                                                            <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">
-                                                                {item.description}
-                                                            </p>
-                                                        )}
-
-                                                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                                            <span>#{item.order}</span>
-                                                            {item.duration && (
-                                                                <span className="flex items-center gap-1">
-                                                                    <Clock className="h-3 w-3" />
-                                                                    {formatDuration(item.duration)}
-                                                                </span>
-                                                            )}
-                                                            {item.view_count > 0 && (
-                                                                <span className="flex items-center gap-1">
-                                                                    <Eye className="h-3 w-3" />
-                                                                    {item.view_count} views
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Action Buttons */}
-                                                <div className="flex items-center gap-2 justify-end sm:justify-start">
-                                                    {/* Primary Action */}
-                                                    <Button
-                                                        size="sm"
-                                                        asChild
-                                                        className="flex-1 sm:flex-initial"
-                                                    >
-                                                        <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}`}>
-                                                            <Eye className="mr-2 h-4 w-4" />
-                                                            <span className="hidden sm:inline">View</span>
-                                                            <span className="sm:hidden">View</span>
-                                                        </Link>
-                                                    </Button>
-
-                                                    {/* External Link */}
-                                                    {externalUrl && (
-                                                        <Button variant="outline" size="sm" asChild>
-                                                            <a href={externalUrl} target="_blank" rel="noopener noreferrer">
-                                                                <ExternalLink className="h-4 w-4" />
-                                                            </a>
-                                                        </Button>
-                                                    )}
-
-                                                    {/* Instructor Actions */}
-                                                    {isInstructor && (
-                                                        <>
-                                                            {/* Mobile: Dropdown */}
-                                                            {isMobile ? (
-                                                                <DropdownMenu>
-                                                                    <DropdownMenuTrigger asChild>
-                                                                        <Button variant="outline" size="sm">
-                                                                            <MoreVertical className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </DropdownMenuTrigger>
-                                                                    <DropdownMenuContent align="end" className="w-40">
-                                                                        <DropdownMenuItem asChild>
-                                                                            <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}/edit`}>
-                                                                                <Edit className="mr-2 h-4 w-4" />
-                                                                                Edit
-                                                                            </Link>
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuItem
-                                                                            onClick={() => handleItemDuplicate(item.id)}
-                                                                            disabled={isProcessing}
-                                                                        >
-                                                                            <Copy className="mr-2 h-4 w-4" />
-                                                                            Duplicate
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuSeparator />
-                                                                        <DropdownMenuItem
-                                                                            onClick={() => handleItemDelete(item.id, item.title)}
-                                                                            className="text-destructive"
-                                                                        >
-                                                                            <Trash2 className="mr-2 h-4 w-4" />
-                                                                            Delete
-                                                                        </DropdownMenuItem>
-                                                                    </DropdownMenuContent>
-                                                                </DropdownMenu>
-                                                            ) : (
-                                                                /* Desktop: Individual Buttons */
-                                                                <>
-                                                                    <Button variant="outline" size="sm" asChild>
-                                                                        <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}/edit`}>
-                                                                            <Edit className="h-4 w-4" />
-                                                                        </Link>
-                                                                    </Button>
-                                                                    <DropdownMenu>
-                                                                        <DropdownMenuTrigger asChild>
-                                                                            <Button variant="outline" size="sm">
-                                                                                <MoreVertical className="h-4 w-4" />
-                                                                            </Button>
-                                                                        </DropdownMenuTrigger>
-                                                                        <DropdownMenuContent align="end">
-                                                                            <DropdownMenuItem
-                                                                                onClick={() => handleItemDuplicate(item.id)}
-                                                                                disabled={isProcessing}
-                                                                            >
-                                                                                <Copy className="mr-2 h-4 w-4" />
-                                                                                Duplicate Item
-                                                                            </DropdownMenuItem>
-                                                                            <DropdownMenuSeparator />
-                                                                            <DropdownMenuItem
-                                                                                onClick={() => handleItemDelete(item.id, item.title)}
-                                                                                className="text-destructive"
-                                                                            >
-                                                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                                                Delete Item
-                                                                            </DropdownMenuItem>
-                                                                        </DropdownMenuContent>
-                                                                    </DropdownMenu>
-                                                                </>
-                                                            )}
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                );
-                            })}
+                            {moduleItems.map((item) => (
+                                <ModuleItemCard
+                                    key={item.id}
+                                    item={item}
+                                    isInstructor={isInstructor}
+                                    isMobile={isMobile}
+                                    draggedItem={draggedItem}
+                                    isProcessing={processingActions[item.id]}
+                                    onDragStart={handleDragStart}
+                                    onDragOver={handleDragOver}
+                                    onDrop={handleDrop}
+                                    onEdit={handleItemEdit}
+                                    onDelete={handleItemDelete}
+                                    onDuplicate={handleItemDuplicate}
+                                    courseId={course.id}
+                                    moduleId={module.id}
+                                />
+                            ))}
                         </div>
                     )}
 
                     {/* Add Item Button - Instructor Only */}
-                    {isInstructor && (module.moduleItems || module.module_items || module.items || []).length > 0 && (
+                    {isInstructor && moduleItems.length > 0 && (
                         <div className="flex justify-center pt-4">
                             <Button variant="outline" asChild size={isMobile ? "sm" : "default"}>
                                 <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>

@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CourseModuleItemCreatePageProps } from '@/types';
-import { Head, useForm, Link } from '@inertiajs/react';
+import { BreadcrumbItem, CourseModuleItemCreatePageProps, QuestionFormData } from '@/types';
+import { Head, useForm, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,38 +8,46 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
-import { ArrowLeft, Save, Play, HelpCircle, ClipboardList } from 'lucide-react';
-import { useState } from 'react';
+import { QuestionBuilder } from '@/components/question-builder';
+import { ArrowLeft, Play, HelpCircle, ClipboardList } from 'lucide-react';
+import { useState, ChangeEvent, FormEvent } from 'react';
 
 function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) {
-    const [selectedType, setSelectedType] = useState<string>('');
+    const [selectedType, setSelectedType] = useState<'lecture' | 'assessment' | 'assignment' | ''>('');
+    const [questions, setQuestions] = useState<QuestionFormData[]>([]);
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, reset } = useForm({
         title: '',
         description: '',
         item_type: '' as 'lecture' | 'assessment' | 'assignment',
-        // Lecture fields
-        video_url: '',
-        duration: '',
-        content: '',
-        content_json: '',
-        content_html: '',
-        // Assessment fields
-        assessment_title: '',
-        max_score: '',
-        assessment_type: 'quiz' as 'quiz' | 'exam' | 'project',
-        questions_type: 'online' as 'online' | 'file',
-        submission_type: 'online' as 'online' | 'written',
-        // Assignment fields
-        assignment_title: '',
-        total_points: '',
-        assignment_type: '',
-        started_at: '',
-        expired_at: '',
-        // Common fields
         order: nextOrder,
         is_required: false,
         status: 'published' as 'draft' | 'published',
+        video_url: '',
+        duration: 0,
+        content_json: '',
+        content_html: '',
+        assessment_title: '',
+        max_score: 100,
+        assessment_type: 'quiz' as 'quiz' | 'exam' | 'project',
+        assignment_title: '',
+        total_points: 100,
+        assignment_type: '',
+        started_at: '',
+        expired_at: '',
+        // Assignment content fields
+        assignment_content_json: '',
+        assignment_content_html: '',
+        assignment_instructions_json: '',
+        assignment_instructions_html: '',
+        assignment_rubric_json: '',
+        assignment_rubric_html: '',
+        // Assessment content fields
+        assessment_content_json: '',
+        assessment_content_html: '',
+        assessment_instructions_json: '',
+        assessment_instructions_html: '',
+
     });
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -50,105 +58,24 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
         { title: 'Add Item', href: '#' },
     ];
 
-    const handleSubmit = (e: React.FormEvent) => {
+                const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
-        // Ensure type is set
-        if (!data.item_type) {
-            console.error('Item type not selected');
-            return;
-        }
+                // Create submission data with questions if this is an assessment
+        const submitData = selectedType === 'assessment' ? {
+            ...data,
+            questions: JSON.stringify(questions)
+        } : data;
 
-        // Type-specific validation
-        if (data.item_type === 'lecture' && !data.video_url && !data.content) {
-            console.error('Either video URL or content required for lecture');
-            return;
-        }
-
-        if (data.item_type === 'assessment' && !data.assessment_title) {
-            console.error('Assessment title required');
-            return;
-        }
-
-        if (data.item_type === 'assignment' && !data.assignment_title) {
-            console.error('Assignment title required');
-            return;
-        }
-
-        const options = {
-            onSuccess: () => {
-                console.log('Module item created successfully');
-            },
-            onError: (errors: Record<string, string>) => {
-                console.error('Form submission errors:', errors);
-            }
-        };
-
-        post(`/courses/${course.id}/modules/${module.id}/items`, options);
+        // Use router.post directly to send the modified data
+        router.post(`/courses/${course.id}/modules/${module.id}/items`, submitData);
     };
 
-    const handleTypeChange = (type: string) => {
-        console.log('Changing type to:', type);
+    const handleTypeChange = (type: 'lecture' | 'assessment' | 'assignment') => {
         setSelectedType(type);
-
-        setData(prev => ({
-            ...prev,
-            item_type: type as 'lecture' | 'assessment' | 'assignment',
-            // Reset type-specific fields
-            video_url: '',
-            content: '',
-            content_json: '',
-            content_html: '',
-            duration: '',
-            assessment_title: '',
-            max_score: '',
-            assignment_title: '',
-            total_points: '',
-            assignment_type: '',
-            started_at: '',
-            expired_at: '',
-        }));
+        reset();
+        setData('item_type', type);
     };
-
-    // Validation helpers
-    const isFormValid = () => {
-        if (!data.title.trim() || !data.item_type) return false;
-
-        switch (data.item_type) {
-            case 'lecture':
-                return data.video_url.trim() || data.content.trim();
-            case 'assessment':
-                return data.assessment_title.trim();
-            case 'assignment':
-                return data.assignment_title.trim();
-            default:
-                return false;
-        }
-    };
-
-    const itemTypes = [
-        {
-            value: 'lecture',
-            label: 'Lecture',
-            icon: <Play className="h-4 w-4" />,
-            description: 'Video content (YouTube, Vimeo, etc.)',
-            color: 'text-blue-500'
-        },
-        {
-            value: 'assessment',
-            label: 'Assessment',
-            icon: <HelpCircle className="h-4 w-4" />,
-            description: 'Quiz, exam, or project assessment',
-            color: 'text-orange-500'
-        },
-        {
-            value: 'assignment',
-            label: 'Assignment',
-            icon: <ClipboardList className="h-4 w-4" />,
-            description: 'Homework or project assignment',
-            color: 'text-red-500'
-        },
-    ];
 
     const getSubmitButtonText = () => {
         if (processing) {
@@ -161,8 +88,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Add Item - ${module.title}`} />
 
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                {/* Header */}
+            <div className="flex h-full flex-col gap-4 p-4">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" asChild>
                         <Link href={`/courses/${course.id}/modules/${module.id}`}>
@@ -178,8 +104,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Main Form */}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2">
                         <Card>
                             <CardHeader>
@@ -190,19 +115,18 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                             </CardHeader>
                             <CardContent>
                                 <form onSubmit={handleSubmit} className="space-y-6">
-                                    {/* Item Type Selection */}
                                     <div className="space-y-3">
                                         <Label>Item Type *</Label>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                                             {itemTypes.map((type) => (
                                                 <div
                                                     key={type.value}
-                                                    className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                                                    className={`cursor-pointer rounded-lg border p-4 transition-all ${
                                                         selectedType === type.value
                                                             ? 'border-primary bg-primary/5'
                                                             : 'border-border hover:border-primary/50'
                                                     }`}
-                                                    onClick={() => handleTypeChange(type.value)}
+                                                    onClick={() => handleTypeChange(type.value as 'lecture' | 'assessment' | 'assignment')}
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         <div className={type.color}>
@@ -223,8 +147,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                         )}
                                     </div>
 
-                                    {/* Common Fields */}
-                                    <div className="space-y-4">
+                                    <div className="space-y-4 pt-4">
                                         <div>
                                             <Label htmlFor="title">Module Item Title *</Label>
                                             <Input
@@ -248,7 +171,6 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                 onChange={(e) => setData('description', e.target.value)}
                                                 placeholder="Enter a description for this item"
                                                 rows={3}
-                                                className={errors.description ? 'border-destructive' : ''}
                                             />
                                             {errors.description && (
                                                 <p className="text-sm text-destructive mt-1">{errors.description}</p>
@@ -256,11 +178,9 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                         </div>
                                     </div>
 
-                                    {/* Type-specific Fields */}
-                                    {data.item_type === 'lecture' && (
+                                    {selectedType === 'lecture' && (
                                         <div className="space-y-4 border-t pt-4">
                                             <h3 className="font-medium">Lecture Content</h3>
-
                                             <div>
                                                 <Label htmlFor="video_url">Video URL (optional)</Label>
                                                 <Input
@@ -275,14 +195,13 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     <p className="text-sm text-destructive mt-1">{errors.video_url}</p>
                                                 )}
                                             </div>
-
                                             <div>
                                                 <Label htmlFor="duration">Duration (seconds)</Label>
                                                 <Input
                                                     id="duration"
                                                     type="number"
                                                     value={data.duration}
-                                                    onChange={(e) => setData('duration', e.target.value)}
+                                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setData('duration', parseInt(e.target.value, 10))}
                                                     placeholder="e.g., 300 for 5 minutes"
                                                     className={errors.duration ? 'border-destructive' : ''}
                                                 />
@@ -290,26 +209,29 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     <p className="text-sm text-destructive mt-1">{errors.duration}</p>
                                                 )}
                                             </div>
-
                                             <div>
                                                 <RichTextEditor
                                                     id="content"
                                                     label="Lecture Content"
-                                                    value={data.content_json || data.content}
-                                                    onChange={(jsonContent, htmlContent) => {
-                                                        setData('content_json', jsonContent);
-                                                        setData('content_html', htmlContent);
+                                                    value={data.content_json}
+                                                    onChange={(json, html) => {
+                                                        setData('content_json', json);
+                                                        setData('content_html', html);
                                                     }}
-                                                    error={errors.content}
+                                                    error={errors.content_json}
+                                                    minLength={10}
+                                                    maxLength={10000}
+                                                    showWordCount
+                                                    showContentQuality
+                                                    placeholder="Write your lecture content here. Use headings, lists, and formatting to make it engaging..."
                                                 />
                                             </div>
                                         </div>
                                     )}
 
-                                    {data.item_type === 'assessment' && (
+                                    {selectedType === 'assessment' && (
                                         <div className="space-y-4 border-t pt-4">
                                             <h3 className="font-medium">Assessment Settings</h3>
-
                                             <div>
                                                 <Label htmlFor="assessment_title">Assessment Title *</Label>
                                                 <Input
@@ -324,7 +246,6 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     <p className="text-sm text-destructive mt-1">{errors.assessment_title}</p>
                                                 )}
                                             </div>
-
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
                                                     <Label htmlFor="max_score">Maximum Score</Label>
@@ -332,7 +253,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         id="max_score"
                                                         type="number"
                                                         value={data.max_score}
-                                                        onChange={(e) => setData('max_score', e.target.value)}
+                                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setData('max_score', parseInt(e.target.value, 10))}
                                                         placeholder="100"
                                                         className={errors.max_score ? 'border-destructive' : ''}
                                                     />
@@ -340,13 +261,12 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         <p className="text-sm text-destructive mt-1">{errors.max_score}</p>
                                                     )}
                                                 </div>
-
                                                 <div>
                                                     <Label htmlFor="assessment_type">Assessment Type</Label>
                                                     <select
                                                         id="assessment_type"
                                                         value={data.assessment_type}
-                                                        onChange={(e) => setData('assessment_type', e.target.value as 'quiz' | 'exam' | 'project')}
+                                                        onChange={(e: ChangeEvent<HTMLSelectElement>) => setData('assessment_type', e.target.value as 'quiz' | 'exam' | 'project')}
                                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                                                     >
                                                         <option value="quiz">Quiz</option>
@@ -355,13 +275,44 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     </select>
                                                 </div>
                                             </div>
+                                            <div>
+                                                <RichTextEditor
+                                                    id="assessment_content"
+                                                    label="Assessment Content"
+                                                    value={data.assessment_content_json}
+                                                    onChange={(json, html) => {
+                                                        setData('assessment_content_json', json);
+                                                        setData('assessment_content_html', html);
+                                                    }}
+                                                    error={errors.assessment_content_json}
+                                                />
+                                            </div>
+                                            <div>
+                                                <RichTextEditor
+                                                    id="assessment_instructions"
+                                                    label="Instructions"
+                                                    value={data.assessment_instructions_json}
+                                                    onChange={(json, html) => {
+                                                        setData('assessment_instructions_json', json);
+                                                        setData('assessment_instructions_html', html);
+                                                    }}
+                                                    error={errors.assessment_instructions_json}
+                                                />
+                                            </div>
+
+                                            {/* Questions Builder */}
+                                            <div className="border-t pt-4">
+                                                <QuestionBuilder
+                                                    questions={questions}
+                                                    onChange={setQuestions}
+                                                />
+                                            </div>
                                         </div>
                                     )}
 
-                                    {data.item_type === 'assignment' && (
+                                    {selectedType === 'assignment' && (
                                         <div className="space-y-4 border-t pt-4">
                                             <h3 className="font-medium">Assignment Settings</h3>
-
                                             <div>
                                                 <Label htmlFor="assignment_title">Assignment Title *</Label>
                                                 <Input
@@ -376,7 +327,6 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     <p className="text-sm text-destructive mt-1">{errors.assignment_title}</p>
                                                 )}
                                             </div>
-
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
                                                     <Label htmlFor="total_points">Total Points</Label>
@@ -384,7 +334,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         id="total_points"
                                                         type="number"
                                                         value={data.total_points}
-                                                        onChange={(e) => setData('total_points', e.target.value)}
+                                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setData('total_points', parseInt(e.target.value, 10))}
                                                         placeholder="100"
                                                         className={errors.total_points ? 'border-destructive' : ''}
                                                     />
@@ -392,7 +342,6 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         <p className="text-sm text-destructive mt-1">{errors.total_points}</p>
                                                     )}
                                                 </div>
-
                                                 <div>
                                                     <Label htmlFor="assignment_type">Assignment Type</Label>
                                                     <Input
@@ -405,7 +354,6 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     />
                                                 </div>
                                             </div>
-
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
                                                     <Label htmlFor="started_at">Start Date</Label>
@@ -420,7 +368,6 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         <p className="text-sm text-destructive mt-1">{errors.started_at}</p>
                                                     )}
                                                 </div>
-
                                                 <div>
                                                     <Label htmlFor="expired_at">Due Date</Label>
                                                     <Input
@@ -435,50 +382,53 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     )}
                                                 </div>
                                             </div>
+
+                                            {/* Assignment Content */}
+                                            <div>
+                                                <RichTextEditor
+                                                    id="assignment_content"
+                                                    label="Assignment Content"
+                                                    value={data.assignment_content_json}
+                                                    onChange={(json, html) => {
+                                                        setData('assignment_content_json', json);
+                                                        setData('assignment_content_html', html);
+                                                    }}
+                                                    error={errors.assignment_content_json}
+                                                />
+                                            </div>
+
+                                            {/* Assignment Instructions */}
+                                            <div>
+                                                <RichTextEditor
+                                                    id="assignment_instructions"
+                                                    label="Instructions"
+                                                    value={data.assignment_instructions_json}
+                                                    onChange={(json, html) => {
+                                                        setData('assignment_instructions_json', json);
+                                                        setData('assignment_instructions_html', html);
+                                                    }}
+                                                    error={errors.assignment_instructions_json}
+                                                />
+                                            </div>
+
+                                            {/* Assignment Rubric */}
+                                            <div>
+                                                <RichTextEditor
+                                                    id="assignment_rubric"
+                                                    label="Grading Rubric"
+                                                    value={data.assignment_rubric_json}
+                                                    onChange={(json, html) => {
+                                                        setData('assignment_rubric_json', json);
+                                                        setData('assignment_rubric_html', html);
+                                                    }}
+                                                    error={errors.assignment_rubric_json}
+                                                />
+                                            </div>
                                         </div>
                                     )}
 
-                                    {/* Additional Options */}
-                                    <div className="space-y-4 border-t pt-4">
-                                        <h3 className="font-medium">Options</h3>
-
-                                        <div className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id="is_required"
-                                                checked={data.is_required}
-                                                onCheckedChange={(checked) => setData('is_required', !!checked)}
-                                            />
-                                            <Label htmlFor="is_required">
-                                                This item is required for course completion
-                                            </Label>
-                                        </div>
-
-                                        <div>
-                                            <Label htmlFor="status">Status</Label>
-                                            <select
-                                                id="status"
-                                                value={data.status}
-                                                onChange={(e) => setData('status', e.target.value as 'draft' | 'published')}
-                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                                            >
-                                                <option value="published">Published</option>
-                                                <option value="draft">Draft</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    {/* Submit Button */}
-                                    <div className="flex justify-end gap-2 pt-4">
-                                        <Button type="button" variant="outline" asChild>
-                                            <Link href={`/courses/${course.id}/modules/${module.id}`}>
-                                                Cancel
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            type="submit"
-                                            disabled={!isFormValid() || processing}
-                                        >
-                                            <Save className="mr-2 h-4 w-4" />
+                                    <div className="flex items-center justify-end gap-4 pt-4">
+                                        <Button type="submit" disabled={processing}>
                                             {getSubmitButtonText()}
                                         </Button>
                                     </div>
@@ -487,37 +437,39 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                         </Card>
                     </div>
 
-                    {/* Sidebar */}
-                    <div className="space-y-4">
+                    <div className="lg:col-span-1">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-lg">Tips</CardTitle>
+                                <CardTitle>Configuration</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-3 text-sm">
-                                {data.item_type === 'lecture' && (
-                                    <>
-                                        <p>• Use YouTube or Vimeo URLs for best performance</p>
-                                        <p>• Duration helps with progress tracking</p>
-                                        <p>• Add notes in the content section</p>
-                                    </>
-                                )}
-                                {data.item_type === 'assessment' && (
-                                    <>
-                                        <p>• Set appropriate maximum scores</p>
-                                        <p>• Choose the right assessment type</p>
-                                        <p>• Questions can be added after creation</p>
-                                    </>
-                                )}
-                                {data.item_type === 'assignment' && (
-                                    <>
-                                        <p>• Set clear due dates</p>
-                                        <p>• Specify total points for grading</p>
-                                        <p>• Use descriptive assignment types</p>
-                                    </>
-                                )}
-                                {!data.item_type && (
-                                    <p>Select an item type to see specific tips.</p>
-                                )}
+                            <CardContent className="space-y-4">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="is_required"
+                                        checked={data.is_required}
+                                        onCheckedChange={(checked) => setData('is_required', checked === true)}
+                                    />
+                                    <Label htmlFor="is_required">Required</Label>
+                                </div>
+                                <div>
+                                    <Label>Status</Label>
+                                    <div>
+                                        <Button
+                                            type="button"
+                                            variant={data.status === 'published' ? 'default' : 'secondary'}
+                                            onClick={() => setData('status', 'published')}
+                                        >
+                                            Published
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant={data.status === 'draft' ? 'default' : 'secondary'}
+                                            onClick={() => setData('status', 'draft')}
+                                        >
+                                            Draft
+                                        </Button>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -526,5 +478,29 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
         </AppLayout>
     );
 }
+
+const itemTypes = [
+    {
+        value: 'lecture',
+        label: 'Lecture',
+        icon: <Play className="h-4 w-4" />,
+        description: 'Video content',
+        color: 'text-blue-500'
+    },
+    {
+        value: 'assessment',
+        label: 'Assessment',
+        icon: <HelpCircle className="h-4 w-4" />,
+        description: 'Quiz, exam, etc.',
+        color: 'text-orange-500'
+    },
+    {
+        value: 'assignment',
+        label: 'Assignment',
+        icon: <ClipboardList className="h-4 w-4" />,
+        description: 'Homework, projects',
+        color: 'text-red-500'
+    },
+];
 
 export default Create;
