@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { ArrowLeft, Save, Play, HelpCircle, ClipboardList, Eye, Trash2 } from 'lucide-react';
 
 function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
@@ -38,6 +39,8 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 video_url: lecture.video_url || '',
                 duration: lecture.duration?.toString() || '',
                 content: lecture.content || '',
+                content_json: lecture.content_json || '',
+                content_html: lecture.content_html || '',
                 assessment_title: '',
                 max_score: '',
                 assessment_type: 'quiz' as 'quiz' | 'exam' | 'project',
@@ -56,6 +59,8 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 video_url: '',
                 duration: '',
                 content: '',
+                content_json: '',
+                content_html: '',
                 assessment_title: assessment.title || '',
                 max_score: assessment.max_score?.toString() || '',
                 assessment_type: assessment.type as 'quiz' | 'exam' | 'project' || 'quiz',
@@ -74,6 +79,8 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 video_url: '',
                 duration: '',
                 content: '',
+                content_json: '',
+                content_html: '',
                 assessment_title: '',
                 max_score: '',
                 assessment_type: 'quiz' as 'quiz' | 'exam' | 'project',
@@ -93,6 +100,8 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             video_url: '',
             duration: '',
             content: '',
+            content_json: '',
+            content_html: '',
             assessment_title: '',
             max_score: '',
             assessment_type: 'quiz' as 'quiz' | 'exam' | 'project',
@@ -121,8 +130,8 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
         e.preventDefault();
 
         // Type-specific validation
-        if (data.item_type === 'lecture' && !data.video_url) {
-            console.error('Video URL required for lecture');
+        if (data.item_type === 'lecture' && !data.video_url && !data.content) {
+            console.error('Either video URL or content required for lecture');
             return;
         }
 
@@ -156,7 +165,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
 
         switch (data.item_type) {
             case 'lecture':
-                return data.video_url.trim();
+                return data.video_url.trim() || data.content.trim();
             case 'assessment':
                 return data.assessment_title.trim();
             case 'assignment':
@@ -302,7 +311,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                             <h3 className="font-medium">Lecture Content</h3>
 
                                             <div>
-                                                <Label htmlFor="video_url">Video URL *</Label>
+                                                <Label htmlFor="video_url">Video URL (optional)</Label>
                                                 <Input
                                                     id="video_url"
                                                     type="url"
@@ -332,18 +341,16 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                             </div>
 
                                             <div>
-                                                <Label htmlFor="content">Additional Content</Label>
-                                                <Textarea
+                                                <RichTextEditor
                                                     id="content"
-                                                    value={data.content}
-                                                    onChange={(e) => setData('content', e.target.value)}
-                                                    placeholder="Additional lecture notes or description"
-                                                    rows={4}
-                                                    className={errors.content ? 'border-destructive' : ''}
+                                                    label="Lecture Content"
+                                                    value={data.content_json || data.content}
+                                                    onChange={(jsonContent, htmlContent) => {
+                                                        setData('content_json', jsonContent);
+                                                        setData('content_html', htmlContent);
+                                                    }}
+                                                    error={errors.content}
                                                 />
-                                                {errors.content && (
-                                                    <p className="text-sm text-destructive mt-1">{errors.content}</p>
-                                                )}
                                             </div>
                                         </div>
                                     )}

@@ -78,6 +78,165 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
         return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
     };
 
+    // Helper function to get displayable HTML content
+    const getDisplayContent = (lecture: Lecture): string | null => {
+        // First, try to use HTML content if available
+        if (lecture.content_html) {
+            return lecture.content_html;
+        }
+
+        // Second, try to convert JSON content to HTML
+        if (lecture.content_json) {
+            try {
+                const parsed = JSON.parse(lecture.content_json);
+                if (parsed && parsed.root) {
+                    return convertLexicalToHTML(parsed);
+                }
+            } catch {
+                // If JSON parsing fails, return null
+                return null;
+            }
+        }
+
+        // Fallback to legacy content field only if it's not JSON
+        if (lecture.content) {
+            // Check if it looks like JSON (starts with { and ends with })
+            const trimmed = lecture.content.trim();
+            if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+                // This is likely JSON, don't display it as HTML
+                return null;
+            }
+            return lecture.content;
+        }
+
+        return null;
+    };
+
+    // Helper function to convert Lexical JSON to HTML
+    const convertLexicalToHTML = (editorState: unknown): string => {
+        const root = (editorState as { root?: { children?: unknown[] } })?.root;
+        if (!root?.children) return '';
+
+        const convertNodeToHTML = (node: unknown): string => {
+            const nodeData = node as Record<string, unknown>;
+
+            if (nodeData.type === 'text') {
+                let text = (nodeData.text as string) || '';
+                if (nodeData.format) {
+                    const format = nodeData.format as number;
+                    if (format & 1) text = `<strong>${text}</strong>`;
+                    if (format & 2) text = `<em>${text}</em>`;
+                    if (format & 8) text = `<u>${text}</u>`;
+                }
+                return text;
+            }
+
+            if (nodeData.type === 'paragraph') {
+                const children = nodeData.children as unknown[] || [];
+                const content = children.map(convertNodeToHTML).join('');
+                if (!content.trim()) return '<p><br></p>';
+                const alignment = (nodeData.format as string) || 'left';
+                const alignClass = alignment !== 'left' ? ` style="text-align: ${alignment}"` : '';
+                return `<p${alignClass}>${content}</p>`;
+            }
+
+            if (nodeData.type === 'heading') {
+                const children = nodeData.children as unknown[] || [];
+                const content = children.map(convertNodeToHTML).join('');
+                if (!content.trim()) return '';
+                const tag = (nodeData.tag as string) || 'h1';
+                const alignment = (nodeData.format as string) || 'left';
+                const alignClass = alignment !== 'left' ? ` style="text-align: ${alignment}"` : '';
+                return `<${tag}${alignClass}>${content}</${tag}>`;
+            }
+
+            if (nodeData.type === 'list') {
+                const children = nodeData.children as unknown[] || [];
+                const content = children.map(convertNodeToHTML).join('');
+                if (!content.trim()) return '';
+                const tag = (nodeData.listType as string) === 'number' ? 'ol' : 'ul';
+                return `<${tag}>${content}</${tag}>`;
+            }
+
+            if (nodeData.type === 'listitem') {
+                const children = nodeData.children as unknown[] || [];
+                const content = children.map(convertNodeToHTML).join('');
+                return `<li>${content}</li>`;
+            }
+
+            if (nodeData.type === 'link') {
+                const children = nodeData.children as unknown[] || [];
+                const content = children.map(convertNodeToHTML).join('');
+                const url = (nodeData.url as string) || '#';
+                return `<a href="${url}">${content}</a>`;
+            }
+
+            if (nodeData.children && Array.isArray(nodeData.children)) {
+                return nodeData.children.map(convertNodeToHTML).join('');
+            }
+
+            return '';
+        };
+
+        return root.children.map(convertNodeToHTML).join('');
+    };
+
+    // New component to render lecture content
+    const LectureContent = ({ lecture }: { lecture: Lecture }) => {
+        const videoUrl = lecture.video_url ?? lecture.youtube_id;
+        const embedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) : null;
+        const displayContent = getDisplayContent(lecture);
+
+        return (
+            <div className="space-y-6">
+                {embedUrl ? (
+                    <div className="space-y-4">
+                        <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted">
+                            <iframe
+                                src={embedUrl}
+                                title={lecture.title}
+                                className="w-full h-full"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <ExternalLink className="h-4 w-4" />
+                            <a
+                                href={videoUrl!}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:text-primary"
+                            >
+                                Watch on YouTube
+                            </a>
+                        </div>
+                    </div>
+                ) : (
+                    !displayContent && (
+                        <div className="text-center py-8 bg-muted rounded-lg">
+                            <Play className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground">No video provided for this lecture.</p>
+                        </div>
+                    )
+                )}
+
+                {displayContent && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Lecture Content</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="lecture-content prose prose-lg max-w-none dark:prose-invert">
+                                <div dangerouslySetInnerHTML={{ __html: displayContent }} />
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+        );
+    };
+
     const renderContent = () => {
         if (!item.itemable) {
             return (
@@ -91,77 +250,7 @@ function Show({ course, module, item }: CourseModuleItemShowPageProps) {
         switch (itemType) {
             case 'lecture': {
                 const lecture = item.itemable as Lecture;
-
-                // Handle YouTube videos
-                if (lecture.video_url || lecture.youtube_id) {
-                    const videoUrl = lecture.video_url;
-                    const embedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) :
-                        lecture.youtube_id ? `https://www.youtube.com/embed/${lecture.youtube_id}` : null;
-
-                    if (embedUrl) {
-                        return (
-                            <div className="space-y-4">
-                                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                                    <iframe
-                                        src={embedUrl}
-                                        title={lecture.title}
-                                        className="w-full h-full"
-                                        allowFullScreen
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    />
-                                </div>
-                                {lecture.video_url && (
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <ExternalLink className="h-4 w-4" />
-                                        <a
-                                            href={lecture.video_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="hover:text-primary"
-                                        >
-                                            Watch on YouTube
-                                        </a>
-                                    </div>
-                                )}
-                                {lecture.content && (
-                                    <div className="prose max-w-none mt-6">
-                                        <h3>Lecture Notes</h3>
-                                        <div className="whitespace-pre-wrap">{lecture.content}</div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    }
-                }
-
-                // Handle lecture content without video
-                return (
-                    <div className="space-y-4">
-                        {lecture.content ? (
-                            <div className="prose max-w-none">
-                                <div className="whitespace-pre-wrap">{lecture.content}</div>
-                            </div>
-                        ) : (
-                            <div className="text-center py-8">
-                                <Play className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                <p className="text-muted-foreground">
-                                    {lecture.video_url ? (
-                                        <a
-                                            href={lecture.video_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-primary hover:underline"
-                                        >
-                                            Open Video Link
-                                        </a>
-                                    ) : (
-                                        'No content provided for this lecture'
-                                    )}
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                );
+                return <LectureContent lecture={lecture} />;
             }
 
             case 'assessment': {

@@ -32,11 +32,13 @@ class CourseModuleItemRequest extends FormRequest
         ];
 
         // Type-specific validation rules for the content
-        switch ($this->input('item_type')) {
+        switch (request()->input('item_type')) {
             case 'lecture':
-                $rules['video_url'] = 'required|url|max:500';
+                $rules['video_url'] = 'nullable|url|max:500';
                 $rules['duration'] = 'nullable|integer|min:0|max:86400'; // Max 24 hours
                 $rules['content'] = 'nullable|string|max:50000';
+                $rules['content_json'] = 'nullable|string|max:100000';
+                $rules['content_html'] = 'nullable|string|max:100000';
                 break;
 
             case 'assessment':
@@ -71,7 +73,6 @@ class CourseModuleItemRequest extends FormRequest
             'description.max' => 'The description cannot exceed 1000 characters.',
             'item_type.required' => 'Please select an item type.',
             'item_type.in' => 'Please select a valid item type (lecture, assessment, or assignment).',
-            'video_url.required' => 'Please enter a video URL for this lecture.',
             'video_url.url' => 'Please enter a valid URL.',
             'assessment_title.required' => 'Please enter a title for this assessment.',
             'assignment_title.required' => 'Please enter a title for this assignment.',
@@ -105,14 +106,25 @@ class CourseModuleItemRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            // Additional validation for YouTube URLs
-            if ($this->input('item_type') === 'lecture' && $this->input('video_url')) {
-                $url = $this->input('video_url');
-                $isYouTube = preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $url);
-                $isVimeo = preg_match('/vimeo\.com\/(\d+)/', $url);
+            $itemType = request()->input('item_type');
+            $videoUrl = request()->input('video_url');
+            $content = request()->input('content');
 
-                if (!$isYouTube && !$isVimeo) {
-                    $validator->errors()->add('video_url', 'Please enter a valid YouTube or Vimeo URL.');
+            // For lectures, require either video URL or content
+            if ($itemType === 'lecture') {
+                if (empty($videoUrl) && empty($content)) {
+                    $validator->errors()->add('video_url', 'Please provide either a video URL or content for this lecture.');
+                    $validator->errors()->add('content', 'Please provide either a video URL or content for this lecture.');
+                }
+
+                // Additional validation for YouTube URLs if provided
+                if ($videoUrl) {
+                    $isYouTube = preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $videoUrl);
+                    $isVimeo = preg_match('/vimeo\.com\/(\d+)/', $videoUrl);
+
+                    if (!$isYouTube && !$isVimeo) {
+                        $validator->errors()->add('video_url', 'Please enter a valid YouTube or Vimeo URL.');
+                    }
                 }
             }
         });

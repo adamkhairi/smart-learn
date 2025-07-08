@@ -22,6 +22,8 @@ class CourseModuleItem extends Model
     protected $fillable = [
         'title',
         'description',
+        'content_json',
+        'content_html',
         'course_module_id',
         'itemable_id',
         'itemable_type',
@@ -40,6 +42,7 @@ class CourseModuleItem extends Model
     protected function casts(): array
     {
         return [
+            'content_json' => 'json',
             'order' => 'integer',
             'is_required' => 'boolean',
             'view_count' => 'integer',

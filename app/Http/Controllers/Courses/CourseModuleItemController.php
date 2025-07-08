@@ -73,6 +73,8 @@ class CourseModuleItemController extends Controller
                         'video_url' => $validated['video_url'] ?? null,
                         'duration' => $validated['duration'] ?? null,
                         'content' => $validated['content'] ?? null,
+                        'content_json' => $validated['content_json'] ?? null,
+                        'content_html' => $validated['content_html'] ?? null,
                         'course_id' => $course->id,
                         'course_module_id' => $module->id,
                         'created_by' => auth()->id(),
@@ -116,6 +118,8 @@ class CourseModuleItemController extends Controller
             $moduleItem = CourseModuleItem::create([
                 'title' => $validated['title'],
                 'description' => $validated['description'],
+                'content_json' => $validated['content_json'] ?? null,
+                'content_html' => $validated['content_html'] ?? null,
                 'course_module_id' => $module->id,
                 'itemable_id' => $itemable->id,
                 'itemable_type' => get_class($itemable),
@@ -219,6 +223,8 @@ class CourseModuleItemController extends Controller
                             'video_url' => $validated['video_url'] ?? null,
                             'duration' => $validated['duration'] ?? null,
                             'content' => $validated['content'] ?? null,
+                            'content_json' => $validated['content_json'] ?? null,
+                            'content_html' => $validated['content_html'] ?? null,
                             'is_published' => ($validated['status'] ?? 'published') === 'published',
                         ]);
                         break;
@@ -251,6 +257,8 @@ class CourseModuleItemController extends Controller
             $item->update([
                 'title' => $validated['title'],
                 'description' => $validated['description'],
+                'content_json' => $validated['content_json'] ?? null,
+                'content_html' => $validated['content_html'] ?? null,
                 'order' => $validated['order'],
                 'is_required' => $validated['is_required'] ?? false,
                 'status' => $validated['status'] ?? 'published',

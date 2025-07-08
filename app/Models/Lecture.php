@@ -21,6 +21,8 @@ class Lecture extends Model
         'title',
         'description',
         'content',
+        'content_json',
+        'content_html',
         'video_url',
         'youtube_id',
         'duration',
@@ -41,6 +43,7 @@ class Lecture extends Model
     protected function casts(): array
     {
         return [
+            'content_json' => 'json',
             'duration' => 'integer',
             'order' => 'integer',
             'is_published' => 'boolean',

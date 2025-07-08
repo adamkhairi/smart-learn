@@ -95,6 +95,8 @@ export interface CourseModuleItem {
     course_module_id: number;
     title: string;
     description?: string;
+    content_json?: string;
+    content_html?: string;
     itemable_id: number;
     itemable_type: string;
     itemable?: Lecture | Assessment | Assignment;
@@ -116,6 +118,8 @@ export interface Lecture {
     title: string;
     description?: string;
     content?: string;
+    content_json?: string;
+    content_html?: string;
     video_url?: string;
     youtube_id?: string;
     duration?: number;
