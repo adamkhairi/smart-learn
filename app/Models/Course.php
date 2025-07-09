@@ -126,20 +126,46 @@ class Course extends Model
     /**
      * Enroll a user in this course.
      */
-    public function enroll(int $userId, string $role = 'student'): void
+    public function enroll(int $userId, string $role = 'student', ?User $authorizedBy = null): void
     {
+        // Check if user is already enrolled
         if ($this->enrolledUsers()->where('user_id', $userId)->exists()) {
             throw new \Exception('User is already enrolled in this course');
         }
 
-        $privilege = 'student';
-
-        if ($role === 'admin') {
-            $privilege = 'admin';
+        // Validate role parameter
+        if (!in_array($role, ['student', 'instructor', 'admin'])) {
+            throw new \InvalidArgumentException('Invalid role specified');
         }
 
-        if ($this->created_by === $userId) {
+        // Authorization logic
+        if ($authorizedBy) {
+            // Check if the authorizing user has permission to enroll others
+            if (!$authorizedBy->isAdmin() && $this->created_by !== $authorizedBy->id) {
+                throw new \Exception('You do not have permission to enroll users in this course');
+            }
+
+            // Only admins can assign admin role, only course creators/admins can assign instructor role
+            if ($role === 'admin' && !$authorizedBy->isAdmin()) {
+                throw new \Exception('Only administrators can assign admin role');
+            }
+
+            if ($role === 'instructor' && !$authorizedBy->isAdmin() && $this->created_by !== $authorizedBy->id) {
+                throw new \Exception('Only course creators and administrators can assign instructor role');
+            }
+        }
+
+        // Determine final privilege
+        $privilege = $role;
+
+        // Course creator should always be instructor (unless being made admin)
+        if ($this->created_by === $userId && $role !== 'admin') {
             $privilege = 'instructor';
+        }
+
+        // Prevent self-enrollment as instructor/admin without authorization
+        if (($role === 'instructor' || $role === 'admin') && !$authorizedBy) {
+            throw new \Exception('Instructor and admin roles require authorization');
         }
 
         $this->enrolledUsers()->attach($userId, ['enrolled_as' => $privilege]);

@@ -134,36 +134,30 @@ class CourseController extends Controller
             ];
         }
 
-        // Filter modules based on user role
-        $modulesQuery = $course->modules();
-        if (!$isInstructor) {
-            // Students only see published modules
-            $modulesQuery->where('is_published', true);
-        }
-
-        $course->load([
-            'creator',
-            'enrolledUsers',
+        // Single optimized query with all necessary relationships
+        $course = Course::with([
+            'creator:id,name,email,photo',
+            'enrolledUsers:id,name,email,photo',
             'modules' => function ($query) use ($isInstructor) {
-                $query->ordered()->with(['moduleItems' => function ($q) {
+                $query->when(!$isInstructor, function ($q) {
+                    $q->where('is_published', true);
+                })->ordered()->with(['moduleItems' => function ($q) {
                     $q->ordered();
                 }]);
-                if (!$isInstructor) {
-                    $query->where('is_published', true);
-                }
             },
-            'assignments',
-            'assessments',
+            'assignments:id,title,course_id,expired_at,total_points,status',
+            'assessments:id,title,course_id,expired_at,total_points,status',
             'announcements' => function ($query) {
-                $query->latest()->limit(5);
+                $query->select('id', 'title', 'course_id', 'created_at')
+                    ->latest()
+                    ->limit(5);
             },
             'discussions' => function ($query) {
-                $query->latest()->limit(5);
+                $query->select('id', 'title', 'course_id', 'created_at')
+                    ->latest()
+                    ->limit(5);
             }
-        ]);
-
-        // Add created_by field to course for frontend compatibility
-        $course->created_by = $course->created_by ?? $course->user_id;
+        ])->find($course->id);
 
         return Inertia::render('Courses/Show', [
             'course' => $course,
@@ -243,11 +237,11 @@ class CourseController extends Controller
 
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
-            'role' => 'required|in:student,instructor',
+            'role' => 'required|in:student,instructor,admin',
         ]);
 
         try {
-            $course->enroll($validated['user_id'], $validated['role']);
+            $course->enroll($validated['user_id'], $validated['role'], Auth::user());
 
             return back()->with('success', 'User enrolled successfully!');
         } catch (\Exception $e) {
