@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Upload, Palette, Save, X } from 'lucide-react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
+import { useFlashToast } from '@/hooks/use-flash-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -23,6 +24,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function Edit({ course }: CourseEditPageProps) {
+    // Initialize flash toast notifications
+    useFlashToast();
+
     const [formData, setFormData] = useState({
         name: course.name,
         description: course.description || '',

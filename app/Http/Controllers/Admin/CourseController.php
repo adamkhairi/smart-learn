@@ -86,21 +86,27 @@ class CourseController extends Controller
             'files' => 'nullable|array',
         ]);
 
-        $course = new Course($validated);
+        try {
+            $course = new Course($validated);
 
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('courses/images', 'public');
-            $course->image = $path;
+            // Handle image upload
+            if ($request->hasFile('image')) {
+                $path = $request->file('image')->store('courses/images', 'public');
+                $course->image = $path;
+            }
+
+            $course->save();
+
+            // Auto-enroll the creator as instructor
+            $course->enroll($validated['created_by'], 'instructor');
+
+            return redirect()->route('admin.courses.index')
+                ->with('success', 'Course created successfully!');
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to create course. Please try again.');
         }
-
-        $course->save();
-
-        // Auto-enroll the creator as instructor
-        $course->enroll($validated['created_by'], 'instructor');
-
-        return redirect()->route('admin.courses.index')
-            ->with('success', 'Course created successfully!');
     }
 
     /**
@@ -165,9 +171,9 @@ class CourseController extends Controller
             'files' => 'nullable|array',
         ]);
 
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            try {
+        try {
+            // Handle image upload
+            if ($request->hasFile('image')) {
                 // Delete old image if exists
                 if ($course->image) {
                     Storage::disk('public')->delete($course->image);
@@ -175,23 +181,25 @@ class CourseController extends Controller
 
                 $path = $request->file('image')->store('courses/images', 'public');
                 $validated['image'] = $path;
-            } catch (\Exception $e) {
-                return back()->withErrors(['image' => 'The image failed to upload. Please try again.']);
             }
+
+            $course->update($validated);
+
+            // Update enrollment if creator changed
+            if ($course->created_by !== $validated['created_by']) {
+                // Remove old creator enrollment
+                $course->unenroll($course->created_by);
+                // Add new creator enrollment
+                $course->enroll($validated['created_by'], 'instructor');
+            }
+
+            return redirect()->route('admin.courses.index')
+                ->with('success', 'Course updated successfully!');
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to update course. Please try again.');
         }
-
-        $course->update($validated);
-
-        // Update enrollment if creator changed
-        if ($course->created_by !== $validated['created_by']) {
-            // Remove old creator enrollment
-            $course->unenroll($course->created_by);
-            // Add new creator enrollment
-            $course->enroll($validated['created_by'], 'instructor');
-        }
-
-        return redirect()->route('admin.courses.index')
-            ->with('success', 'Course updated successfully!');
     }
 
     /**
@@ -199,15 +207,20 @@ class CourseController extends Controller
      */
     public function destroy(Course $course)
     {
-        // Delete course image if exists
-        if ($course->image) {
-            Storage::disk('public')->delete($course->image);
+        try {
+            // Delete course image if exists
+            if ($course->image) {
+                Storage::disk('public')->delete($course->image);
+            }
+
+            $course->delete();
+
+            return redirect()->route('admin.courses.index')
+                ->with('success', 'Course deleted successfully!');
+        } catch (\Exception $e) {
+            return back()
+                ->with('error', 'Failed to delete course. Please try again.');
         }
-
-        $course->delete();
-
-        return redirect()->route('admin.courses.index')
-            ->with('success', 'Course deleted successfully!');
     }
 
     /**

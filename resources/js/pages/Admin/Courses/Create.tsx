@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import InputError from '@/components/input-error';
 import AppLayout from '@/layouts/app-layout';
+import { useFlashToast } from '@/hooks/use-flash-toast';
 
 interface Instructor {
   id: number;
@@ -23,6 +24,9 @@ interface Props {
 }
 
 export default function Create({ instructors, errors }: Props) {
+  // Initialize flash toast notifications
+  useFlashToast();
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',

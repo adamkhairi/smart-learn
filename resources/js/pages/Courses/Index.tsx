@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { useState, useMemo } from 'react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useFlashToast } from '@/hooks/use-flash-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -31,6 +32,9 @@ function Index({ courses, userRole }: CoursesPageProps) {
     const { user, canManageCourse, isStudent } = useAuth();
     const isMobile = useIsMobile();
     const canCreateCourse = userRole === 'admin' || userRole === 'instructor';
+
+    // Initialize flash toast notifications
+    useFlashToast();
 
     // Initialize confirmation dialog and toast
     const { confirm, confirmDialog } = useConfirmDialog();

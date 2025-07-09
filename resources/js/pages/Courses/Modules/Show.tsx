@@ -35,6 +35,11 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 // Memoized module item component for better performance
 const ModuleItemCard = React.memo<{
@@ -121,7 +126,16 @@ const ModuleItemCard = React.memo<{
                     {/* Drag Handle & Icon */}
                     <div className="flex items-center gap-2 flex-shrink-0 mt-1">
                         {isInstructor && !isMobile && (
-                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div>
+                                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Drag to reorder</p>
+                                </TooltipContent>
+                            </Tooltip>
                         )}
                         {itemIcon}
                     </div>
@@ -130,26 +144,32 @@ const ModuleItemCard = React.memo<{
                     <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-base sm:text-lg truncate">
-                                    {item.title}
-                                </h3>
+                                <div className="flex items-center gap-3 mb-1">
+                                    <h3 className="font-semibold text-base sm:text-lg truncate">
+                                        <Link
+                                            href={`/courses/${courseId}/modules/${moduleId}/items/${item.id}`}
+                                            className="hover:text-primary transition-colors cursor-pointer"
+                                        >
+                                            {item.title}
+                                        </Link>
+                                    </h3>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={item.is_required ? 'default' : 'secondary'} className="text-xs">
+                                            {item.is_required ? 'Required' : 'Optional'}
+                                        </Badge>
+                                        {item.status === 'draft' && (
+                                            <Badge variant="outline" className="text-xs">
+                                                Draft
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </div>
+
                                 {item.description && (
                                     <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                                         {item.description}
                                     </p>
                                 )}
-
-                                {/* Status Badge */}
-                                <div className="flex items-center gap-2 mt-2">
-                                    <Badge variant={item.is_required ? 'default' : 'secondary'} className="text-xs">
-                                        {item.is_required ? 'Required' : 'Optional'}
-                                    </Badge>
-                                    {item.status === 'draft' && (
-                                        <Badge variant="outline" className="text-xs">
-                                            Draft
-                                        </Badge>
-                                    )}
-                                </div>
 
                                 {/* Lazy-loaded content preview */}
                                 {item.itemable && itemType !== 'unknown' && (
@@ -186,61 +206,71 @@ const ModuleItemCard = React.memo<{
                                     )}
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-2 justify-end sm:justify-start mt-3">
-                            {/* Primary Action */}
-                            <Button
-                                size="sm"
-                                asChild
-                                className="flex-1 sm:flex-initial"
-                            >
-                                <Link href={`/courses/${courseId}/modules/${moduleId}/items/${item.id}`}>
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    <span className="hidden sm:inline">View</span>
-                                    <span className="sm:hidden">View</span>
-                                </Link>
-                            </Button>
-
-                            {/* External Link */}
-                            {externalUrl && (
-                                <Button variant="outline" size="sm" asChild>
-                                    <a href={externalUrl} target="_blank" rel="noopener noreferrer">
-                                        <ExternalLink className="h-4 w-4" />
-                                    </a>
+                            {/* Actions in top right */}
+                            <div className="flex-shrink-0 flex items-center gap-2">
+                                <Button size="sm" asChild>
+                                    <Link href={`/courses/${courseId}/modules/${moduleId}/items/${item.id}`}>
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        View
+                                    </Link>
                                 </Button>
-                            )}
 
-                            {/* Instructor Actions */}
-                            {isInstructor && (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="sm" disabled={isProcessing}>
-                                            <MoreVertical className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-48">
-                                        <DropdownMenuItem onClick={() => onEdit(item.id)}>
-                                            <Edit className="mr-2 h-4 w-4" />
-                                            Edit Item
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => onDuplicate(item.id)}>
-                                            <Copy className="mr-2 h-4 w-4" />
-                                            Duplicate
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            onClick={() => onDelete(item.id, item.title)}
-                                            className="text-red-600 focus:text-red-600"
-                                        >
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            Delete
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            )}
+                                {/* Instructor Options Menu */}
+                                {isInstructor && (
+                                    <DropdownMenu>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="sm" disabled={isProcessing}>
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>More options</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                        <DropdownMenuContent align="end" className="w-48">
+                                            <DropdownMenuItem onClick={() => onEdit(item.id)}>
+                                                <Edit className="mr-2 h-4 w-4" />
+                                                Edit Item
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => onDuplicate(item.id)}>
+                                                <Copy className="mr-2 h-4 w-4" />
+                                                Duplicate
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                onClick={() => onDelete(item.id, item.title)}
+                                                className="text-red-600 focus:text-red-600"
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                )}
+                            </div>
                         </div>
+
+                        {/* External Link - Only if exists */}
+                        {externalUrl && (
+                            <div className="flex items-center gap-2 mt-3">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="outline" size="sm" asChild>
+                                            <a href={externalUrl} target="_blank" rel="noopener noreferrer">
+                                                <ExternalLink className="h-4 w-4" />
+                                            </a>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Open external link</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
+                        )}
                     </div>
                 </div>
             </CardContent>
@@ -452,11 +482,18 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                             </LoadingButton>
 
                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size={isMobile ? "sm" : "default"}>
-                                        <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size={isMobile ? "sm" : "default"}>
+                                                <MoreVertical className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Module options</p>
+                                    </TooltipContent>
+                                </Tooltip>
                                 <DropdownMenuContent align="end" className="w-48">
                                     <DropdownMenuItem onClick={handleDuplicate}>
                                         <Copy className="mr-2 h-4 w-4" />

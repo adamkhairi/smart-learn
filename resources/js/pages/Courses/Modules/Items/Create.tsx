@@ -11,12 +11,18 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { QuestionBuilder } from '@/components/question-builder';
 import { ArrowLeft, Play, HelpCircle, ClipboardList } from 'lucide-react';
 import { useState, ChangeEvent, FormEvent } from 'react';
+import { useFlashToast } from '@/hooks/use-flash-toast';
+import { useToast } from '@/hooks/use-toast';
 
 function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) {
     const [selectedType, setSelectedType] = useState<'lecture' | 'assessment' | 'assignment' | ''>('');
     const [questions, setQuestions] = useState<QuestionFormData[]>([]);
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    // Initialize flash toast notifications
+    useFlashToast();
+    const { success: showSuccess, error: showError, loading: showLoading, dismiss: dismissToast } = useToast();
+
+    const { data, setData, processing, errors } = useForm({
         title: '',
         description: '',
         item_type: '' as 'lecture' | 'assessment' | 'assignment',
@@ -47,7 +53,6 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
         assessment_content_html: '',
         assessment_instructions_json: '',
         assessment_instructions_html: '',
-
     });
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -58,23 +63,201 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
         { title: 'Add Item', href: '#' },
     ];
 
-                const handleSubmit = (e: FormEvent) => {
+    const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
-                // Create submission data with questions if this is an assessment
+        // Basic validation
+        if (!data.title.trim()) {
+            showError('Please enter a title for the module item.');
+            return;
+        }
+
+        if (!selectedType) {
+            showError('Please select an item type (lecture, assessment, or assignment).');
+            return;
+        }
+
+        // Helper function to check if rich text editor has actual content
+        const hasRichTextContent = (jsonContent: string): boolean => {
+            if (!jsonContent) return false;
+
+            try {
+                const parsed = JSON.parse(jsonContent);
+                if (parsed && parsed.root && parsed.root.children) {
+                    return parsed.root.children.some((child: { children?: { text?: string }[] }) =>
+                        child.children && child.children.some((textNode: { text?: string }) =>
+                            textNode.text && textNode.text.trim() !== ''
+                        )
+                    );
+                }
+                return false;
+            } catch {
+                return false;
+            }
+        };
+
+        // Type-specific validation
+        if (selectedType === 'lecture') {
+            const hasVideoUrl = data.video_url && data.video_url.trim() !== '';
+            const hasContent = hasRichTextContent(data.content_json);
+
+            if (!hasVideoUrl && !hasContent) {
+                showError('Please provide either a video URL or content for the lecture.');
+                return;
+            }
+        }
+
+        if (selectedType === 'assessment') {
+            if (!data.assessment_title.trim()) {
+                showError('Please enter a title for the assessment.');
+                return;
+            }
+            if (questions.length === 0) {
+                showError('Please add at least one question to the assessment.');
+                return;
+            }
+        }
+
+        if (selectedType === 'assignment') {
+            if (!data.assignment_title.trim()) {
+                showError('Please enter a title for the assignment.');
+                return;
+            }
+            if (!data.started_at) {
+                showError('Please set a start date for the assignment.');
+                return;
+            }
+            if (!data.expired_at) {
+                showError('Please set a due date for the assignment.');
+                return;
+            }
+        }
+
+        // Show loading notification and store the toast ID
+        const loadingToastId = showLoading('Adding module item...');
+
+        // Create submission data with questions if this is an assessment
         const submitData = selectedType === 'assessment' ? {
             ...data,
             questions: JSON.stringify(questions)
         } : data;
 
-        // Use router.post directly to send the modified data
-        router.post(`/courses/${course.id}/modules/${module.id}/items`, submitData);
+        // Use the manual URL for now until we debug the route issue
+        router.post(`/courses/${course.id}/modules/${module.id}/items`, submitData, {
+            onSuccess: () => {
+                // Dismiss the loading toast
+                dismissToast(loadingToastId);
+                showSuccess('Module item added successfully!');
+            },
+            onError: (errors) => {
+                // Dismiss the loading toast
+                dismissToast(loadingToastId);
+                console.error('Submission errors:', errors);
+                if (typeof errors === 'object' && errors !== null) {
+                    const errorMessages = Object.values(errors).flat();
+                    showError(errorMessages.join(', '));
+                } else {
+                    showError('Failed to add module item. Please try again.');
+                }
+            }
+        });
     };
 
     const handleTypeChange = (type: 'lecture' | 'assessment' | 'assignment') => {
         setSelectedType(type);
-        reset();
+
+        // Set the item type first
         setData('item_type', type);
+
+        // Clear type-specific fields based on the selected type
+        if (type === 'lecture') {
+            setData({
+                ...data,
+                item_type: type,
+                video_url: '',
+                duration: 0,
+                content_json: '',
+                content_html: '',
+                // Clear other type fields
+                assessment_title: '',
+                max_score: 100,
+                assessment_type: 'quiz',
+                assessment_content_json: '',
+                assessment_content_html: '',
+                assessment_instructions_json: '',
+                assessment_instructions_html: '',
+                assignment_title: '',
+                total_points: 100,
+                assignment_type: '',
+                started_at: '',
+                expired_at: '',
+                assignment_content_json: '',
+                assignment_content_html: '',
+                assignment_instructions_json: '',
+                assignment_instructions_html: '',
+                assignment_rubric_json: '',
+                assignment_rubric_html: '',
+            });
+        } else if (type === 'assessment') {
+            setData({
+                ...data,
+                item_type: type,
+                assessment_title: '',
+                max_score: 100,
+                assessment_type: 'quiz',
+                assessment_content_json: '',
+                assessment_content_html: '',
+                assessment_instructions_json: '',
+                assessment_instructions_html: '',
+                // Clear other type fields
+                video_url: '',
+                duration: 0,
+                content_json: '',
+                content_html: '',
+                assignment_title: '',
+                total_points: 100,
+                assignment_type: '',
+                started_at: '',
+                expired_at: '',
+                assignment_content_json: '',
+                assignment_content_html: '',
+                assignment_instructions_json: '',
+                assignment_instructions_html: '',
+                assignment_rubric_json: '',
+                assignment_rubric_html: '',
+            });
+        } else if (type === 'assignment') {
+            setData({
+                ...data,
+                item_type: type,
+                assignment_title: '',
+                total_points: 100,
+                assignment_type: '',
+                started_at: '',
+                expired_at: '',
+                assignment_content_json: '',
+                assignment_content_html: '',
+                assignment_instructions_json: '',
+                assignment_instructions_html: '',
+                assignment_rubric_json: '',
+                assignment_rubric_html: '',
+                // Clear other type fields
+                video_url: '',
+                duration: 0,
+                content_json: '',
+                content_html: '',
+                assessment_title: '',
+                max_score: 100,
+                assessment_type: 'quiz',
+                assessment_content_json: '',
+                assessment_content_html: '',
+                assessment_instructions_json: '',
+                assessment_instructions_html: '',
+            });
+        }
+
+        // Clear questions for assessments
+        setQuestions([]);
     };
 
     const getSubmitButtonText = () => {

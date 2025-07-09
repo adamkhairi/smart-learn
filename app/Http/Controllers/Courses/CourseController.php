@@ -81,28 +81,34 @@ class CourseController extends Controller
             'status' => 'required|in:published,archived',
         ]);
 
-        $course = new Course($validated);
-        $course->created_by = Auth::id();
+        try {
+            $course = new Course($validated);
+            $course->created_by = Auth::id();
 
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('courses/images', 'public');
-            $course->image = $path;
+            // Handle image upload
+            if ($request->hasFile('image')) {
+                $path = $request->file('image')->store('courses/images', 'public');
+                $course->image = $path;
+            }
+
+            $course->save();
+
+            // Auto-enroll the creator as instructor
+            $course->enroll(Auth::id(), 'instructor');
+
+            return redirect()->route('courses.show', $course)
+                ->with('success', 'Course created successfully!');
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to create course. Please try again.');
         }
-
-        $course->save();
-
-        // Auto-enroll the creator as instructor
-        $course->enroll(Auth::id(), 'instructor');
-
-        return redirect()->route('courses.show', $course)
-            ->with('success', 'Course created successfully!');
     }
 
     /**
      * Display the specified course.
      */
-    public function show(Course $course): Response
+     public function show(Course $course): Response
     {
         $user = Auth::user();
 
@@ -199,21 +205,27 @@ class CourseController extends Controller
             'status' => 'required|in:published,archived',
         ]);
 
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            // Delete old image if exists
-            if ($course->image) {
-                Storage::disk('public')->delete($course->image);
+        try {
+            // Handle image upload
+            if ($request->hasFile('image')) {
+                // Delete old image if exists
+                if ($course->image) {
+                    Storage::disk('public')->delete($course->image);
+                }
+
+                $path = $request->file('image')->store('courses/images', 'public');
+                $validated['image'] = $path;
             }
 
-            $path = $request->file('image')->store('courses/images', 'public');
-            $validated['image'] = $path;
+            $course->update($validated);
+
+            return redirect()->route('courses.show', $course)
+                ->with('success', 'Course updated successfully!');
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to update course. Please try again.');
         }
-
-        $course->update($validated);
-
-        return redirect()->route('courses.show', $course)
-            ->with('success', 'Course updated successfully!');
     }
 
     /**
@@ -223,15 +235,20 @@ class CourseController extends Controller
     {
         $this->authorize('delete', $course);
 
-        // Delete course image if exists
-        if ($course->image) {
-            Storage::disk('public')->delete($course->image);
+        try {
+            // Delete course image if exists
+            if ($course->image) {
+                Storage::disk('public')->delete($course->image);
+            }
+
+            $course->delete();
+
+            return redirect()->route('courses.index')
+                ->with('success', 'Course deleted successfully!');
+        } catch (\Exception $e) {
+            return back()
+                ->with('error', 'Failed to delete course. Please try again.');
         }
-
-        $course->delete();
-
-        return redirect()->route('courses.index')
-            ->with('success', 'Course deleted successfully!');
     }
 
     /**

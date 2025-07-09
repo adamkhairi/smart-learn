@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Upload, Palette } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import { useFlashToast } from '@/hooks/use-flash-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -22,6 +23,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function Create() {
+    // Initialize flash toast notifications
+    useFlashToast();
+
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         description: '',

@@ -38,6 +38,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useFlashToast } from '@/hooks/use-flash-toast';
 
 interface Course {
   id: number;
@@ -128,6 +129,9 @@ interface Props {
 }
 
 export default function Show({ course, stats, recentActivity }: Props) {
+  // Initialize flash toast notifications
+  useFlashToast();
+
   const [activeTab, setActiveTab] = useState('overview');
   const [searchUsers, setSearchUsers] = useState('');
 

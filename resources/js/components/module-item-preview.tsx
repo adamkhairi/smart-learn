@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { CourseModuleItem, Lecture, Assessment, Assignment } from '@/types';
 import {
     Play,
@@ -95,7 +96,16 @@ export function ModuleItemPreview({ item, courseId, moduleId, trigger }: ModuleI
                                 </div>
                                 {lecture.video_url && (
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <ExternalLink className="h-4 w-4" />
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div>
+                                                    <ExternalLink className="h-4 w-4" />
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>External link</p>
+                                            </TooltipContent>
+                                        </Tooltip>
                                         <a
                                             href={lecture.video_url}
                                             target="_blank"

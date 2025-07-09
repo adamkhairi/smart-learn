@@ -1,49 +1,53 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { Plus, Search, Filter, MoreHorizontal, Eye, Edit, Trash2, Users, BarChart3 } from 'lucide-react';
+import { Plus, Search, Eye, Edit, Trash2, Users, BarChart3, MoreHorizontal, Filter } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/app-layout';
+import { useFlashToast } from '@/hooks/use-flash-toast';
 
 interface Course {
   id: number;
   name: string;
   description: string;
   status: 'draft' | 'published' | 'archived';
-  image?: string;
   background_color: string;
+  image?: string;
   created_at: string;
-  creator: {
+  creator?: {
     id: number;
     name: string;
     email: string;
-  };
+  } | null;
   enrolled_users: Array<{
     id: number;
     name: string;
-    email: string;
+    pivot: {
+      enrolled_as: string;
+    };
   }>;
+}
+
+interface Creator {
+  id: number;
+  name: string;
+  email: string;
 }
 
 interface Props {
   courses: {
     data: Course[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
+    links: Record<string, unknown>;
+    meta: Record<string, unknown>;
   };
-  creators: Array<{
-    id: number;
-    name: string;
-    email: string;
-  }>;
+  creators: Creator[];
   filters: {
     search?: string;
     status?: string;
@@ -54,7 +58,10 @@ interface Props {
 }
 
 export default function Index({ courses, creators, filters }: Props) {
-  const [search, setSearch] = useState(filters.search || '');
+  // Initialize flash toast notifications
+  useFlashToast();
+
+  const [searchTerm, setSearchTerm] = useState(filters.search || '');
   const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
   const [creatorFilter, setCreatorFilter] = useState(filters.creator || 'all');
   const [sortBy, setSortBy] = useState(filters.sort_by || 'created_at');
@@ -62,7 +69,7 @@ export default function Index({ courses, creators, filters }: Props) {
 
   const handleSearch = () => {
     router.get(route('admin.courses.index'), {
-      search,
+      search: searchTerm,
       status: statusFilter,
       creator: creatorFilter,
       sort_by: sortBy,
@@ -124,8 +131,8 @@ export default function Index({ courses, creators, filters }: Props) {
                 <div className="flex gap-2">
                   <Input
                     placeholder="Search courses..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   />
                   <Button onClick={handleSearch} size="sm">
@@ -233,10 +240,10 @@ export default function Index({ courses, creators, filters }: Props) {
                           <Avatar className="h-5 w-5">
                             <AvatarImage src="" />
                             <AvatarFallback className="text-xs">
-                              {getInitials(course.creator.name)}
+                              {course.creator ? getInitials(course.creator.name) : '?'}
                             </AvatarFallback>
                           </Avatar>
-                          <span>{course.creator.name}</span>
+                          <span>{course.creator?.name || 'Unknown Creator'}</span>
                         </div>
 
                         <div className="flex items-center gap-1">
@@ -252,11 +259,18 @@ export default function Index({ courses, creators, filters }: Props) {
                   </div>
 
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Course options</p>
+                      </TooltipContent>
+                    </Tooltip>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild>
                         <Link href={route('admin.courses.show', course.id)}>
@@ -300,35 +314,35 @@ export default function Index({ courses, creators, filters }: Props) {
         </div>
 
         {/* Pagination */}
-        {courses.last_page > 1 && (
+        {courses.meta.last_page > 1 && (
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Showing {((courses.current_page - 1) * courses.per_page) + 1} to{' '}
-              {Math.min(courses.current_page * courses.per_page, courses.total)} of{' '}
-              {courses.total} courses
+              Showing {((courses.meta.current_page - 1) * courses.meta.per_page) + 1} to{' '}
+              {Math.min(courses.meta.current_page * courses.meta.per_page, courses.meta.total)} of{' '}
+              {courses.meta.total} courses
             </p>
 
             <div className="flex gap-2">
-              {courses.current_page > 1 && (
+              {courses.meta.current_page > 1 && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => router.get(route('admin.courses.index'), {
                     ...filters,
-                    page: courses.current_page - 1,
+                    page: courses.meta.current_page - 1,
                   })}
                 >
                   Previous
                 </Button>
               )}
 
-              {courses.current_page < courses.last_page && (
+              {courses.meta.current_page < courses.meta.last_page && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => router.get(route('admin.courses.index'), {
                     ...filters,
-                    page: courses.current_page + 1,
+                    page: courses.meta.current_page + 1,
                   })}
                 >
                   Next

@@ -128,12 +128,37 @@ class CourseModuleItemRequest extends FormRequest
             $itemType = request()->input('item_type');
             $videoUrl = request()->input('video_url');
             $content = request()->input('content');
+            $contentJson = request()->input('content_json');
+            $contentHtml = request()->input('content_html');
 
             // For lectures, require either video URL or content
             if ($itemType === 'lecture') {
-                if (empty($videoUrl) && empty($content)) {
+                $hasVideoUrl = !empty($videoUrl);
+                $hasContent = !empty($content) || !empty($contentJson) || !empty($contentHtml);
+
+                // Check if content_json has actual content (not just empty editor state)
+                if (!empty($contentJson)) {
+                    $decodedContent = json_decode($contentJson, true);
+                    if (is_array($decodedContent) && isset($decodedContent['root']['children'])) {
+                        // Check if there are actual content nodes (not just empty paragraphs)
+                        $hasRealContent = false;
+                        foreach ($decodedContent['root']['children'] as $child) {
+                            if (isset($child['children']) && !empty($child['children'])) {
+                                foreach ($child['children'] as $textNode) {
+                                    if (isset($textNode['text']) && trim($textNode['text']) !== '') {
+                                        $hasRealContent = true;
+                                        break 2;
+                                    }
+                                }
+                            }
+                        }
+                        $hasContent = $hasRealContent;
+                    }
+                }
+
+                if (!$hasVideoUrl && !$hasContent) {
                     $validator->errors()->add('video_url', 'Please provide either a video URL or content for this lecture.');
-                    $validator->errors()->add('content', 'Please provide either a video URL or content for this lecture.');
+                    $validator->errors()->add('content_json', 'Please provide either a video URL or content for this lecture.');
                 }
 
                 // Additional validation for YouTube URLs if provided

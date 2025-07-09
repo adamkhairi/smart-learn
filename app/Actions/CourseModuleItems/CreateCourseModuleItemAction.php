@@ -41,12 +41,19 @@ class CreateCourseModuleItemAction
 
         switch ($data['item_type']) {
             case 'lecture':
+                $contentJson = null;
+                if (!empty($data['content_json'])) {
+                    $contentJson = is_string($data['content_json'])
+                        ? json_decode($data['content_json'], true)
+                        : $data['content_json'];
+                }
+
                 return Lecture::create([
                     'title' => $data['title'],
                     'description' => $data['description'] ?? null,
                     'video_url' => $data['video_url'] ?? null,
                     'duration' => $data['duration'] ?? null,
-                    'content_json' => $data['content_json'] ?? null,
+                    'content_json' => $contentJson,
                     'content_html' => $data['content_html'] ?? null,
                     'course_id' => $course->id,
                     'course_module_id' => $module->id,

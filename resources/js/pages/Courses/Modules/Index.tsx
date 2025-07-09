@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/use-auth';
 import {
     ArrowLeft,
@@ -284,7 +285,16 @@ function Index({ course, modules }: ModulesIndexProps) {
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
                                             {isInstructor && (
-                                                <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab hover:text-foreground transition-colors" />
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div>
+                                                            <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab hover:text-foreground transition-colors" />
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Drag to reorder modules</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
                                             )}
                                             <div className="flex items-center gap-3">
                                                 <Badge variant="outline" className="text-sm font-medium">
@@ -309,42 +319,70 @@ function Index({ course, modules }: ModulesIndexProps) {
 
                                         {isInstructor && (
                                             <div className="flex items-center gap-1">
-                                                <LoadingButton
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    loading={processingActions[module.id]}
-                                                    onClick={() => handleTogglePublished(module.id)}
-                                                    className="hover:bg-muted"
-                                                >
-                                                    {module.is_published ? (
-                                                        <EyeOff className="h-4 w-4" />
-                                                    ) : (
-                                                        <Eye className="h-4 w-4" />
-                                                    )}
-                                                </LoadingButton>
-                                                <Button variant="ghost" size="sm" asChild>
-                                                    <Link href={`/courses/${course.id}/modules/${module.id}/edit`}>
-                                                        <Edit className="h-4 w-4" />
-                                                    </Link>
-                                                </Button>
-                                                <LoadingButton
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    loading={processingActions[module.id]}
-                                                    onClick={() => handleDuplicate(module.id)}
-                                                    className="hover:bg-muted"
-                                                >
-                                                    <Copy className="h-4 w-4" />
-                                                </LoadingButton>
-                                                <LoadingButton
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    loading={processingActions[module.id]}
-                                                    onClick={() => handleDelete(module.id, module.title)}
-                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </LoadingButton>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <LoadingButton
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            loading={processingActions[module.id]}
+                                                            onClick={() => handleTogglePublished(module.id)}
+                                                            className="hover:bg-muted"
+                                                        >
+                                                            {module.is_published ? (
+                                                                <EyeOff className="h-4 w-4" />
+                                                            ) : (
+                                                                <Eye className="h-4 w-4" />
+                                                            )}
+                                                        </LoadingButton>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{module.is_published ? 'Unpublish module' : 'Publish module'}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button variant="ghost" size="sm" asChild>
+                                                            <Link href={`/courses/${course.id}/modules/${module.id}/edit`}>
+                                                                <Edit className="h-4 w-4" />
+                                                            </Link>
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Edit module</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <LoadingButton
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            loading={processingActions[module.id]}
+                                                            onClick={() => handleDuplicate(module.id)}
+                                                            className="hover:bg-muted"
+                                                        >
+                                                            <Copy className="h-4 w-4" />
+                                                        </LoadingButton>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Duplicate module</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <LoadingButton
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            loading={processingActions[module.id]}
+                                                            onClick={() => handleDelete(module.id, module.title)}
+                                                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </LoadingButton>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Delete module</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
                                             </div>
                                         )}
                                     </div>

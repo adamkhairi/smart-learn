@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Trash2, Plus, HelpCircle } from 'lucide-react';
 
 interface Question {
@@ -156,14 +157,21 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                                         >
                                             {expandedQuestion === question.id ? 'Collapse' : 'Edit'}
                                         </Button>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => deleteQuestion(question.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => deleteQuestion(question.id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Delete question</p>
+                                            </TooltipContent>
+                                        </Tooltip>
                                     </div>
                                 </div>
                                 {question.question_text && (

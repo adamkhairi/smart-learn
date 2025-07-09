@@ -39,7 +39,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 video_url: lecture.video_url || '',
                 duration: lecture.duration?.toString() || '',
                 content: lecture.content || '',
-                content_json: lecture.content_json || '',
+                content_json: lecture.content_json ? JSON.stringify(lecture.content_json) : '',
                 content_html: lecture.content_html || '',
                 assessment_title: '',
                 max_score: '',
@@ -177,10 +177,34 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        // Helper function to check if rich text editor has actual content
+        const hasRichTextContent = (jsonContent: string): boolean => {
+            if (!jsonContent) return false;
+
+            try {
+                const parsed = JSON.parse(jsonContent);
+                if (parsed && parsed.root && parsed.root.children) {
+                    return parsed.root.children.some((child: { children?: { text?: string }[] }) =>
+                        child.children && child.children.some((textNode: { text?: string }) =>
+                            textNode.text && textNode.text.trim() !== ''
+                        )
+                    );
+                }
+                return false;
+            } catch {
+                return false;
+            }
+        };
+
         // Type-specific validation
-        if (data.item_type === 'lecture' && !data.video_url && !data.content) {
-            console.error('Either video URL or content required for lecture');
-            return;
+        if (data.item_type === 'lecture') {
+            const hasVideoUrl = data.video_url && data.video_url.trim() !== '';
+            const hasContent = hasRichTextContent(data.content_json);
+
+            if (!hasVideoUrl && !hasContent) {
+                console.error('Either video URL or content required for lecture');
+                return;
+            }
         }
 
         if (data.item_type === 'assessment' && !data.assessment_title) {
@@ -205,15 +229,32 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
         put(`/courses/${course.id}/modules/${module.id}/items/${item.id}`, options);
     };
 
-
-
     // Validation helper
     const isFormValid = () => {
         if (!data.title.trim() || !data.item_type) return false;
 
+        // Helper function to check if rich text editor has actual content
+        const hasRichTextContent = (jsonContent: string): boolean => {
+            if (!jsonContent) return false;
+
+            try {
+                const parsed = JSON.parse(jsonContent);
+                if (parsed && parsed.root && parsed.root.children) {
+                    return parsed.root.children.some((child: { children?: { text?: string }[] }) =>
+                        child.children && child.children.some((textNode: { text?: string }) =>
+                            textNode.text && textNode.text.trim() !== ''
+                        )
+                    );
+                }
+                return false;
+            } catch {
+                return false;
+            }
+        };
+
         switch (data.item_type) {
             case 'lecture':
-                return data.video_url.trim() || data.content.trim();
+                return data.video_url.trim() || hasRichTextContent(data.content_json);
             case 'assessment':
                 return data.assessment_title.trim();
             case 'assignment':

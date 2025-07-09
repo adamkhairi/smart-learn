@@ -35,12 +35,19 @@ class UpdateCourseModuleItemAction
 
         switch ($data['item_type']) {
             case 'lecture':
+                $contentJson = null;
+                if (!empty($data['content_json'])) {
+                    $contentJson = is_string($data['content_json'])
+                        ? json_decode($data['content_json'], true)
+                        : $data['content_json'];
+                }
+
                 $item->itemable()->update([
                     'title' => $data['title'],
                     'description' => $data['description'] ?? null,
                     'video_url' => $data['video_url'] ?? null,
                     'duration' => $data['duration'] ?? null,
-                    'content_json' => $data['content_json'] ?? null,
+                    'content_json' => $contentJson,
                     'content_html' => $data['content_html'] ?? null,
                     'is_published' => ($data['status'] ?? 'published') === 'published',
                 ]);
