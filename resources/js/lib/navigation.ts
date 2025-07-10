@@ -1,5 +1,5 @@
-import { BookOpen, Folder, LayoutGrid, Users, BarChart3, GraduationCap } from 'lucide-react';
 import { type NavItem } from '@/types';
+import { BarChart3, BookOpen, Folder, GraduationCap, LayoutGrid, Users } from 'lucide-react';
 
 export const mainNavItems: NavItem[] = [
     {

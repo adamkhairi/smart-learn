@@ -1,20 +1,20 @@
-import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CourseModuleCreatePageProps } from '@/types';
-import { Head, useForm, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Save, BookOpen } from 'lucide-react';
+import AppLayout from '@/layouts/app-layout';
+import { BreadcrumbItem, CourseModuleCreatePageProps } from '@/types';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft, BookOpen, Save } from 'lucide-react';
 
 function Create({ course, nextOrder }: CourseModuleCreatePageProps) {
     const { data, setData, post, processing, errors } = useForm({
         title: '',
         description: '',
         order: nextOrder,
-        is_published: true,
+        is_published: true as boolean,
     });
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -44,13 +44,11 @@ function Create({ course, nextOrder }: CourseModuleCreatePageProps) {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold">Create New Module</h1>
-                        <p className="text-muted-foreground">
-                            Add a new learning module to {course.name}
-                        </p>
+                        <p className="text-muted-foreground">Add a new learning module to {course.name}</p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {/* Main Form */}
                     <div className="lg:col-span-2">
                         <Card>
@@ -59,9 +57,7 @@ function Create({ course, nextOrder }: CourseModuleCreatePageProps) {
                                     <BookOpen className="h-5 w-5" />
                                     Module Details
                                 </CardTitle>
-                                <CardDescription>
-                                    Provide the basic information for your new module
-                                </CardDescription>
+                                <CardDescription>Provide the basic information for your new module</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -76,9 +72,7 @@ function Create({ course, nextOrder }: CourseModuleCreatePageProps) {
                                             placeholder="Enter module title (e.g., Introduction to React)"
                                             className={errors.title ? 'border-red-500' : ''}
                                         />
-                                        {errors.title && (
-                                            <p className="text-sm text-red-500">{errors.title}</p>
-                                        )}
+                                        {errors.title && <p className="text-sm text-red-500">{errors.title}</p>}
                                     </div>
 
                                     {/* Module Description */}
@@ -92,9 +86,7 @@ function Create({ course, nextOrder }: CourseModuleCreatePageProps) {
                                             rows={8}
                                             className={errors.description ? 'border-red-500' : ''}
                                         />
-                                        {errors.description && (
-                                            <p className="text-sm text-red-500">{errors.description}</p>
-                                        )}
+                                        {errors.description && <p className="text-sm text-red-500">{errors.description}</p>}
                                         <p className="text-xs text-muted-foreground">
                                             Provide a clear overview of the module content and learning objectives
                                         </p>
@@ -111,12 +103,8 @@ function Create({ course, nextOrder }: CourseModuleCreatePageProps) {
                                             onChange={(e) => setData('order', parseInt(e.target.value) || 1)}
                                             className={errors.order ? 'border-red-500' : ''}
                                         />
-                                        {errors.order && (
-                                            <p className="text-sm text-red-500">{errors.order}</p>
-                                        )}
-                                        <p className="text-xs text-muted-foreground">
-                                            The order in which this module appears in the course
-                                        </p>
+                                        {errors.order && <p className="text-sm text-red-500">{errors.order}</p>}
+                                        <p className="text-xs text-muted-foreground">The order in which this module appears in the course</p>
                                     </div>
 
                                     {/* Published Status */}
@@ -124,27 +112,25 @@ function Create({ course, nextOrder }: CourseModuleCreatePageProps) {
                                         <Checkbox
                                             id="is_published"
                                             checked={data.is_published}
-                                            onCheckedChange={(checked) => setData('is_published', Boolean(checked))}
+                                            onCheckedChange={(checked) => setData('is_published', checked === true)}
                                         />
                                         <Label htmlFor="is_published" className="cursor-pointer">
                                             Publish module immediately
                                         </Label>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Published modules are visible to enrolled students.
-                                        Unpublished modules remain hidden and can be worked on as drafts.
+                                        Published modules are visible to enrolled students. Unpublished modules remain hidden and can be worked on as
+                                        drafts.
                                     </p>
 
                                     {/* Submit Actions */}
-                                    <div className="flex items-center gap-4 pt-6 border-t">
+                                    <div className="flex items-center gap-4 border-t pt-6">
                                         <Button type="submit" disabled={processing}>
                                             <Save className="mr-2 h-4 w-4" />
                                             {processing ? 'Creating...' : 'Create Module'}
                                         </Button>
                                         <Button type="button" variant="outline" asChild>
-                                            <Link href={`/courses/${course.id}/modules`}>
-                                                Cancel
-                                            </Link>
+                                            <Link href={`/courses/${course.id}/modules`}>Cancel</Link>
                                         </Button>
                                     </div>
                                 </form>
@@ -160,19 +146,19 @@ function Create({ course, nextOrder }: CourseModuleCreatePageProps) {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div>
-                                    <h4 className="font-medium text-sm mb-2">Clear Titles</h4>
+                                    <h4 className="mb-2 text-sm font-medium">Clear Titles</h4>
                                     <p className="text-sm text-muted-foreground">
                                         Use descriptive titles that clearly indicate what the module covers.
                                     </p>
                                 </div>
                                 <div>
-                                    <h4 className="font-medium text-sm mb-2">Logical Sequence</h4>
+                                    <h4 className="mb-2 text-sm font-medium">Logical Sequence</h4>
                                     <p className="text-sm text-muted-foreground">
                                         Order modules from basic to advanced concepts for better learning flow.
                                     </p>
                                 </div>
                                 <div>
-                                    <h4 className="font-medium text-sm mb-2">Manageable Size</h4>
+                                    <h4 className="mb-2 text-sm font-medium">Manageable Size</h4>
                                     <p className="text-sm text-muted-foreground">
                                         Keep modules focused on specific topics to avoid overwhelming students.
                                     </p>
@@ -186,8 +172,8 @@ function Create({ course, nextOrder }: CourseModuleCreatePageProps) {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div>
-                                    <h4 className="font-medium text-sm mb-2">After Creating</h4>
-                                    <ul className="text-sm text-muted-foreground space-y-1">
+                                    <h4 className="mb-2 text-sm font-medium">After Creating</h4>
+                                    <ul className="space-y-1 text-sm text-muted-foreground">
                                         <li>• Add module items (videos, documents, quizzes)</li>
                                         <li>• Set up learning objectives</li>
                                         <li>• Review and publish when ready</li>

@@ -114,9 +114,7 @@ function formatParagraphNode(node: LexicalNode): string {
     }
 
     const alignment = node.format as string;
-    const style = alignment && alignment !== 'left'
-        ? ` style="text-align: ${alignment}"`
-        : '';
+    const style = alignment && alignment !== 'left' ? ` style="text-align: ${alignment}"` : '';
 
     return `<p${style}>${content}</p>`;
 }
@@ -134,9 +132,7 @@ function formatHeadingNode(node: LexicalNode): string {
     const safeTag = validHeadings.includes(tag) ? tag : 'h1';
 
     const alignment = node.format as string;
-    const style = alignment && alignment !== 'left'
-        ? ` style="text-align: ${alignment}"`
-        : '';
+    const style = alignment && alignment !== 'left' ? ` style="text-align: ${alignment}"` : '';
 
     return `<${safeTag}${style}>${content}</${safeTag}>`;
 }
@@ -197,11 +193,7 @@ export function extractTextFromHTML(html: string, maxLength: number = 150): stri
 /**
  * Get displayable content from various content formats
  */
-export function getDisplayableContent(contentData: {
-    content_html?: string;
-    content_json?: string | object;
-    content?: string;
-}): string {
+export function getDisplayableContent(contentData: { content_html?: string; content_json?: string | object; content?: string }): string {
     // Priority: HTML > JSON > Legacy content
     if (contentData.content_html) {
         return contentData.content_html;
@@ -209,9 +201,7 @@ export function getDisplayableContent(contentData: {
 
     if (contentData.content_json) {
         try {
-            const jsonContent = typeof contentData.content_json === 'string'
-                ? JSON.parse(contentData.content_json)
-                : contentData.content_json;
+            const jsonContent = typeof contentData.content_json === 'string' ? JSON.parse(contentData.content_json) : contentData.content_json;
 
             const html = convertLexicalToHTML(jsonContent);
             if (html) return html;
@@ -234,11 +224,14 @@ export function getDisplayableContent(contentData: {
 /**
  * Get content preview for listings
  */
-export function getContentPreview(contentData: {
-    content_html?: string;
-    content_json?: string | object;
-    content?: string;
-}, maxLength: number = 150): string {
+export function getContentPreview(
+    contentData: {
+        content_html?: string;
+        content_json?: string | object;
+        content?: string;
+    },
+    maxLength: number = 150,
+): string {
     const content = getDisplayableContent(contentData);
     return extractTextFromHTML(content, maxLength);
 }
@@ -246,11 +239,7 @@ export function getContentPreview(contentData: {
 /**
  * Check if content exists and is not empty
  */
-export function hasContent(contentData: {
-    content_html?: string;
-    content_json?: string | object;
-    content?: string;
-}): boolean {
+export function hasContent(contentData: { content_html?: string; content_json?: string | object; content?: string }): boolean {
     const content = getDisplayableContent(contentData);
     return content.trim().length > 0;
 }

@@ -20,7 +20,6 @@ interface RichTextEditorProps {
     maxLength?: number;
     showWordCount?: boolean;
     showContentQuality?: boolean;
-    placeholder?: string;
 }
 
 // Content quality metrics
@@ -160,7 +159,6 @@ export function RichTextEditor({
     maxLength,
     showWordCount = true,
     showContentQuality = false,
-    placeholder = "Type your content here...",
 }: RichTextEditorProps) {
     const [editorState, setEditorState] = useState<SerializedEditorState>(() => {
         return parseEditorValue(value);

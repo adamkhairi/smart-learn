@@ -1,45 +1,34 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CourseModuleShowPageProps, CourseModuleItem } from '@/types';
-import { Head, Link, router } from '@inertiajs/react';
 import { ContentPreview, QuestionPreview } from '@/components/content-preview';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { LoadingButton } from '@/components/ui/loading-button';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/use-auth';
 import { useIsMobile } from '@/hooks/use-mobile';
+import AppLayout from '@/layouts/app-layout';
+import { BreadcrumbItem, CourseModuleItem, CourseModuleShowPageProps } from '@/types';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
-    Plus,
-    Edit,
-    Eye,
-    EyeOff,
-    Copy,
-    Trash2,
-    GripVertical,
-    Play,
-    FileText,
-    HelpCircle,
     ClipboardList,
     Clock,
+    Copy,
+    Edit,
     ExternalLink,
-    MoreVertical
+    Eye,
+    EyeOff,
+    FileText,
+    GripVertical,
+    HelpCircle,
+    MoreVertical,
+    Play,
+    Plus,
+    Trash2,
 } from 'lucide-react';
-import { useForm } from '@inertiajs/react';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-    DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
+import React, { useCallback, useMemo, useState } from 'react';
 
 // Memoized module item component for better performance
 const ModuleItemCard = React.memo<{
@@ -69,7 +58,7 @@ const ModuleItemCard = React.memo<{
     onDelete,
     onDuplicate,
     courseId,
-    moduleId
+    moduleId,
 }) {
     // Memoize item type calculation
     const itemType = useMemo(() => {
@@ -113,9 +102,7 @@ const ModuleItemCard = React.memo<{
 
     return (
         <Card
-            className={`group hover:shadow-md transition-all duration-200 ${
-                draggedItem === item.id ? 'opacity-50' : ''
-            }`}
+            className={`group transition-all duration-200 hover:shadow-md ${draggedItem === item.id ? 'opacity-50' : ''}`}
             draggable={isInstructor && !isMobile}
             onDragStart={(e) => onDragStart(e, item.id)}
             onDragOver={onDragOver}
@@ -124,12 +111,12 @@ const ModuleItemCard = React.memo<{
             <CardContent className="p-4 sm:p-6">
                 <div className="flex items-start gap-3 sm:gap-4">
                     {/* Drag Handle & Icon */}
-                    <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+                    <div className="mt-1 flex flex-shrink-0 items-center gap-2">
                         {isInstructor && !isMobile && (
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div>
-                                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <GripVertical className="h-4 w-4 cursor-grab text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing" />
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
@@ -141,14 +128,14 @@ const ModuleItemCard = React.memo<{
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-3 mb-1">
-                                    <h3 className="font-semibold text-base sm:text-lg truncate">
+                            <div className="min-w-0 flex-1">
+                                <div className="mb-1 flex items-center gap-3">
+                                    <h3 className="truncate text-base font-semibold sm:text-lg">
                                         <Link
                                             href={`/courses/${courseId}/modules/${moduleId}/items/${item.id}`}
-                                            className="hover:text-primary transition-colors cursor-pointer"
+                                            className="cursor-pointer transition-colors hover:text-primary"
                                         >
                                             {item.title}
                                         </Link>
@@ -165,11 +152,7 @@ const ModuleItemCard = React.memo<{
                                     </div>
                                 </div>
 
-                                {item.description && (
-                                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                        {item.description}
-                                    </p>
-                                )}
+                                {item.description && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>}
 
                                 {/* Lazy-loaded content preview */}
                                 {item.itemable && itemType !== 'unknown' && (
@@ -178,19 +161,28 @@ const ModuleItemCard = React.memo<{
                                             content={{
                                                 content_html: (item.itemable as unknown as Record<string, unknown>).content_html as string,
                                                 content_json: (item.itemable as unknown as Record<string, unknown>).content_json as string | object,
-                                                content: (item.itemable as unknown as Record<string, unknown>).content as string
+                                                content: (item.itemable as unknown as Record<string, unknown>).content as string,
                                             }}
                                             type={itemType as 'lecture' | 'assessment' | 'assignment'}
                                         />
 
                                         {/* Assessment Questions Preview */}
                                         {itemType === 'assessment' && (item.itemable as unknown as Record<string, unknown>).questions && (
-                                            <QuestionPreview questions={(item.itemable as unknown as Record<string, unknown>).questions as Array<{id: number; question_text: string; type: string; points: number}>} />
+                                            <QuestionPreview
+                                                questions={
+                                                    (item.itemable as unknown as Record<string, unknown>).questions as Array<{
+                                                        id: number;
+                                                        question_text: string;
+                                                        type: string;
+                                                        points: number;
+                                                    }>
+                                                }
+                                            />
                                         )}
                                     </>
                                 )}
 
-                                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
                                     <span>#{item.order}</span>
                                     {formattedDuration && (
                                         <span className="flex items-center gap-1">
@@ -208,7 +200,7 @@ const ModuleItemCard = React.memo<{
                             </div>
 
                             {/* Actions in top right */}
-                            <div className="flex-shrink-0 flex items-center gap-2">
+                            <div className="flex flex-shrink-0 items-center gap-2">
                                 <Button size="sm" asChild>
                                     <Link href={`/courses/${courseId}/modules/${moduleId}/items/${item.id}`}>
                                         <Eye className="mr-2 h-4 w-4" />
@@ -256,7 +248,7 @@ const ModuleItemCard = React.memo<{
 
                         {/* External Link - Only if exists */}
                         {externalUrl && (
-                            <div className="flex items-center gap-2 mt-3">
+                            <div className="mt-3 flex items-center gap-2">
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button variant="outline" size="sm" asChild>
@@ -303,11 +295,11 @@ function Show({ course, module }: CourseModuleShowPageProps) {
 
     // Callback handlers - useCallback to prevent unnecessary re-renders
     const handleTogglePublished = useCallback(() => {
-        setProcessingActions(prev => ({ ...prev, [module.id]: true }));
+        setProcessingActions((prev) => ({ ...prev, [module.id]: true }));
         patch(`/courses/${course.id}/modules/${module.id}/toggle-published`, {
             onFinish: () => {
-                setProcessingActions(prev => ({ ...prev, [module.id]: false }));
-            }
+                setProcessingActions((prev) => ({ ...prev, [module.id]: false }));
+            },
         });
     }, [module.id, course.id, patch]);
 
@@ -319,48 +311,65 @@ function Show({ course, module }: CourseModuleShowPageProps) {
             variant: 'destructive',
             onConfirm: () => {
                 router.delete(`/courses/${course.id}/modules/${module.id}`);
-            }
+            },
         });
     }, [confirm, module.title, course.id, module.id]);
 
     const handleDuplicate = useCallback(() => {
-        setProcessingActions(prev => ({ ...prev, [module.id]: true }));
-        router.post(`/courses/${course.id}/modules/${module.id}/duplicate`, {}, {
-            onFinish: () => {
-                setProcessingActions(prev => ({ ...prev, [module.id]: false }));
-            }
-        });
+        setProcessingActions((prev) => ({ ...prev, [module.id]: true }));
+        router.post(
+            `/courses/${course.id}/modules/${module.id}/duplicate`,
+            {},
+            {
+                onFinish: () => {
+                    setProcessingActions((prev) => ({ ...prev, [module.id]: false }));
+                },
+            },
+        );
     }, [module.id, course.id]);
 
-    const handleItemEdit = useCallback((itemId: number) => {
-        router.visit(`/courses/${course.id}/modules/${module.id}/items/${itemId}/edit`);
-    }, [course.id, module.id]);
+    const handleItemEdit = useCallback(
+        (itemId: number) => {
+            router.visit(`/courses/${course.id}/modules/${module.id}/items/${itemId}/edit`);
+        },
+        [course.id, module.id],
+    );
 
-    const handleItemDelete = useCallback((itemId: number, itemTitle: string) => {
-        confirm({
-            title: 'Delete Item',
-            description: `Are you sure you want to delete "${itemTitle}"? This action cannot be undone.`,
-            confirmText: 'Delete Item',
-            variant: 'destructive',
-            onConfirm: () => {
-                setProcessingActions(prev => ({ ...prev, [itemId]: true }));
-                router.delete(`/courses/${course.id}/modules/${module.id}/items/${itemId}`, {
+    const handleItemDelete = useCallback(
+        (itemId: number, itemTitle: string) => {
+            confirm({
+                title: 'Delete Item',
+                description: `Are you sure you want to delete "${itemTitle}"? This action cannot be undone.`,
+                confirmText: 'Delete Item',
+                variant: 'destructive',
+                onConfirm: () => {
+                    setProcessingActions((prev) => ({ ...prev, [itemId]: true }));
+                    router.delete(`/courses/${course.id}/modules/${module.id}/items/${itemId}`, {
+                        onFinish: () => {
+                            setProcessingActions((prev) => ({ ...prev, [itemId]: false }));
+                        },
+                    });
+                },
+            });
+        },
+        [confirm, course.id, module.id],
+    );
+
+    const handleItemDuplicate = useCallback(
+        (itemId: number) => {
+            setProcessingActions((prev) => ({ ...prev, [itemId]: true }));
+            router.post(
+                `/courses/${course.id}/modules/${module.id}/items/${itemId}/duplicate`,
+                {},
+                {
                     onFinish: () => {
-                        setProcessingActions(prev => ({ ...prev, [itemId]: false }));
-                    }
-                });
-            }
-        });
-    }, [confirm, course.id, module.id]);
-
-    const handleItemDuplicate = useCallback((itemId: number) => {
-        setProcessingActions(prev => ({ ...prev, [itemId]: true }));
-        router.post(`/courses/${course.id}/modules/${module.id}/items/${itemId}/duplicate`, {}, {
-            onFinish: () => {
-                setProcessingActions(prev => ({ ...prev, [itemId]: false }));
-            }
-        });
-    }, [course.id, module.id]);
+                        setProcessingActions((prev) => ({ ...prev, [itemId]: false }));
+                    },
+                },
+            );
+        },
+        [course.id, module.id],
+    );
 
     const handleDragStart = useCallback((e: React.DragEvent, itemId: number) => {
         setDraggedItem(itemId);
@@ -372,48 +381,55 @@ function Show({ course, module }: CourseModuleShowPageProps) {
         e.dataTransfer.dropEffect = 'move';
     }, []);
 
-    const handleDrop = useCallback((e: React.DragEvent, targetItemId: number) => {
-        e.preventDefault();
+    const handleDrop = useCallback(
+        (e: React.DragEvent, targetItemId: number) => {
+            e.preventDefault();
 
-        if (!draggedItem || draggedItem === targetItemId) {
-            setDraggedItem(null);
-            return;
-        }
-
-        const draggedIndex = moduleItems.findIndex(item => item.id === draggedItem);
-        const targetIndex = moduleItems.findIndex(item => item.id === targetItemId);
-
-        if (draggedIndex === -1 || targetIndex === -1) {
-            setDraggedItem(null);
-            return;
-        }
-
-        // Simple API call to update order
-        router.patch(`/courses/${course.id}/modules/${module.id}/items/${draggedItem}/reorder`, {
-            target_position: targetIndex + 1
-        }, {
-            preserveState: true,
-            preserveScroll: true,
-            onSuccess: () => {
+            if (!draggedItem || draggedItem === targetItemId) {
                 setDraggedItem(null);
-            },
-            onError: (errors) => {
-                console.error('Failed to reorder items:', errors);
-                setDraggedItem(null);
+                return;
             }
-        });
-    }, [draggedItem, moduleItems, course.id, module.id]);
+
+            const draggedIndex = moduleItems.findIndex((item) => item.id === draggedItem);
+            const targetIndex = moduleItems.findIndex((item) => item.id === targetItemId);
+
+            if (draggedIndex === -1 || targetIndex === -1) {
+                setDraggedItem(null);
+                return;
+            }
+
+            // Simple API call to update order
+            router.patch(
+                `/courses/${course.id}/modules/${module.id}/items/${draggedItem}/reorder`,
+                {
+                    target_position: targetIndex + 1,
+                },
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        setDraggedItem(null);
+                    },
+                    onError: (errors) => {
+                        console.error('Failed to reorder items:', errors);
+                        setDraggedItem(null);
+                    },
+                },
+            );
+        },
+        [draggedItem, moduleItems, course.id, module.id],
+    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${module.title} - ${course.name}`} />
 
-            <div className="flex h-full flex-1 flex-col gap-4 lg:gap-6 overflow-x-auto rounded-xl p-4 lg:p-6">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4 lg:gap-6 lg:p-6">
                 {/* Enhanced Header - Mobile Optimized */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                            <Button variant="ghost" size={isMobile ? "sm" : "default"} asChild>
+                        <div className="mb-3 flex items-center gap-2 sm:mb-4">
+                            <Button variant="ghost" size={isMobile ? 'sm' : 'default'} asChild>
                                 <Link href={`/courses/${course.id}/modules`}>
                                     <ArrowLeft className="mr-2 h-4 w-4" />
                                     <span className="hidden sm:inline">Back to Modules</span>
@@ -424,19 +440,13 @@ function Show({ course, module }: CourseModuleShowPageProps) {
 
                         <div className="space-y-2">
                             <div className="flex items-center gap-3">
-                                <h1 className="text-2xl sm:text-3xl font-bold truncate">{module.title}</h1>
-                                <Badge variant={module.is_published ? 'default' : 'secondary'}>
-                                    {module.is_published ? 'Published' : 'Draft'}
-                                </Badge>
+                                <h1 className="truncate text-2xl font-bold sm:text-3xl">{module.title}</h1>
+                                <Badge variant={module.is_published ? 'default' : 'secondary'}>{module.is_published ? 'Published' : 'Draft'}</Badge>
                             </div>
 
-                            {module.description && (
-                                <p className="text-sm sm:text-base text-muted-foreground max-w-3xl">
-                                    {module.description}
-                                </p>
-                            )}
+                            {module.description && <p className="max-w-3xl text-sm text-muted-foreground sm:text-base">{module.description}</p>}
 
-                            <div className="flex items-center gap-4 text-xs sm:text-sm text-muted-foreground">
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground sm:text-sm">
                                 <span className="flex items-center gap-1">
                                     <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
                                     {moduleItems.length} items
@@ -451,8 +461,8 @@ function Show({ course, module }: CourseModuleShowPageProps) {
 
                     {/* Action Buttons - Responsive */}
                     {isInstructor && (
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <Button variant="outline" size={isMobile ? "sm" : "default"} asChild>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button variant="outline" size={isMobile ? 'sm' : 'default'} asChild>
                                 <Link href={`/courses/${course.id}/modules/${module.id}/edit`}>
                                     <Edit className="mr-2 h-4 w-4" />
                                     <span className="hidden sm:inline">Edit Module</span>
@@ -462,7 +472,7 @@ function Show({ course, module }: CourseModuleShowPageProps) {
 
                             <LoadingButton
                                 variant="outline"
-                                size={isMobile ? "sm" : "default"}
+                                size={isMobile ? 'sm' : 'default'}
                                 onClick={handleTogglePublished}
                                 loading={processingActions[module.id]}
                             >
@@ -485,7 +495,7 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size={isMobile ? "sm" : "default"}>
+                                            <Button variant="ghost" size={isMobile ? 'sm' : 'default'}>
                                                 <MoreVertical className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
@@ -500,10 +510,7 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                                         Duplicate Module
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                        onClick={handleDelete}
-                                        className="text-red-600 focus:text-red-600"
-                                    >
+                                    <DropdownMenuItem onClick={handleDelete} className="text-red-600 focus:text-red-600">
                                         <Trash2 className="mr-2 h-4 w-4" />
                                         Delete Module
                                     </DropdownMenuItem>
@@ -518,16 +525,15 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                     {moduleItems.length === 0 ? (
                         <Card>
                             <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16">
-                                <FileText className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mb-4" />
-                                <h3 className="text-lg sm:text-xl font-semibold mb-2">No module items yet</h3>
-                                <p className="text-sm sm:text-base text-muted-foreground text-center mb-6 max-w-md">
+                                <FileText className="mb-4 h-12 w-12 text-muted-foreground sm:h-16 sm:w-16" />
+                                <h3 className="mb-2 text-lg font-semibold sm:text-xl">No module items yet</h3>
+                                <p className="mb-6 max-w-md text-center text-sm text-muted-foreground sm:text-base">
                                     {isInstructor
-                                        ? "Start building your module by adding lectures, assignments, or assessments"
-                                        : "This module doesn't have any content yet"
-                                    }
+                                        ? 'Start building your module by adding lectures, assignments, or assessments'
+                                        : "This module doesn't have any content yet"}
                                 </p>
                                 {isInstructor && (
-                                    <Button asChild size={isMobile ? "sm" : "default"}>
+                                    <Button asChild size={isMobile ? 'sm' : 'default'}>
                                         <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
                                             <Plus className="mr-2 h-4 w-4" />
                                             Add First Item
@@ -562,7 +568,7 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                     {/* Add Item Button - Instructor Only */}
                     {isInstructor && moduleItems.length > 0 && (
                         <div className="flex justify-center pt-4">
-                            <Button variant="outline" asChild size={isMobile ? "sm" : "default"}>
+                            <Button variant="outline" asChild size={isMobile ? 'sm' : 'default'}>
                                 <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
                                     <Plus className="mr-2 h-4 w-4" />
                                     Add Another Item

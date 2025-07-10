@@ -1,13 +1,13 @@
-import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CourseModuleEditPageProps } from '@/types';
-import { Head, useForm, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Save, BookOpen, Eye, EyeOff } from 'lucide-react';
+import AppLayout from '@/layouts/app-layout';
+import { BreadcrumbItem, CourseModuleEditPageProps } from '@/types';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft, BookOpen, Eye, EyeOff, Save } from 'lucide-react';
 
 function Edit({ course, module }: CourseModuleEditPageProps) {
     const { data, setData, put, processing, errors } = useForm({
@@ -45,13 +45,11 @@ function Edit({ course, module }: CourseModuleEditPageProps) {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold">Edit Module</h1>
-                        <p className="text-muted-foreground">
-                            Update the details for "{module.title}"
-                        </p>
+                        <p className="text-muted-foreground">Update the details for "{module.title}"</p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {/* Main Form */}
                     <div className="lg:col-span-2">
                         <Card>
@@ -60,9 +58,7 @@ function Edit({ course, module }: CourseModuleEditPageProps) {
                                     <BookOpen className="h-5 w-5" />
                                     Module Details
                                 </CardTitle>
-                                <CardDescription>
-                                    Update the information for this module
-                                </CardDescription>
+                                <CardDescription>Update the information for this module</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -77,9 +73,7 @@ function Edit({ course, module }: CourseModuleEditPageProps) {
                                             placeholder="Enter module title"
                                             className={errors.title ? 'border-red-500' : ''}
                                         />
-                                        {errors.title && (
-                                            <p className="text-sm text-red-500">{errors.title}</p>
-                                        )}
+                                        {errors.title && <p className="text-sm text-red-500">{errors.title}</p>}
                                     </div>
 
                                     {/* Module Description */}
@@ -93,9 +87,7 @@ function Edit({ course, module }: CourseModuleEditPageProps) {
                                             rows={8}
                                             className={errors.description ? 'border-red-500' : ''}
                                         />
-                                        {errors.description && (
-                                            <p className="text-sm text-red-500">{errors.description}</p>
-                                        )}
+                                        {errors.description && <p className="text-sm text-red-500">{errors.description}</p>}
                                         <p className="text-xs text-muted-foreground">
                                             Provide a clear overview of the module content and learning objectives
                                         </p>
@@ -112,12 +104,8 @@ function Edit({ course, module }: CourseModuleEditPageProps) {
                                             onChange={(e) => setData('order', parseInt(e.target.value) || 1)}
                                             className={errors.order ? 'border-red-500' : ''}
                                         />
-                                        {errors.order && (
-                                            <p className="text-sm text-red-500">{errors.order}</p>
-                                        )}
-                                        <p className="text-xs text-muted-foreground">
-                                            The order in which this module appears in the course
-                                        </p>
+                                        {errors.order && <p className="text-sm text-red-500">{errors.order}</p>}
+                                        <p className="text-xs text-muted-foreground">The order in which this module appears in the course</p>
                                     </div>
 
                                     {/* Published Status */}
@@ -137,20 +125,18 @@ function Edit({ course, module }: CourseModuleEditPageProps) {
                                         )}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Published modules are visible to enrolled students.
-                                        Unpublished modules remain hidden and can be worked on as drafts.
+                                        Published modules are visible to enrolled students. Unpublished modules remain hidden and can be worked on as
+                                        drafts.
                                     </p>
 
                                     {/* Submit Actions */}
-                                    <div className="flex items-center gap-4 pt-6 border-t">
+                                    <div className="flex items-center gap-4 border-t pt-6">
                                         <Button type="submit" disabled={processing}>
                                             <Save className="mr-2 h-4 w-4" />
                                             {processing ? 'Saving...' : 'Save Changes'}
                                         </Button>
                                         <Button type="button" variant="outline" asChild>
-                                            <Link href={`/courses/${course.id}/modules/${module.id}`}>
-                                                Cancel
-                                            </Link>
+                                            <Link href={`/courses/${course.id}/modules/${module.id}`}>Cancel</Link>
                                         </Button>
                                     </div>
                                 </form>
@@ -200,22 +186,16 @@ function Edit({ course, module }: CourseModuleEditPageProps) {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div>
-                                    <h4 className="font-medium text-sm mb-2">Order Changes</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Changing the order will automatically reorder other modules.
-                                    </p>
+                                    <h4 className="mb-2 text-sm font-medium">Order Changes</h4>
+                                    <p className="text-sm text-muted-foreground">Changing the order will automatically reorder other modules.</p>
                                 </div>
                                 <div>
-                                    <h4 className="font-medium text-sm mb-2">Publishing</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Only published modules are visible to students.
-                                    </p>
+                                    <h4 className="mb-2 text-sm font-medium">Publishing</h4>
+                                    <p className="text-sm text-muted-foreground">Only published modules are visible to students.</p>
                                 </div>
                                 <div>
-                                    <h4 className="font-medium text-sm mb-2">Content Management</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Add items to your module from the module view page.
-                                    </p>
+                                    <h4 className="mb-2 text-sm font-medium">Content Management</h4>
+                                    <p className="text-sm text-muted-foreground">Add items to your module from the module view page.</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -226,14 +206,10 @@ function Edit({ course, module }: CourseModuleEditPageProps) {
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 <Button variant="outline" size="sm" asChild className="w-full justify-start">
-                                    <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>
-                                        Add Module Item
-                                    </Link>
+                                    <Link href={`/courses/${course.id}/modules/${module.id}/items/create`}>Add Module Item</Link>
                                 </Button>
                                 <Button variant="outline" size="sm" asChild className="w-full justify-start">
-                                    <Link href={`/courses/${course.id}/modules/${module.id}`}>
-                                        View Module
-                                    </Link>
+                                    <Link href={`/courses/${course.id}/modules/${module.id}`}>View Module</Link>
                                 </Button>
                             </CardContent>
                         </Card>

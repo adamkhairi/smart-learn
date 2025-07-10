@@ -1,10 +1,9 @@
-import { Head, Link, usePage } from '@inertiajs/react';;
-import { type SharedData } from '@/types';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-import AppearanceToggleDropdown from '@/components/appearance-dropdown';
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import AppLogo from '@/components/app-logo';
-
+import AppearanceToggleDropdown from '@/components/appearance-dropdown';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
+import { type SharedData } from '@/types';
+import { Head, Link, usePage } from '@inertiajs/react';
 export default function Landing() {
     const { auth } = usePage<SharedData>().props;
 
@@ -66,7 +65,7 @@ export default function Landing() {
             {/* Main content */}
             <main className="mt-20 flex flex-col gap-24 bg-[#FDFDFC] text-[#1b1b18] dark:bg-[#0a0a0a] dark:text-[#EDEDEC]">
                 {/* Hero */}
-                <section className="relative isolate flex items-center overflow-hidden bg-gradient-to-b from-[#FFF5F2] via-transparent to-transparent dark:from-[#1a0a0a] pt-28 pb-32">
+                <section className="relative isolate flex items-center overflow-hidden bg-gradient-to-b from-[#FFF5F2] via-transparent to-transparent pt-28 pb-32 dark:from-[#1a0a0a]">
                     {/* Decorative gradient blob */}
                     <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
                         <div className="absolute -top-56 left-1/2 aspect-[4/3] w-[70rem] -translate-x-1/2 rounded-full bg-[#f53003]/20 blur-3xl dark:bg-[#FF4433]/20" />
@@ -78,14 +77,14 @@ export default function Landing() {
                             <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#FFEFEA] px-4 py-1 text-xs font-medium text-[#f53003] dark:bg-[#2A1A17] dark:text-[#FF4433]">
                                 🚀 Launch your learning journey
                             </span>
-                            <h1 className="mb-6 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl md:text-6xl">
+                            <h1 className="mb-6 text-4xl leading-tight font-extrabold tracking-tight sm:text-5xl md:text-6xl">
                                 Learn&nbsp;
                                 <span className="bg-gradient-to-r from-[#f53003] to-[#FF9C33] bg-clip-text text-transparent dark:from-[#FF4433] dark:to-[#FF9C33]">
                                     Smarter
                                 </span>
                                 , Grow Faster
                             </h1>
-                            <p className="mb-10 max-w-xl text-lg leading-relaxed text-[#706f6c] dark:text-[#A1A09A] lg:max-w-none">
+                            <p className="mb-10 max-w-xl text-lg leading-relaxed text-[#706f6c] lg:max-w-none dark:text-[#A1A09A]">
                                 Unlock interactive courses, personalised paths and insightful analytics—all in one powerful platform.
                             </p>
 
@@ -124,28 +123,28 @@ export default function Landing() {
                         {[
                             {
                                 title: 'Interactive Lessons',
-                                desc: 'Videos, quizzes and projects keep you engaged and help knowledge stick.'
+                                desc: 'Videos, quizzes and projects keep you engaged and help knowledge stick.',
                             },
                             {
                                 title: 'Personalised Paths',
-                                desc: 'Adaptive recommendations guide you from fundamentals to mastery.'
+                                desc: 'Adaptive recommendations guide you from fundamentals to mastery.',
                             },
                             {
                                 title: 'Progress Analytics',
-                                desc: 'Real-time dashboards keep you and your instructors on top of your growth.'
+                                desc: 'Real-time dashboards keep you and your instructors on top of your growth.',
                             },
                             {
                                 title: 'Community Support',
-                                desc: 'Discussion boards, peer reviews and messaging keep you connected.'
+                                desc: 'Discussion boards, peer reviews and messaging keep you connected.',
                             },
                             {
                                 title: 'Mobile Learning',
-                                desc: 'Access all your courses on any device – learn whenever inspiration strikes.'
+                                desc: 'Access all your courses on any device – learn whenever inspiration strikes.',
                             },
                             {
                                 title: 'Certificates',
-                                desc: 'Earn shareable certificates to showcase your achievements.'
-                            }
+                                desc: 'Earn shareable certificates to showcase your achievements.',
+                            },
                         ].map((f) => (
                             <div
                                 key={f.title}
@@ -159,7 +158,7 @@ export default function Landing() {
                 </section>
 
                 {/* Pricing */}
-                <section id="pricing" className="bg-[#FFF5F2] dark:bg-[#141413] py-24">
+                <section id="pricing" className="bg-[#FFF5F2] py-24 dark:bg-[#141413]">
                     <div className="mx-auto w-full max-w-7xl px-4 md:px-8">
                         <h2 className="mb-3 text-center text-3xl font-semibold sm:text-4xl">Simple Pricing</h2>
                         <p className="mx-auto mb-12 max-w-2xl text-center text-[#706f6c] dark:text-[#A1A09A]">
@@ -173,22 +172,22 @@ export default function Landing() {
                                     price: '$0',
                                     desc: 'Get access to all free courses and community forums.',
                                     features: ['Unlimited free courses', 'Community support', 'Basic progress tracking'],
-                                    highlight: false
+                                    highlight: false,
                                 },
                                 {
                                     name: 'Pro',
                                     price: '$19/mo',
                                     desc: 'Unlock advanced courses and personalised analytics.',
                                     features: ['Everything in Starter', 'Premium courses', 'Detailed analytics', 'Certificates'],
-                                    highlight: true
+                                    highlight: true,
                                 },
                                 {
                                     name: 'Team',
                                     price: '$49/mo',
                                     desc: 'Collaborative learning for teams and classrooms.',
                                     features: ['Everything in Pro', 'Team analytics', 'Group projects', 'Dedicated support'],
-                                    highlight: false
-                                }
+                                    highlight: false,
+                                },
                             ].map((plan) => (
                                 <div
                                     key={plan.name}
@@ -197,7 +196,7 @@ export default function Landing() {
                                     }`}
                                 >
                                     {plan.highlight && (
-                                        <span className="absolute right-4 top-4 rounded-full bg-[#f53003] px-3 py-0.5 text-xs font-medium leading-relaxed text-white dark:bg-[#FF4433]">
+                                        <span className="absolute top-4 right-4 rounded-full bg-[#f53003] px-3 py-0.5 text-xs leading-relaxed font-medium text-white dark:bg-[#FF4433]">
                                             Popular
                                         </span>
                                     )}
@@ -234,29 +233,44 @@ export default function Landing() {
                 <section id="faq" className="mx-auto w-full max-w-3xl px-4 md:px-8">
                     <h2 className="mb-3 text-center text-3xl font-semibold sm:text-4xl">Frequently Asked Questions</h2>
                     <p className="mx-auto mb-8 max-w-2xl text-center text-[#706f6c] dark:text-[#A1A09A]">
-                        Can't find what you're looking for? Email us at <a href="mailto:support@smartlearn.com" className="underline">support@smartlearn.com</a>.
+                        Can't find what you're looking for? Email us at{' '}
+                        <a href="mailto:support@smartlearn.com" className="underline">
+                            support@smartlearn.com
+                        </a>
+                        .
                     </p>
 
                     <div className="space-y-4">
                         {[
                             {
                                 q: 'Is SmartLearn really free?',
-                                a: 'Yes! Our Starter plan is 100% free forever. You can learn at your own pace with no credit-card required.'
+                                a: 'Yes! Our Starter plan is 100% free forever. You can learn at your own pace with no credit-card required.',
                             },
                             {
                                 q: 'Can I cancel my subscription at any time?',
-                                a: 'Absolutely. Upgrade, downgrade or cancel directly from your dashboard — no hidden fees, no questions asked.'
+                                a: 'Absolutely. Upgrade, downgrade or cancel directly from your dashboard — no hidden fees, no questions asked.',
                             },
                             {
                                 q: 'Do you offer team licenses?',
-                                a: 'Yes. Our Team plan is designed for classrooms and organisations. You can manage members, assign courses and track collective progress.'
-                            }
+                                a: 'Yes. Our Team plan is designed for classrooms and organisations. You can manage members, assign courses and track collective progress.',
+                            },
                         ].map((item, idx) => (
-                            <Collapsible key={idx} className="rounded-lg border border-[#e3e3e0] bg-white p-4 dark:border-[#3E3E3A] dark:bg-[#161615]">
+                            <Collapsible
+                                key={idx}
+                                className="rounded-lg border border-[#e3e3e0] bg-white p-4 dark:border-[#3E3E3A] dark:bg-[#161615]"
+                            >
                                 <CollapsibleTrigger className="flex w-full items-center justify-between text-left font-medium">
                                     {item.q}
-                                    <svg className="h-4 w-4 transition-transform data-[state=open]:rotate-180" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.174l3.71-3.944a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                                    <svg
+                                        className="h-4 w-4 transition-transform data-[state=open]:rotate-180"
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M5.23 7.21a.75.75 0 011.06.02L10 11.174l3.71-3.944a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                            clipRule="evenodd"
+                                        />
                                     </svg>
                                 </CollapsibleTrigger>
                                 <CollapsibleContent className="mt-2 text-sm leading-relaxed text-[#706f6c] dark:text-[#A1A09A]">
@@ -282,10 +296,7 @@ export default function Landing() {
                         </Link>
                     </div>
                     {/* Background pattern */}
-                    <div
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 -z-10 bg-[url('/img/noise.svg')] opacity-5"
-                    />
+                    <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-[url('/img/noise.svg')] opacity-5" />
                 </section>
             </main>
 
@@ -294,8 +305,12 @@ export default function Landing() {
                 <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-4 md:flex-row md:justify-between md:px-8">
                     <p>&copy; {new Date().getFullYear()} SmartLearn. All rights reserved.</p>
                     <div className="flex gap-4">
-                        <Link href="#" className="hover:text-[#f53003] dark:hover:text-[#FF4433]">Privacy</Link>
-                        <Link href="#" className="hover:text-[#f53003] dark:hover:text-[#FF4433]">Terms</Link>
+                        <Link href="#" className="hover:text-[#f53003] dark:hover:text-[#FF4433]">
+                            Privacy
+                        </Link>
+                        <Link href="#" className="hover:text-[#f53003] dark:hover:text-[#FF4433]">
+                            Terms
+                        </Link>
                     </div>
                 </div>
             </footer>

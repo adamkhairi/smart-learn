@@ -1,19 +1,10 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { CourseModuleItem, Lecture, Assessment, Assignment } from '@/types';
-import {
-    Play,
-    FileText,
-    HelpCircle,
-    ClipboardList,
-    Eye,
-    ExternalLink,
-    Clock,
-    AlertCircle
-} from 'lucide-react';
+import { Assessment, Assignment, CourseModuleItem, Lecture } from '@/types';
+import { AlertCircle, ClipboardList, Clock, ExternalLink, Eye, FileText, HelpCircle, Play } from 'lucide-react';
+import { useState } from 'react';
 
 interface ModuleItemPreviewProps {
     item: CourseModuleItem;
@@ -66,8 +57,8 @@ export function ModuleItemPreview({ item, courseId, moduleId, trigger }: ModuleI
     const renderPreviewContent = () => {
         if (!item.itemable) {
             return (
-                <div className="text-center py-8">
-                    <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <div className="py-8 text-center">
+                    <AlertCircle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
                     <p className="text-muted-foreground">Preview not available</p>
                 </div>
             );
@@ -80,17 +71,20 @@ export function ModuleItemPreview({ item, courseId, moduleId, trigger }: ModuleI
                 // Handle YouTube videos
                 if (lecture.video_url || lecture.youtube_id) {
                     const videoUrl = lecture.video_url;
-                    const embedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) :
-                        lecture.youtube_id ? `https://www.youtube.com/embed/${lecture.youtube_id}` : null;
+                    const embedUrl = videoUrl
+                        ? getYouTubeEmbedUrl(videoUrl)
+                        : lecture.youtube_id
+                          ? `https://www.youtube.com/embed/${lecture.youtube_id}`
+                          : null;
 
                     if (embedUrl) {
                         return (
                             <div className="space-y-4">
-                                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                                <div className="aspect-video overflow-hidden rounded-lg bg-gray-100">
                                     <iframe
                                         src={embedUrl}
                                         title={lecture.title}
-                                        className="w-full h-full"
+                                        className="h-full w-full"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     />
                                 </div>
@@ -106,12 +100,7 @@ export function ModuleItemPreview({ item, courseId, moduleId, trigger }: ModuleI
                                                 <p>External link</p>
                                             </TooltipContent>
                                         </Tooltip>
-                                        <a
-                                            href={lecture.video_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="hover:text-primary"
-                                        >
+                                        <a href={lecture.video_url} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
                                             Watch on YouTube
                                         </a>
                                     </div>
@@ -126,14 +115,12 @@ export function ModuleItemPreview({ item, courseId, moduleId, trigger }: ModuleI
                     <div className="space-y-4">
                         {lecture.content ? (
                             <div className="prose max-w-none">
-                                <div className="whitespace-pre-wrap text-sm line-clamp-4">{lecture.content}</div>
+                                <div className="line-clamp-4 text-sm whitespace-pre-wrap">{lecture.content}</div>
                             </div>
                         ) : (
-                            <div className="text-center py-8">
-                                <Play className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                <p className="text-muted-foreground">
-                                    {lecture.description || item.description || 'No preview available'}
-                                </p>
+                            <div className="py-8 text-center">
+                                <Play className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                                <p className="text-muted-foreground">{lecture.description || item.description || 'No preview available'}</p>
                             </div>
                         )}
                     </div>
@@ -144,26 +131,20 @@ export function ModuleItemPreview({ item, courseId, moduleId, trigger }: ModuleI
                 const assessment = item.itemable as Assessment;
                 return (
                     <div className="space-y-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <div className="flex items-center gap-3 mb-2">
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                            <div className="mb-2 flex items-center gap-3">
                                 <HelpCircle className="h-5 w-5 text-blue-600" />
                                 <h3 className="font-semibold text-blue-800">
                                     {assessment.type.charAt(0).toUpperCase() + assessment.type.slice(1)} Assessment
                                 </h3>
                             </div>
-                            <div className="text-sm text-blue-700 space-y-1">
-                                {assessment.max_score && (
-                                    <p>Max Score: {assessment.max_score} points</p>
-                                )}
-                                {assessment.duration && (
-                                    <p>Duration: {formatDuration(assessment.duration)}</p>
-                                )}
+                            <div className="space-y-1 text-sm text-blue-700">
+                                {assessment.max_score && <p>Max Score: {assessment.max_score} points</p>}
+                                {assessment.duration && <p>Duration: {formatDuration(assessment.duration)}</p>}
                                 <p>Status: {assessment.visibility}</p>
                             </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                            {item.description || 'Click to start this assessment'}
-                        </p>
+                        <p className="text-sm text-muted-foreground">{item.description || 'Click to start this assessment'}</p>
                     </div>
                 );
             }
@@ -175,61 +156,39 @@ export function ModuleItemPreview({ item, courseId, moduleId, trigger }: ModuleI
 
                 return (
                     <div className="space-y-4">
-                        <div className={`border rounded-lg p-4 ${
-                            isOpen ? 'bg-green-50 border-green-200' :
-                            isEnded ? 'bg-red-50 border-red-200' :
-                            'bg-yellow-50 border-yellow-200'
-                        }`}>
-                            <div className="flex items-center justify-between mb-2">
+                        <div
+                            className={`rounded-lg border p-4 ${
+                                isOpen ? 'border-green-200 bg-green-50' : isEnded ? 'border-red-200 bg-red-50' : 'border-yellow-200 bg-yellow-50'
+                            }`}
+                        >
+                            <div className="mb-2 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <ClipboardList className={`h-5 w-5 ${
-                                        isOpen ? 'text-green-600' :
-                                        isEnded ? 'text-red-600' :
-                                        'text-yellow-600'
-                                    }`} />
-                                    <h3 className={`font-semibold ${
-                                        isOpen ? 'text-green-800' :
-                                        isEnded ? 'text-red-800' :
-                                        'text-yellow-800'
-                                    }`}>
+                                    <ClipboardList
+                                        className={`h-5 w-5 ${isOpen ? 'text-green-600' : isEnded ? 'text-red-600' : 'text-yellow-600'}`}
+                                    />
+                                    <h3 className={`font-semibold ${isOpen ? 'text-green-800' : isEnded ? 'text-red-800' : 'text-yellow-800'}`}>
                                         Assignment
                                     </h3>
                                 </div>
-                                <Badge variant={
-                                    isOpen ? 'default' :
-                                    isEnded ? 'destructive' :
-                                    'secondary'
-                                }>
+                                <Badge variant={isOpen ? 'default' : isEnded ? 'destructive' : 'secondary'}>
                                     {assignment.status.replace('-', ' ')}
                                 </Badge>
                             </div>
-                            <div className={`text-sm space-y-1 ${
-                                isOpen ? 'text-green-700' :
-                                isEnded ? 'text-red-700' :
-                                'text-yellow-700'
-                            }`}>
-                                {assignment.total_points && (
-                                    <p>Points: {assignment.total_points}</p>
-                                )}
-                                {assignment.expired_at && (
-                                    <p>Due: {new Date(assignment.expired_at).toLocaleDateString()}</p>
-                                )}
+                            <div className={`space-y-1 text-sm ${isOpen ? 'text-green-700' : isEnded ? 'text-red-700' : 'text-yellow-700'}`}>
+                                {assignment.total_points && <p>Points: {assignment.total_points}</p>}
+                                {assignment.expired_at && <p>Due: {new Date(assignment.expired_at).toLocaleDateString()}</p>}
                             </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                            {item.description || 'Click to view assignment details'}
-                        </p>
+                        <p className="text-sm text-muted-foreground">{item.description || 'Click to view assignment details'}</p>
                     </div>
                 );
             }
 
             default:
                 return (
-                    <div className="text-center py-8">
-                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">
-                            {item.description || 'Preview not available'}
-                        </p>
+                    <div className="py-8 text-center">
+                        <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                        <p className="text-muted-foreground">{item.description || 'Preview not available'}</p>
                     </div>
                 );
         }
@@ -244,7 +203,7 @@ export function ModuleItemPreview({ item, courseId, moduleId, trigger }: ModuleI
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-h-[80vh] max-w-4xl overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         {getItemIcon(itemType)}
@@ -282,14 +241,12 @@ export function ModuleItemPreview({ item, courseId, moduleId, trigger }: ModuleI
                     {renderPreviewContent()}
 
                     {/* Action buttons */}
-                    <div className="flex justify-between items-center pt-4 border-t">
+                    <div className="flex items-center justify-between border-t pt-4">
                         <Button variant="outline" onClick={() => setOpen(false)}>
                             Close Preview
                         </Button>
                         <Button asChild>
-                            <a href={`/courses/${courseId}/modules/${moduleId}/items/${item.id}`}>
-                                View Full Item
-                            </a>
+                            <a href={`/courses/${courseId}/modules/${moduleId}/items/${item.id}`}>View Full Item</a>
                         </Button>
                     </div>
                 </div>

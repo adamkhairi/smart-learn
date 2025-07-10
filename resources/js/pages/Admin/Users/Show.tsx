@@ -1,27 +1,13 @@
-import React from 'react';
-import { Head, Link, router } from '@inertiajs/react';
-import {
-    ArrowLeft,
-    Edit,
-    Mail,
-    Phone,
-    Calendar,
-    X
-} from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import { Course, User } from '@/types';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowLeft, Calendar, Edit, Mail, Phone, X } from 'lucide-react';
 
 interface Stats {
     courses_created: number;
@@ -39,7 +25,6 @@ interface Props {
 }
 
 export default function ShowUser({ user, stats }: Props) {
-
     const handleRemoveCourse = (courseId: number) => {
         router.delete(route('admin.users.remove-course', user.id), {
             data: { course_id: courseId },
@@ -65,9 +50,13 @@ export default function ShowUser({ user, stats }: Props) {
 
     const getStatusBadge = (isActive: boolean) => {
         return isActive ? (
-            <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
+            <Badge variant="default" className="bg-green-100 text-green-800">
+                Active
+            </Badge>
         ) : (
-            <Badge variant="secondary" className="bg-gray-100 text-gray-800">Inactive</Badge>
+            <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                Inactive
+            </Badge>
         );
     };
 
@@ -97,13 +86,16 @@ export default function ShowUser({ user, stats }: Props) {
                             <Avatar className="h-16 w-16">
                                 <AvatarImage src={user.photo} />
                                 <AvatarFallback className="text-lg">
-                                    {user.name.split(' ').map(n => n[0]).join('')}
+                                    {user.name
+                                        .split(' ')
+                                        .map((n) => n[0])
+                                        .join('')}
                                 </AvatarFallback>
                             </Avatar>
                             <div>
                                 <h1 className="text-3xl font-bold tracking-tight">{user.name}</h1>
                                 <p className="text-muted-foreground">@{user.username}</p>
-                                <div className="flex items-center gap-2 mt-2">
+                                <div className="mt-2 flex items-center gap-2">
                                     {getRoleBadge(user.role)}
                                     {getStatusBadge(user.is_active)}
                                 </div>
@@ -120,7 +112,7 @@ export default function ShowUser({ user, stats }: Props) {
 
                 <div className="grid gap-6 lg:grid-cols-3">
                     {/* User Information */}
-                    <div className="lg:col-span-1 space-y-6">
+                    <div className="space-y-6 lg:col-span-1">
                         <Card>
                             <CardHeader>
                                 <CardTitle>User Information</CardTitle>
@@ -201,20 +193,20 @@ export default function ShowUser({ user, stats }: Props) {
                     </div>
 
                     {/* Course Enrollments */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="space-y-6 lg:col-span-2">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Course Enrollments</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    {(user.enrollments as Course[] || []).length > 0 ? (
-                                        (user.enrollments as Course[] || []).map((course: Course) => (
-                                            <div key={course.id} className="flex items-center justify-between p-4 border rounded-lg">
+                                    {((user.enrollments as Course[]) || []).length > 0 ? (
+                                        ((user.enrollments as Course[]) || []).map((course: Course) => (
+                                            <div key={course.id} className="flex items-center justify-between rounded-lg border p-4">
                                                 <div>
                                                     <div className="font-medium">{course.name}</div>
                                                     <div className="text-sm text-muted-foreground">{course.description}</div>
-                                                    <div className="text-xs text-muted-foreground mt-1">
+                                                    <div className="mt-1 text-xs text-muted-foreground">
                                                         Enrolled: {course.pivot ? formatDate(course.pivot.created_at) : 'N/A'}
                                                     </div>
                                                 </div>
@@ -232,11 +224,7 @@ export default function ShowUser({ user, stats }: Props) {
                                                             <SelectItem value="admin">Admin</SelectItem>
                                                         </SelectContent>
                                                     </Select>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleRemoveCourse(course.id)}
-                                                    >
+                                                    <Button variant="ghost" size="sm" onClick={() => handleRemoveCourse(course.id)}>
                                                         <X className="h-4 w-4" />
                                                     </Button>
                                                 </div>
@@ -251,10 +239,8 @@ export default function ShowUser({ user, stats }: Props) {
 
                         {/* Course Management Notice */}
                         <Card>
-                            <CardContent className="text-center py-6">
-                                <p className="text-muted-foreground mb-4">
-                                    Need to assign this user to new courses or manage their enrollments?
-                                </p>
+                            <CardContent className="py-6 text-center">
+                                <p className="mb-4 text-muted-foreground">Need to assign this user to new courses or manage their enrollments?</p>
                                 <Link href={route('admin.users.edit', user.id)}>
                                     <Button>
                                         <Edit className="mr-2 h-4 w-4" />

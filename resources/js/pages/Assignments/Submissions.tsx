@@ -1,17 +1,16 @@
-import AppLayout from '@/layouts/app-layout';
-import { Head, Link } from '@inertiajs/react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Download, ArrowLeft } from 'lucide-react';
-import { Assignment, Submission, PageProps } from '@/types';
-import { useState } from 'react';
-import { useForm } from '@inertiajs/react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import AppLayout from '@/layouts/app-layout';
+import { Assignment, PageProps, Submission } from '@/types';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft, Download } from 'lucide-react';
+import { useState } from 'react';
 
 interface SubmissionsPageProps extends PageProps {
     assignment: Assignment;
@@ -50,7 +49,7 @@ function Submissions({ assignment, submissions }: SubmissionsPageProps) {
             <Head title={`Submissions for ${assignment.title}`} />
 
             <div className="container mx-auto px-4 py-6">
-                <div className="flex items-center justify-between mb-6">
+                <div className="mb-6 flex items-center justify-between">
                     <div>
                         <Button variant="ghost" size="sm" asChild>
                             <Link href={`/courses/${assignment.course_id}`}>
@@ -58,7 +57,7 @@ function Submissions({ assignment, submissions }: SubmissionsPageProps) {
                                 Back to Course
                             </Link>
                         </Button>
-                        <h1 className="text-2xl font-bold mt-2">Submissions for "{assignment.title}"</h1>
+                        <h1 className="mt-2 text-2xl font-bold">Submissions for "{assignment.title}"</h1>
                     </div>
                     <Badge>{submissions.length} Submissions</Badge>
                 </div>
@@ -66,9 +65,7 @@ function Submissions({ assignment, submissions }: SubmissionsPageProps) {
                 <Card>
                     <CardHeader>
                         <CardTitle>Student Submissions</CardTitle>
-                        <CardDescription>
-                            Review and grade the submissions for this assignment.
-                        </CardDescription>
+                        <CardDescription>Review and grade the submissions for this assignment.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table>
@@ -89,12 +86,7 @@ function Submissions({ assignment, submissions }: SubmissionsPageProps) {
                                         <TableCell>
                                             {submission.files && submission.files.length > 0 ? (
                                                 submission.files.map((file, index) => (
-                                                    <a
-                                                        key={index}
-                                                        href={`/storage/${file}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                    >
+                                                    <a key={index} href={`/storage/${file}`} target="_blank" rel="noopener noreferrer">
                                                         <Button variant="outline" size="sm" className="mr-1">
                                                             <Download className="mr-2 h-4 w-4" />
                                                             Download {index + 1}
@@ -113,7 +105,9 @@ function Submissions({ assignment, submissions }: SubmissionsPageProps) {
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <Button size="sm" onClick={() => handleGradeClick(submission)}>Grade</Button>
+                                            <Button size="sm" onClick={() => handleGradeClick(submission)}>
+                                                Grade
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -126,9 +120,7 @@ function Submissions({ assignment, submissions }: SubmissionsPageProps) {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Grade Submission</DialogTitle>
-                            <DialogDescription>
-                                Grade the submission for {selectedSubmission?.user?.name}.
-                            </DialogDescription>
+                            <DialogDescription>Grade the submission for {selectedSubmission?.user?.name}.</DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4">
                             <div>
@@ -140,7 +132,7 @@ function Submissions({ assignment, submissions }: SubmissionsPageProps) {
                                     onChange={(e) => setData('score', parseInt(e.target.value, 10))}
                                     className={errors.score ? 'border-destructive' : ''}
                                 />
-                                {errors.score && <p className="text-sm text-destructive mt-1">{errors.score}</p>}
+                                {errors.score && <p className="mt-1 text-sm text-destructive">{errors.score}</p>}
                             </div>
                             <div>
                                 <Label htmlFor="feedback">Feedback</Label>
@@ -150,11 +142,13 @@ function Submissions({ assignment, submissions }: SubmissionsPageProps) {
                                     onChange={(e) => setData('feedback', e.target.value)}
                                     className={errors.feedback ? 'border-destructive' : ''}
                                 />
-                                {errors.feedback && <p className="text-sm text-destructive mt-1">{errors.feedback}</p>}
+                                {errors.feedback && <p className="mt-1 text-sm text-destructive">{errors.feedback}</p>}
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsGrading(false)}>Cancel</Button>
+                            <Button variant="outline" onClick={() => setIsGrading(false)}>
+                                Cancel
+                            </Button>
                             <Button onClick={handleGradeSubmit} disabled={processing}>
                                 {processing ? 'Submitting...' : 'Submit Grade'}
                             </Button>

@@ -1,21 +1,15 @@
-import React from 'react';
-import { Head, useForm, Link } from '@inertiajs/react';
-import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
+import InputError from '@/components/input-error';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import InputError from '@/components/input-error';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { AlertCircle, ArrowLeft, Save } from 'lucide-react';
+import React from 'react';
 
 interface Props {
     flash?: {
@@ -26,7 +20,13 @@ interface Props {
 }
 
 export default function CreateUser({ flash, errors }: Props) {
-    const { data, setData, post, processing, errors: formErrors } = useForm<{
+    const {
+        data,
+        setData,
+        post,
+        processing,
+        errors: formErrors,
+    } = useForm<{
         name: string;
         email: string;
         username: string;
@@ -82,9 +82,7 @@ export default function CreateUser({ flash, errors }: Props) {
                         </Link>
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight">Create User</h1>
-                            <p className="text-muted-foreground">
-                                Add a new user to the system
-                            </p>
+                            <p className="text-muted-foreground">Add a new user to the system</p>
                         </div>
                     </div>
                 </div>
@@ -136,9 +134,7 @@ export default function CreateUser({ flash, errors }: Props) {
                                         className={formErrors.username ? 'border-red-500' : ''}
                                     />
                                     <InputError message={formErrors.username} />
-                                    <p className="text-xs text-muted-foreground">
-                                        Leave blank to auto-generate from name
-                                    </p>
+                                    <p className="text-xs text-muted-foreground">Leave blank to auto-generate from name</p>
                                 </div>
 
                                 <div className="space-y-2">
@@ -167,9 +163,7 @@ export default function CreateUser({ flash, errors }: Props) {
                                         className={formErrors.password ? 'border-red-500' : ''}
                                     />
                                     <InputError message={formErrors.password} />
-                                    <p className="text-xs text-muted-foreground">
-                                        Minimum 8 characters
-                                    </p>
+                                    <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
                                 </div>
 
                                 <div className="space-y-2">
@@ -218,9 +212,7 @@ export default function CreateUser({ flash, errors }: Props) {
                                         </Label>
                                     </div>
                                     <InputError message={formErrors.is_active} />
-                                    <p className="text-xs text-muted-foreground">
-                                        Inactive users cannot login
-                                    </p>
+                                    <p className="text-xs text-muted-foreground">Inactive users cannot login</p>
                                 </div>
                             </div>
 

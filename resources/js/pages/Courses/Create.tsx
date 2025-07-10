@@ -1,15 +1,15 @@
-import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ColorPicker } from '@/components/ui/color-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Upload, Palette } from 'lucide-react';
-import { Link } from '@inertiajs/react';
+import { Textarea } from '@/components/ui/textarea';
 import { useFlashToast } from '@/hooks/use-flash-toast';
+import AppLayout from '@/layouts/app-layout';
+import { BreadcrumbItem } from '@/types';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft, Upload } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -30,7 +30,7 @@ function Create() {
         name: '',
         description: '',
         image: null as File | null,
-        background_color: '',
+        background_color: '#3B82F6',
         status: 'published' as 'published' | 'archived',
     });
 
@@ -42,15 +42,6 @@ function Create() {
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
         setData('image', file);
-    };
-
-    const generateRandomColor = () => {
-        const colors = [
-            '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
-            '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
-        ];
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        setData('background_color', randomColor);
     };
 
     return (
@@ -66,18 +57,14 @@ function Create() {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold">Create New Course</h1>
-                        <p className="text-muted-foreground">
-                            Set up your course with all the essential details
-                        </p>
+                        <p className="text-muted-foreground">Set up your course with all the essential details</p>
                     </div>
                 </div>
 
                 <Card className="max-w-2xl">
                     <CardHeader>
                         <CardTitle>Course Information</CardTitle>
-                        <CardDescription>
-                            Fill in the details below to create your new course
-                        </CardDescription>
+                        <CardDescription>Fill in the details below to create your new course</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
@@ -92,9 +79,7 @@ function Create() {
                                     placeholder="Enter course name"
                                     className={errors.name ? 'border-red-500' : ''}
                                 />
-                                {errors.name && (
-                                    <p className="text-sm text-red-500">{errors.name}</p>
-                                )}
+                                {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                             </div>
 
                             {/* Course Description */}
@@ -108,9 +93,7 @@ function Create() {
                                     rows={4}
                                     className={errors.description ? 'border-red-500' : ''}
                                 />
-                                {errors.description && (
-                                    <p className="text-sm text-red-500">{errors.description}</p>
-                                )}
+                                {errors.description && <p className="text-sm text-red-500">{errors.description}</p>}
                             </div>
 
                             {/* Course Image */}
@@ -122,67 +105,28 @@ function Create() {
                                         type="file"
                                         accept="image/*"
                                         onChange={handleImageChange}
-                                        className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
+                                        className="file:mr-4 file:rounded-full file:border-0 file:bg-violet-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-violet-700 hover:file:bg-violet-100"
                                     />
                                     <Upload className="h-4 w-4 text-muted-foreground" />
                                 </div>
-                                {errors.image && (
-                                    <p className="text-sm text-red-500">{errors.image}</p>
-                                )}
-                                <p className="text-xs text-muted-foreground">
-                                    Recommended size: 1200x630px. Max file size: 2MB.
-                                </p>
+                                {errors.image && <p className="text-sm text-red-500">{errors.image}</p>}
+                                <p className="text-xs text-muted-foreground">Recommended size: 1200x630px. Max file size: 2MB.</p>
                             </div>
 
                             {/* Background Color */}
                             <div className="space-y-2">
-                                <Label htmlFor="background_color">Background Color</Label>
-                                <div className="space-y-2">
-                                    {/* Color Preview */}
-                                    {data.background_color && (
-                                        <div
-                                            className="w-full h-16 rounded-lg border shadow-sm"
-                                            style={{ backgroundColor: data.background_color }}
-                                        />
-                                    )}
-
-                                    {/* Color Controls */}
-                                    <div className="flex items-center gap-2">
-                                        <div
-                                            className="w-8 h-8 rounded border"
-                                            style={{ backgroundColor: data.background_color || '#f3f4f6' }}
-                                        />
-                                        <Input
-                                            id="background_color"
-                                            type="text"
-                                            value={data.background_color}
-                                            onChange={(e) => setData('background_color', e.target.value)}
-                                            placeholder="#3B82F6"
-                                            className="font-mono text-sm"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={generateRandomColor}
-                                        >
-                                            <Palette className="mr-2 h-4 w-4" />
-                                            Random
-                                        </Button>
-                                    </div>
-                                </div>
-                                {errors.background_color && (
-                                    <p className="text-sm text-red-500">{errors.background_color}</p>
-                                )}
+                                <ColorPicker
+                                    value={data.background_color}
+                                    onChange={(color) => setData('background_color', color)}
+                                    label="Background Color"
+                                    error={errors.background_color}
+                                />
                             </div>
 
                             {/* Course Status */}
                             <div className="space-y-2">
                                 <Label htmlFor="status">Status *</Label>
-                                <Select
-                                    value={data.status}
-                                    onValueChange={(value) => setData('status', value as 'published' | 'archived')}
-                                >
+                                <Select value={data.status} onValueChange={(value) => setData('status', value as 'published' | 'archived')}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select status" />
                                     </SelectTrigger>
@@ -191,9 +135,7 @@ function Create() {
                                         <SelectItem value="archived">Archived</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                {errors.status && (
-                                    <p className="text-sm text-red-500">{errors.status}</p>
-                                )}
+                                {errors.status && <p className="text-sm text-red-500">{errors.status}</p>}
                             </div>
 
                             {/* Submit Button */}

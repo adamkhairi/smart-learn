@@ -1,45 +1,20 @@
-import React, { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import {
-    Plus,
-    Search,
-    Filter,
-    MoreHorizontal,
-    Edit,
-    Eye,
-    Trash2,
-    UserCheck,
-    UserX,
-    Users,
-    BookOpen,
-    TrendingUp,
-    AlertCircle
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFlashToast } from '@/hooks/use-flash-toast';
 import { useToast } from '@/hooks/use-toast';
+import AppLayout from '@/layouts/app-layout';
 import { SimplePaginatedResponse, User } from '@/types';
+import { Head, Link, router } from '@inertiajs/react';
+import { AlertCircle, BookOpen, Edit, Eye, Filter, MoreHorizontal, Plus, Search, Trash2, TrendingUp, UserCheck, UserX, Users } from 'lucide-react';
+import React, { useState } from 'react';
 
 interface IndexUser extends User {
     enrollments_count: number;
@@ -102,7 +77,7 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
 
         router.get(route('admin.users.index'), searchParams, {
             preserveState: true,
-            onFinish: () => setLoading(false)
+            onFinish: () => setLoading(false),
         });
     };
 
@@ -116,16 +91,20 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
             variant: 'default',
             onConfirm: () => {
                 setTogglingUserId(userId);
-                router.patch(route('admin.users.toggle-active', userId), {}, {
-                    onSuccess: () => {
-                        showSuccess(`User ${actionPast} successfully.`);
+                router.patch(
+                    route('admin.users.toggle-active', userId),
+                    {},
+                    {
+                        onSuccess: () => {
+                            showSuccess(`User ${actionPast} successfully.`);
+                        },
+                        onError: () => {
+                            showError('Failed to update user status. Please try again.');
+                        },
+                        onFinish: () => setTogglingUserId(null),
                     },
-                    onError: () => {
-                        showError('Failed to update user status. Please try again.');
-                    },
-                    onFinish: () => setTogglingUserId(null)
-                });
-            }
+                );
+            },
         });
     };
 
@@ -144,9 +123,9 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
                     onError: () => {
                         showError('Failed to delete user. Please try again.');
                     },
-                    onFinish: () => setDeletingUserId(null)
+                    onFinish: () => setDeletingUserId(null),
                 });
-            }
+            },
         });
     };
 
@@ -186,7 +165,11 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
     };
 
     const getInitials = (name: string) => {
-        return name.split(' ').map(n => n[0]).join('').toUpperCase();
+        return name
+            .split(' ')
+            .map((n) => n[0])
+            .join('')
+            .toUpperCase();
     };
 
     return (
@@ -210,12 +193,10 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
                 )}
 
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-                        <p className="text-muted-foreground">
-                            Manage users, roles, and course assignments
-                        </p>
+                        <p className="text-muted-foreground">Manage users, roles, and course assignments</p>
                     </div>
                     <Link href={route('admin.users.create')}>
                         <Button>
@@ -335,34 +316,33 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
                         {users.data.length > 0 ? (
                             <div className="space-y-4">
                                 {users.data.map((user) => (
-                                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                                    <div
+                                        key={user.id}
+                                        className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
+                                    >
                                         <div className="flex items-center space-x-4">
                                             <Avatar>
                                                 <AvatarImage src={user.photo} />
-                                                <AvatarFallback>
-                                                    {getInitials(user.name)}
-                                                </AvatarFallback>
+                                                <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                                             </Avatar>
                                             <div>
                                                 <Link
                                                     href={route('admin.users.show', user.id)}
-                                                    className="font-medium hover:text-primary transition-colors cursor-pointer"
+                                                    className="cursor-pointer font-medium transition-colors hover:text-primary"
                                                 >
                                                     {user.name}
                                                 </Link>
                                                 <div className="text-sm text-muted-foreground">{user.email}</div>
-                                                {user.username && (
-                                                    <div className="text-xs text-muted-foreground">@{user.username}</div>
-                                                )}
+                                                {user.username && <div className="text-xs text-muted-foreground">@{user.username}</div>}
                                             </div>
                                         </div>
                                         <div className="flex items-center space-x-4">
-                                            <div className="text-right hidden sm:block">
-                                                <div className="flex items-center gap-2 mb-1">
+                                            <div className="hidden text-right sm:block">
+                                                <div className="mb-1 flex items-center gap-2">
                                                     {getRoleBadge(user.role)}
                                                     {getStatusBadge(user.is_active)}
                                                 </div>
-                                                <div className="text-xs text-muted-foreground space-x-4">
+                                                <div className="space-x-4 text-xs text-muted-foreground">
                                                     <span>{user.enrollments_count} enrollments</span>
                                                     <span>{user.created_courses_count} courses</span>
                                                     <span>{user.submissions_count} submissions</span>
@@ -430,8 +410,8 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-8">
-                                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <div className="py-8 text-center">
+                                <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
                                 <p className="text-lg font-medium">No users found</p>
                                 <p className="text-muted-foreground">
                                     {search || roleFilter !== 'all' || statusFilter !== 'all'
@@ -453,26 +433,24 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
                         {users.last_page > 1 && (
                             <div className="mt-6 flex justify-center">
                                 <nav className="flex items-center space-x-2">
-                                    {users.links.map((link, index) => (
+                                    {users.links.map((link, index) =>
                                         link.url ? (
                                             <Link
                                                 key={index}
                                                 href={link.url}
-                                                className={`px-3 py-2 text-sm rounded-md transition-colors ${
-                                                    link.active
-                                                        ? 'bg-primary text-primary-foreground'
-                                                        : 'bg-background border hover:bg-accent'
+                                                className={`rounded-md px-3 py-2 text-sm transition-colors ${
+                                                    link.active ? 'bg-primary text-primary-foreground' : 'border bg-background hover:bg-accent'
                                                 }`}
                                                 dangerouslySetInnerHTML={{ __html: link.label }}
                                             />
                                         ) : (
                                             <span
                                                 key={index}
-                                                className="px-3 py-2 text-sm rounded-md bg-muted text-muted-foreground cursor-not-allowed"
+                                                className="cursor-not-allowed rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground"
                                                 dangerouslySetInnerHTML={{ __html: link.label }}
                                             />
-                                        )
-                                    ))}
+                                        ),
+                                    )}
                                 </nav>
                             </div>
                         )}

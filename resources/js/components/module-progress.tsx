@@ -1,7 +1,7 @@
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Clock, BookOpen } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { CourseModule } from '@/types';
+import { BookOpen, CheckCircle, Clock } from 'lucide-react';
 
 interface ModuleProgressProps {
     module: CourseModule;
@@ -10,12 +10,7 @@ interface ModuleProgressProps {
     showDetails?: boolean;
 }
 
-export function ModuleProgress({
-    module,
-    completedItems = [],
-    totalItems,
-    showDetails = false
-}: ModuleProgressProps) {
+export function ModuleProgress({ module, completedItems = [], totalItems, showDetails = false }: ModuleProgressProps) {
     const itemCount = totalItems || module.itemsCount || module.moduleItems?.length || 0;
     const completedCount = completedItems.length;
     const progressPercentage = itemCount > 0 ? (completedCount / itemCount) * 100 : 0;

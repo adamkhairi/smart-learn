@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Trash2, Plus, HelpCircle } from 'lucide-react';
+import { HelpCircle, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 interface Question {
     id: string;
@@ -42,19 +42,17 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
     };
 
     const updateQuestion = (questionId: string, updates: Partial<Question>) => {
-        const updatedQuestions = questions.map(q =>
-            q.id === questionId ? { ...q, ...updates } : q
-        );
+        const updatedQuestions = questions.map((q) => (q.id === questionId ? { ...q, ...updates } : q));
         onChange(updatedQuestions);
     };
 
     const deleteQuestion = (questionId: string) => {
-        const filteredQuestions = questions.filter(q => q.id !== questionId);
+        const filteredQuestions = questions.filter((q) => q.id !== questionId);
         onChange(filteredQuestions);
     };
 
     const updateChoice = (questionId: string, choiceKey: string, value: string) => {
-        const question = questions.find(q => q.id === questionId);
+        const question = questions.find((q) => q.id === questionId);
         if (question?.choices) {
             const updatedChoices = { ...question.choices, [choiceKey]: value };
             updateQuestion(questionId, { choices: updatedChoices });
@@ -62,7 +60,10 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
     };
 
     const updateKeywords = (questionId: string, keywords: string) => {
-        const keywordArray = keywords.split(',').map(k => k.trim()).filter(k => k);
+        const keywordArray = keywords
+            .split(',')
+            .map((k) => k.trim())
+            .filter((k) => k);
         updateQuestion(questionId, { keywords: keywordArray });
     };
 
@@ -81,22 +82,12 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addQuestion('MCQ')}
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
+                    <Button type="button" variant="outline" size="sm" onClick={() => addQuestion('MCQ')}>
+                        <Plus className="mr-2 h-4 w-4" />
                         MCQ
                     </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addQuestion('Essay')}
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
+                    <Button type="button" variant="outline" size="sm" onClick={() => addQuestion('Essay')}>
+                        <Plus className="mr-2 h-4 w-4" />
                         Essay
                     </Button>
                 </div>
@@ -107,24 +98,16 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                 {questions.length === 0 ? (
                     <Card>
                         <CardContent className="flex flex-col items-center justify-center py-8">
-                            <HelpCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                            <h4 className="text-lg font-semibold mb-2">No questions yet</h4>
-                            <p className="text-sm text-muted-foreground text-center mb-4">
+                            <HelpCircle className="mb-4 h-12 w-12 text-muted-foreground" />
+                            <h4 className="mb-2 text-lg font-semibold">No questions yet</h4>
+                            <p className="mb-4 text-center text-sm text-muted-foreground">
                                 Start by adding MCQ or Essay questions to your assessment
                             </p>
                             <div className="flex gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => addQuestion('MCQ')}
-                                >
+                                <Button type="button" variant="outline" onClick={() => addQuestion('MCQ')}>
                                     Add MCQ Question
                                 </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => addQuestion('Essay')}
-                                >
+                                <Button type="button" variant="outline" onClick={() => addQuestion('Essay')}>
                                     Add Essay Question
                                 </Button>
                             </div>
@@ -136,35 +119,22 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <CardTitle className="text-base">
-                                            Question {index + 1}
-                                        </CardTitle>
-                                        <Badge variant={question.type === 'MCQ' ? 'default' : 'secondary'}>
-                                            {question.type}
-                                        </Badge>
-                                        <span className="text-sm text-muted-foreground">
-                                            {question.points} points
-                                        </span>
+                                        <CardTitle className="text-base">Question {index + 1}</CardTitle>
+                                        <Badge variant={question.type === 'MCQ' ? 'default' : 'secondary'}>{question.type}</Badge>
+                                        <span className="text-sm text-muted-foreground">{question.points} points</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => setExpandedQuestion(
-                                                expandedQuestion === question.id ? null : question.id
-                                            )}
+                                            onClick={() => setExpandedQuestion(expandedQuestion === question.id ? null : question.id)}
                                         >
                                             {expandedQuestion === question.id ? 'Collapse' : 'Edit'}
                                         </Button>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => deleteQuestion(question.id)}
-                                                >
+                                                <Button type="button" variant="ghost" size="sm" onClick={() => deleteQuestion(question.id)}>
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </TooltipTrigger>
@@ -175,11 +145,10 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                                     </div>
                                 </div>
                                 {question.question_text && (
-                                    <p className="text-sm text-muted-foreground mt-2">
+                                    <p className="mt-2 text-sm text-muted-foreground">
                                         {question.question_text.length > 100
                                             ? question.question_text.substring(0, 100) + '...'
-                                            : question.question_text
-                                        }
+                                            : question.question_text}
                                     </p>
                                 )}
                             </CardHeader>
@@ -188,15 +157,15 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                                 <CardContent className="space-y-4">
                                     {/* Question Text */}
                                     <div>
-                                        <Label htmlFor={`question-text-${question.id}`}>
-                                            Question Text *
-                                        </Label>
+                                        <Label htmlFor={`question-text-${question.id}`}>Question Text *</Label>
                                         <Textarea
                                             id={`question-text-${question.id}`}
                                             value={question.question_text}
-                                            onChange={(e) => updateQuestion(question.id, {
-                                                question_text: e.target.value
-                                            })}
+                                            onChange={(e) =>
+                                                updateQuestion(question.id, {
+                                                    question_text: e.target.value,
+                                                })
+                                            }
                                             placeholder="Enter your question here..."
                                             rows={3}
                                         />
@@ -211,9 +180,11 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                                             min="1"
                                             max="100"
                                             value={question.points}
-                                            onChange={(e) => updateQuestion(question.id, {
-                                                points: parseInt(e.target.value) || 1
-                                            })}
+                                            onChange={(e) =>
+                                                updateQuestion(question.id, {
+                                                    points: parseInt(e.target.value) || 1,
+                                                })
+                                            }
                                         />
                                     </div>
 
@@ -221,7 +192,7 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                                     {question.type === 'MCQ' && question.choices && (
                                         <div>
                                             <Label>Answer Choices</Label>
-                                            <div className="space-y-2 mt-2">
+                                            <div className="mt-2 space-y-2">
                                                 {Object.entries(question.choices).map(([key, value]) => (
                                                     <div key={key} className="flex items-center gap-2">
                                                         <input
@@ -231,9 +202,7 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                                                             onChange={() => updateQuestion(question.id, { answer: key })}
                                                             className="mt-1"
                                                         />
-                                                        <Label className="w-8 text-sm font-medium">
-                                                            {key}:
-                                                        </Label>
+                                                        <Label className="w-8 text-sm font-medium">{key}:</Label>
                                                         <Input
                                                             value={value}
                                                             onChange={(e) => updateChoice(question.id, key, e.target.value)}
@@ -243,27 +212,21 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                                                     </div>
                                                 ))}
                                             </div>
-                                            <p className="text-xs text-muted-foreground mt-2">
-                                                Select the radio button for the correct answer
-                                            </p>
+                                            <p className="mt-2 text-xs text-muted-foreground">Select the radio button for the correct answer</p>
                                         </div>
                                     )}
 
                                     {/* Essay Keywords */}
                                     {question.type === 'Essay' && (
                                         <div>
-                                            <Label htmlFor={`keywords-${question.id}`}>
-                                                Keywords (optional)
-                                            </Label>
+                                            <Label htmlFor={`keywords-${question.id}`}>Keywords (optional)</Label>
                                             <Input
                                                 id={`keywords-${question.id}`}
                                                 value={question.keywords?.join(', ') || ''}
                                                 onChange={(e) => updateKeywords(question.id, e.target.value)}
                                                 placeholder="keyword1, keyword2, keyword3"
                                             />
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                Comma-separated keywords for auto-grading assistance
-                                            </p>
+                                            <p className="mt-1 text-xs text-muted-foreground">Comma-separated keywords for auto-grading assistance</p>
                                         </div>
                                     )}
                                 </CardContent>

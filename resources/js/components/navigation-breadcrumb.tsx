@@ -1,12 +1,7 @@
-import { ChevronRight, Home } from 'lucide-react';
-import { Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Link } from '@inertiajs/react';
+import { ChevronRight, Home } from 'lucide-react';
 
 interface NavigationItem {
     title: string;
@@ -39,40 +34,25 @@ export function NavigationBreadcrumb({ items, showHome = true }: NavigationBread
                     {item.items && item.items.length > 0 ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className={`h-6 px-2 ${item.isActive ? 'text-foreground font-medium' : ''}`}
-                                >
+                                <Button variant="ghost" size="sm" className={`h-6 px-2 ${item.isActive ? 'font-medium text-foreground' : ''}`}>
                                     {item.title}
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
                                 {item.items.map((subItem, subIndex) => (
                                     <DropdownMenuItem key={subIndex} asChild>
-                                        <Link href={subItem.href}>
-                                            {subItem.title}
-                                        </Link>
+                                        <Link href={subItem.href}>{subItem.title}</Link>
                                     </DropdownMenuItem>
                                 ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     ) : (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            asChild
-                            className={`h-6 px-2 ${item.isActive ? 'text-foreground font-medium' : ''}`}
-                        >
-                            <Link href={item.href}>
-                                {item.title}
-                            </Link>
+                        <Button variant="ghost" size="sm" asChild className={`h-6 px-2 ${item.isActive ? 'font-medium text-foreground' : ''}`}>
+                            <Link href={item.href}>{item.title}</Link>
                         </Button>
                     )}
 
-                    {index < items.length - 1 && (
-                        <ChevronRight className="h-3 w-3" />
-                    )}
+                    {index < items.length - 1 && <ChevronRight className="h-3 w-3" />}
                 </div>
             ))}
         </nav>

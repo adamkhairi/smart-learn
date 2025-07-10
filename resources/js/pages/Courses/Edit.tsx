@@ -1,16 +1,16 @@
-import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CourseEditPageProps } from '@/types';
-import { Head, Link, router } from '@inertiajs/react';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Upload, Palette, Save, X } from 'lucide-react';
-import { useState } from 'react';
-import InputError from '@/components/input-error';
+import { Textarea } from '@/components/ui/textarea';
 import { useFlashToast } from '@/hooks/use-flash-toast';
+import AppLayout from '@/layouts/app-layout';
+import { BreadcrumbItem, CourseEditPageProps } from '@/types';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowLeft, Palette, Save, Upload, X } from 'lucide-react';
+import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -36,26 +36,26 @@ function Edit({ course }: CourseEditPageProps) {
     });
 
     const [imagePreview, setImagePreview] = useState<string | null>(
-        course.image ? (course.image.startsWith('http') ? course.image : `/storage/${course.image}`) : null
+        course.image ? (course.image.startsWith('http') ? course.image : `/storage/${course.image}`) : null,
     );
 
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const handleInputChange = (field: string, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setFormData(prev => ({ ...prev, image: file }));
+            setFormData((prev) => ({ ...prev, image: file }));
             setImagePreview(URL.createObjectURL(file));
         }
     };
 
     const removeImage = () => {
-        setFormData(prev => ({ ...prev, image: null }));
+        setFormData((prev) => ({ ...prev, image: null }));
         setImagePreview(course.image ? `/storage/${course.image}` : null);
     };
 
@@ -81,17 +81,14 @@ function Edit({ course }: CourseEditPageProps) {
             onError: (errors) => {
                 setErrors(errors);
                 setProcessing(false);
-            }
+            },
         });
     };
 
     const generateRandomColor = () => {
-        const colors = [
-            '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
-            '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
-        ];
+        const colors = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'];
         const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        setFormData(prev => ({ ...prev, background_color: randomColor }));
+        setFormData((prev) => ({ ...prev, background_color: randomColor }));
     };
 
     return (
@@ -107,18 +104,14 @@ function Edit({ course }: CourseEditPageProps) {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold">Edit Course</h1>
-                        <p className="text-muted-foreground">
-                            Update your course information and settings
-                        </p>
+                        <p className="text-muted-foreground">Update your course information and settings</p>
                     </div>
                 </div>
 
                 <Card className="w-full">
                     <CardHeader>
                         <CardTitle>Course Information</CardTitle>
-                        <CardDescription>
-                            Update the details below to modify your course
-                        </CardDescription>
+                        <CardDescription>Update the details below to modify your course</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-8">
@@ -126,12 +119,10 @@ function Edit({ course }: CourseEditPageProps) {
                             <div className="space-y-6">
                                 <div className="border-b pb-4">
                                     <h3 className="text-lg font-medium">Basic Information</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        Essential details about your course
-                                    </p>
+                                    <p className="text-sm text-muted-foreground">Essential details about your course</p>
                                 </div>
 
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                                     {/* Course Name */}
                                     <div className="space-y-2">
                                         <Label htmlFor="name">Course Name *</Label>
@@ -149,10 +140,7 @@ function Edit({ course }: CourseEditPageProps) {
                                     {/* Course Status */}
                                     <div className="space-y-2">
                                         <Label htmlFor="status">Status *</Label>
-                                        <Select
-                                            value={formData.status}
-                                            onValueChange={(value) => handleInputChange('status', value)}
-                                        >
+                                        <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select status" />
                                             </SelectTrigger>
@@ -184,12 +172,10 @@ function Edit({ course }: CourseEditPageProps) {
                             <div className="space-y-6">
                                 <div className="border-b pb-4">
                                     <h3 className="text-lg font-medium">Visual Customization</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        Customize the appearance of your course
-                                    </p>
+                                    <p className="text-sm text-muted-foreground">Customize the appearance of your course</p>
                                 </div>
 
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
                                     {/* Course Image */}
                                     <div className="space-y-4">
                                         <Label htmlFor="image">Course Image</Label>
@@ -197,11 +183,7 @@ function Edit({ course }: CourseEditPageProps) {
                                         {/* Image Preview */}
                                         {imagePreview ? (
                                             <div className="relative">
-                                                <img
-                                                    src={imagePreview}
-                                                    alt="Course preview"
-                                                    className="w-full h-32 object-cover rounded-lg border"
-                                                />
+                                                <img src={imagePreview} alt="Course preview" className="h-32 w-full rounded-lg border object-cover" />
                                                 <Button
                                                     type="button"
                                                     variant="destructive"
@@ -212,13 +194,13 @@ function Edit({ course }: CourseEditPageProps) {
                                                     <X className="h-4 w-4" />
                                                 </Button>
                                                 {!formData.image && course.image && (
-                                                    <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                                                    <div className="absolute top-2 left-2 rounded bg-black/50 px-2 py-1 text-xs text-white">
                                                         Current
                                                     </div>
                                                 )}
                                             </div>
                                         ) : (
-                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+                                            <div className="rounded-lg border-2 border-dashed border-gray-300 p-6 transition-colors hover:border-gray-400">
                                                 <div className="text-center">
                                                     <Upload className="mx-auto h-8 w-8 text-gray-400" />
                                                     <div className="mt-2">
@@ -235,8 +217,9 @@ function Edit({ course }: CourseEditPageProps) {
                                                             </Button>
                                                         </Label>
                                                     </div>
-                                                    <p className="text-xs text-muted-foreground mt-1">
-                                                        PNG, JPG, GIF up to 2MB<br/>
+                                                    <p className="mt-1 text-xs text-muted-foreground">
+                                                        PNG, JPG, GIF up to 2MB
+                                                        <br />
                                                         Recommended: 1200x630px
                                                     </p>
                                                 </div>
@@ -253,16 +236,13 @@ function Edit({ course }: CourseEditPageProps) {
                                         <div className="space-y-4">
                                             {/* Color Preview */}
                                             <div
-                                                className="w-full h-20 rounded-lg border shadow-sm"
+                                                className="h-20 w-full rounded-lg border shadow-sm"
                                                 style={{ backgroundColor: formData.background_color || '#f3f4f6' }}
                                             />
 
                                             {/* Color Controls */}
                                             <div className="flex items-center gap-3">
-                                                <div
-                                                    className="w-8 h-8 rounded border"
-                                                    style={{ backgroundColor: formData.background_color }}
-                                                />
+                                                <div className="h-8 w-8 rounded border" style={{ backgroundColor: formData.background_color }} />
                                                 <Input
                                                     type="text"
                                                     value={formData.background_color}
@@ -270,12 +250,7 @@ function Edit({ course }: CourseEditPageProps) {
                                                     placeholder="#3B82F6"
                                                     className="font-mono text-sm"
                                                 />
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={generateRandomColor}
-                                                >
+                                                <Button type="button" variant="outline" size="sm" onClick={generateRandomColor}>
                                                     <Palette className="mr-2 h-4 w-4" />
                                                     Random
                                                 </Button>
@@ -288,7 +263,7 @@ function Edit({ course }: CourseEditPageProps) {
                             </div>
 
                             {/* Submit Actions */}
-                            <div className="flex items-center gap-4 pt-6 border-t">
+                            <div className="flex items-center gap-4 border-t pt-6">
                                 <Button type="submit" disabled={processing}>
                                     <Save className="mr-2 h-4 w-4" />
                                     {processing ? 'Saving...' : 'Save Changes'}

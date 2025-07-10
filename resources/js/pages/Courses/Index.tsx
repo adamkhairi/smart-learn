@@ -1,25 +1,19 @@
-import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CoursesPageProps, Course, User } from '@/types';
-import { Head, Link, router } from '@inertiajs/react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Users, BookOpen, Calendar, Edit, Trash2, Eye, MoreVertical, Filter, Search } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { useAuth } from '@/hooks/use-auth';
-import { useIsMobile } from '@/hooks/use-mobile';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-    DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { useState, useMemo } from 'react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
-import { useToast } from '@/hooks/use-toast';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/use-auth';
 import { useFlashToast } from '@/hooks/use-flash-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useToast } from '@/hooks/use-toast';
+import AppLayout from '@/layouts/app-layout';
+import { BreadcrumbItem, Course, CoursesPageProps, User } from '@/types';
+import { Head, Link, router } from '@inertiajs/react';
+import { formatDistanceToNow } from 'date-fns';
+import { BookOpen, Calendar, Edit, Eye, Filter, MoreVertical, Plus, Search, Trash2, Users } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -47,9 +41,10 @@ function Index({ courses, userRole }: CoursesPageProps) {
 
     // Filter and search courses
     const filteredCourses = useMemo(() => {
-        return courses.filter(course => {
-            const matchesSearch = course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                course.description?.toLowerCase().includes(searchQuery.toLowerCase());
+        return courses.filter((course) => {
+            const matchesSearch =
+                course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                course.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
             const matchesStatus = statusFilter === 'all' || course.status === statusFilter;
 
@@ -72,9 +67,9 @@ function Index({ courses, userRole }: CoursesPageProps) {
                     onError: () => {
                         showError('Failed to delete course. Please try again.');
                     },
-                    onFinish: () => setDeletingCourseId(null)
+                    onFinish: () => setDeletingCourseId(null),
                 });
-            }
+            },
         });
     };
 
@@ -124,18 +119,16 @@ function Index({ courses, userRole }: CoursesPageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Courses" />
-            <div className="flex h-full flex-1 flex-col gap-4 lg:gap-6 overflow-x-auto rounded-xl p-4 lg:p-6">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4 lg:gap-6 lg:p-6">
                 {/* Enhanced Header with Search and Filters */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0 flex-1">
                         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">Courses</h1>
-                        <p className="text-sm text-muted-foreground sm:text-base">
-                            Manage your learning journey
-                        </p>
+                        <p className="text-sm text-muted-foreground sm:text-base">Manage your learning journey</p>
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                         {canCreateCourse && (
-                            <Button asChild size={isMobile ? "sm" : "default"}>
+                            <Button asChild size={isMobile ? 'sm' : 'default'}>
                                 <Link href="/courses/create">
                                     <Plus className="mr-2 h-4 w-4" />
                                     <span className="hidden sm:inline">Create Course</span>
@@ -151,33 +144,27 @@ function Index({ courses, userRole }: CoursesPageProps) {
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                         {/* Search Input */}
                         <div className="relative flex-1 sm:max-w-sm">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search courses..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9 h-9 sm:h-10"
+                                className="h-9 pl-9 sm:h-10"
                             />
                         </div>
 
                         {/* Status Filter */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size={isMobile ? "sm" : "default"} className="justify-start min-w-[120px]">
+                                <Button variant="outline" size={isMobile ? 'sm' : 'default'} className="min-w-[120px] justify-start">
                                     <Filter className="mr-2 h-4 w-4" />
                                     <span className="capitalize">{statusFilter === 'all' ? 'All Status' : statusFilter}</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-40">
-                                <DropdownMenuItem onClick={() => setStatusFilter('all')}>
-                                    All Status
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setStatusFilter('published')}>
-                                    Published
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setStatusFilter('archived')}>
-                                    Archived
-                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setStatusFilter('all')}>All Status</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setStatusFilter('published')}>Published</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setStatusFilter('archived')}>Archived</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -201,21 +188,17 @@ function Index({ courses, userRole }: CoursesPageProps) {
                 {filteredCourses.length === 0 ? (
                     <Card>
                         <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16">
-                            <BookOpen className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mb-4" />
-                            <h3 className="text-lg sm:text-xl font-semibold mb-2">
-                                {searchQuery ? 'No courses found' : 'No courses found'}
-                            </h3>
-                            <p className="text-sm sm:text-base text-muted-foreground text-center mb-6 max-w-md">
-                                {searchQuery ? (
-                                    `No courses match your search for "${searchQuery}"`
-                                ) : canCreateCourse ? (
-                                    "Get started by creating your first course"
-                                ) : (
-                                    "You haven't enrolled in any courses yet"
-                                )}
+                            <BookOpen className="mb-4 h-12 w-12 text-muted-foreground sm:h-16 sm:w-16" />
+                            <h3 className="mb-2 text-lg font-semibold sm:text-xl">{searchQuery ? 'No courses found' : 'No courses found'}</h3>
+                            <p className="mb-6 max-w-md text-center text-sm text-muted-foreground sm:text-base">
+                                {searchQuery
+                                    ? `No courses match your search for "${searchQuery}"`
+                                    : canCreateCourse
+                                      ? 'Get started by creating your first course'
+                                      : "You haven't enrolled in any courses yet"}
                             </p>
                             {!searchQuery && canCreateCourse && (
-                                <Button asChild size={isMobile ? "sm" : "default"}>
+                                <Button asChild size={isMobile ? 'sm' : 'default'}>
                                     <Link href="/courses/create">
                                         <Plus className="mr-2 h-4 w-4" />
                                         Create Your First Course
@@ -223,42 +206,32 @@ function Index({ courses, userRole }: CoursesPageProps) {
                                 </Button>
                             )}
                             {searchQuery && (
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setSearchQuery('')}
-                                    size={isMobile ? "sm" : "default"}
-                                >
+                                <Button variant="outline" onClick={() => setSearchQuery('')} size={isMobile ? 'sm' : 'default'}>
                                     Clear Search
                                 </Button>
                             )}
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 sm:gap-6">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                         {filteredCourses.map((course) => (
-                            <Card
-                                key={course.id}
-                                className="group hover:shadow-lg transition-all duration-200 h-full flex flex-col"
-                            >
-                                <CardHeader className="pb-3 sm:pb-4 flex-shrink-0">
+                            <Card key={course.id} className="group flex h-full flex-col transition-all duration-200 hover:shadow-lg">
+                                <CardHeader className="flex-shrink-0 pb-3 sm:pb-4">
                                     <div className="flex items-start justify-between gap-3">
-                                        <div className="flex-1 min-w-0">
-                                            <Link
-                                                href={`/courses/${course.id}`}
-                                                className="block"
-                                            >
-                                                <CardTitle className="line-clamp-2 hover:text-primary transition-colors cursor-pointer text-base sm:text-lg leading-snug">
+                                        <div className="min-w-0 flex-1">
+                                            <Link href={`/courses/${course.id}`} className="block">
+                                                <CardTitle className="line-clamp-2 cursor-pointer text-base leading-snug transition-colors hover:text-primary sm:text-lg">
                                                     {course.name}
                                                 </CardTitle>
                                             </Link>
-                                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                                            <div className="mt-2 flex flex-wrap items-center gap-2">
                                                 {getStatusBadge(course.status)}
                                                 {getRoleBadge(course)}
                                             </div>
                                         </div>
 
                                         {/* Action Menu - Enhanced for Touch */}
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 sm:opacity-100 transition-opacity">
+                                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100">
                                             {/* Mobile: Always show dropdown */}
                                             {isMobile ? (
                                                 <DropdownMenu>
@@ -351,10 +324,10 @@ function Index({ courses, userRole }: CoursesPageProps) {
                                     </div>
                                 </CardHeader>
 
-                                <CardContent className="pt-0 flex flex-col justify-between flex-1">
+                                <CardContent className="flex flex-1 flex-col justify-between pt-0">
                                     <div className="flex-1">
                                         {course.description && (
-                                            <CardDescription className="line-clamp-3 mb-4 text-sm sm:text-base leading-relaxed">
+                                            <CardDescription className="mb-4 line-clamp-3 text-sm leading-relaxed sm:text-base">
                                                 {course.description}
                                             </CardDescription>
                                         )}
@@ -362,29 +335,25 @@ function Index({ courses, userRole }: CoursesPageProps) {
 
                                     {/* Course Stats - Responsive Grid */}
                                     <div className="space-y-3">
-                                        <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm text-muted-foreground">
+                                        <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground sm:text-sm">
                                             <div className="flex items-center gap-1.5">
-                                                <Users className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                                <Users className="h-3 w-3 flex-shrink-0 sm:h-4 sm:w-4" />
                                                 <span className="truncate">{course.enrolled_users?.length || 0} students</span>
                                             </div>
                                             <div className="flex items-center gap-1.5">
-                                                <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                                <BookOpen className="h-3 w-3 flex-shrink-0 sm:h-4 sm:w-4" />
                                                 <span className="truncate">{course.modules?.length || 0} modules</span>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-3">
+                                        <div className="flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
                                             <div className="flex items-center gap-1">
                                                 <Calendar className="h-3 w-3" />
                                                 <span className="truncate">
                                                     {formatDistanceToNow(new Date(course.created_at), { addSuffix: true })}
                                                 </span>
                                             </div>
-                                            {course.creator && (
-                                                <span className="truncate max-w-[120px]">
-                                                    by {course.creator.name}
-                                                </span>
-                                            )}
+                                            {course.creator && <span className="max-w-[120px] truncate">by {course.creator.name}</span>}
                                         </div>
                                     </div>
                                 </CardContent>

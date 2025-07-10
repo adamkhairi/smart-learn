@@ -1,34 +1,33 @@
-import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CourseModulesPageProps } from '@/types';
-import { Head, Link, router } from '@inertiajs/react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { LoadingButton } from '@/components/ui/loading-button';
-import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/use-auth';
+import AppLayout from '@/layouts/app-layout';
+import { BreadcrumbItem, CourseModulesPageProps } from '@/types';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
-    Plus,
+    BookOpen,
+    Calendar,
+    CheckCircle,
+    Clock,
+    Copy,
     Edit,
     Eye,
     EyeOff,
-    Copy,
-    Trash2,
-    GripVertical,
-    BookOpen,
-    Clock,
-    CheckCircle,
-    XCircle,
-    Search,
-    Filter,
     FileText,
-    Calendar
+    Filter,
+    GripVertical,
+    Plus,
+    Search,
+    Trash2,
+    XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from '@inertiajs/react';
 
 // Using CourseModulesPageProps directly since no additional props needed
 type ModulesIndexProps = CourseModulesPageProps;
@@ -53,14 +52,14 @@ function Index({ course, modules }: ModulesIndexProps) {
     const isStudent = !isInstructor; // If not instructor, assume student
 
     // Filter modules based on user role - students only see published modules
-    const visibleModules = isStudent ? modules.filter(module => module.is_published) : modules;
+    const visibleModules = isStudent ? modules.filter((module) => module.is_published) : modules;
 
     const handleTogglePublished = (moduleId: number) => {
-        setProcessingActions(prev => ({ ...prev, [moduleId]: true }));
+        setProcessingActions((prev) => ({ ...prev, [moduleId]: true }));
         patch(`/courses/${course.id}/modules/${moduleId}/toggle-published`, {
             onFinish: () => {
-                setProcessingActions(prev => ({ ...prev, [moduleId]: false }));
-            }
+                setProcessingActions((prev) => ({ ...prev, [moduleId]: false }));
+            },
         });
     };
 
@@ -71,23 +70,27 @@ function Index({ course, modules }: ModulesIndexProps) {
             confirmText: 'Delete Module',
             variant: 'destructive',
             onConfirm: () => {
-                setProcessingActions(prev => ({ ...prev, [moduleId]: true }));
+                setProcessingActions((prev) => ({ ...prev, [moduleId]: true }));
                 router.delete(`/courses/${course.id}/modules/${moduleId}`, {
                     onFinish: () => {
-                        setProcessingActions(prev => ({ ...prev, [moduleId]: false }));
-                    }
+                        setProcessingActions((prev) => ({ ...prev, [moduleId]: false }));
+                    },
                 });
-            }
+            },
         });
     };
 
     const handleDuplicate = (moduleId: number) => {
-        setProcessingActions(prev => ({ ...prev, [moduleId]: true }));
-        router.post(`/courses/${course.id}/modules/${moduleId}/duplicate`, {}, {
-            onFinish: () => {
-                setProcessingActions(prev => ({ ...prev, [moduleId]: false }));
-            }
-        });
+        setProcessingActions((prev) => ({ ...prev, [moduleId]: true }));
+        router.post(
+            `/courses/${course.id}/modules/${moduleId}/duplicate`,
+            {},
+            {
+                onFinish: () => {
+                    setProcessingActions((prev) => ({ ...prev, [moduleId]: false }));
+                },
+            },
+        );
     };
 
     const handleDragStart = (e: React.DragEvent, moduleId: number) => {
@@ -108,8 +111,8 @@ function Index({ course, modules }: ModulesIndexProps) {
             return;
         }
 
-        const draggedIndex = modules.findIndex(m => m.id === draggedModule);
-        const targetIndex = modules.findIndex(m => m.id === targetModuleId);
+        const draggedIndex = modules.findIndex((m) => m.id === draggedModule);
+        const targetIndex = modules.findIndex((m) => m.id === targetModuleId);
 
         if (draggedIndex === -1 || targetIndex === -1) return;
 
@@ -121,32 +124,30 @@ function Index({ course, modules }: ModulesIndexProps) {
         // Update order values
         const modulesWithNewOrder = reorderedModules.map((module, index) => ({
             id: module.id,
-            order: index + 1
+            order: index + 1,
         }));
 
         // Send update to backend
-        patch(`/courses/${course.id}/modules/order`, {
-            modules: modulesWithNewOrder
+        router.patch(`/courses/${course.id}/modules/order`, {
+            modules: modulesWithNewOrder,
         });
 
         setDraggedModule(null);
     };
 
     // Filter modules based on search and status
-    const filteredModules = visibleModules.filter(module => {
-        const matchesSearch = module.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (module.description && module.description.toLowerCase().includes(searchTerm.toLowerCase()));
-        const matchesStatus = statusFilter === 'all' ||
-                            (statusFilter === 'published' && module.is_published) ||
-                            (statusFilter === 'draft' && !module.is_published);
+    const filteredModules = visibleModules.filter((module) => {
+        const matchesSearch =
+            module.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (module.description && module.description.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesStatus =
+            statusFilter === 'all' || (statusFilter === 'published' && module.is_published) || (statusFilter === 'draft' && !module.is_published);
         return matchesSearch && matchesStatus;
     });
 
-    const totalItems = visibleModules.reduce((total, module) =>
-        total + (module.module_items_count || module.itemsCount || 0), 0
-    );
-    const publishedModules = visibleModules.filter(m => m.is_published).length;
-    const draftModules = visibleModules.filter(m => !m.is_published).length;
+    const totalItems = visibleModules.reduce((total, module) => total + (module.module_items_count || module.itemsCount || 0), 0);
+    const publishedModules = visibleModules.filter((m) => m.is_published).length;
+    const draftModules = visibleModules.filter((m) => !m.is_published).length;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -164,9 +165,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                         </Button>
                         <div>
                             <h1 className="text-3xl font-bold">Course Modules</h1>
-                            <p className="text-muted-foreground text-lg">
-                                Manage learning content for {course.name}
-                            </p>
+                            <p className="text-lg text-muted-foreground">Manage learning content for {course.name}</p>
                         </div>
                     </div>
 
@@ -185,7 +184,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                     <Card className="border-l-4 border-l-blue-500">
                         <CardContent className="p-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                                <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900">
                                     <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                                 </div>
                                 <div>
@@ -199,7 +198,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                         <Card className="border-l-4 border-l-green-500">
                             <CardContent className="p-6">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                                    <div className="rounded-lg bg-green-100 p-2 dark:bg-green-900">
                                         <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
                                     </div>
                                     <div>
@@ -214,7 +213,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                         <Card className="border-l-4 border-l-orange-500">
                             <CardContent className="p-6">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                                    <div className="rounded-lg bg-orange-100 p-2 dark:bg-orange-900">
                                         <XCircle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                                     </div>
                                     <div>
@@ -228,7 +227,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                     <Card className="border-l-4 border-l-purple-500">
                         <CardContent className="p-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                                <div className="rounded-lg bg-purple-100 p-2 dark:bg-purple-900">
                                     <FileText className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                                 </div>
                                 <div>
@@ -241,9 +240,9 @@ function Index({ course, modules }: ModulesIndexProps) {
                 </div>
 
                 {/* Search and Filter */}
-                <div className="flex items-center gap-4 bg-card border rounded-lg p-4">
-                    <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-4 rounded-lg border bg-card p-4">
+                    <div className="relative max-w-md flex-1">
+                        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
                         <Input
                             placeholder="Search modules by title or description..."
                             value={searchTerm}
@@ -257,7 +256,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value as 'all' | 'published' | 'draft')}
-                                className="border border-input bg-background px-3 py-2 text-sm rounded-md focus:ring-2 focus:ring-ring focus:border-transparent"
+                                className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-ring"
                             >
                                 <option value="all">All Modules ({visibleModules.length})</option>
                                 <option value="published">Published ({publishedModules})</option>
@@ -273,9 +272,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                         {filteredModules.map((module) => (
                             <Card
                                 key={module.id}
-                                className={`transition-all duration-200 hover:shadow-lg ${
-                                    draggedModule === module.id ? 'opacity-50 scale-95' : ''
-                                }`}
+                                className={`transition-all duration-200 hover:shadow-lg ${draggedModule === module.id ? 'scale-95 opacity-50' : ''}`}
                                 draggable={isInstructor}
                                 onDragStart={(e) => handleDragStart(e, module.id)}
                                 onDragOver={handleDragOver}
@@ -288,7 +285,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
                                                         <div>
-                                                            <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab hover:text-foreground transition-colors" />
+                                                            <GripVertical className="h-5 w-5 cursor-grab text-muted-foreground transition-colors hover:text-foreground" />
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -301,8 +298,8 @@ function Index({ course, modules }: ModulesIndexProps) {
                                                     Module {module.order}
                                                 </Badge>
                                                 <CardTitle className="text-xl">{module.title}</CardTitle>
-                                                {!isStudent && (
-                                                    module.is_published ? (
+                                                {!isStudent &&
+                                                    (module.is_published ? (
                                                         <Badge variant="default" className="text-sm">
                                                             <CheckCircle className="mr-1 h-3 w-3" />
                                                             Published
@@ -312,8 +309,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                                                             <XCircle className="mr-1 h-3 w-3" />
                                                             Draft
                                                         </Badge>
-                                                    )
-                                                )}
+                                                    ))}
                                             </div>
                                         </div>
 
@@ -328,11 +324,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                                                             onClick={() => handleTogglePublished(module.id)}
                                                             className="hover:bg-muted"
                                                         >
-                                                            {module.is_published ? (
-                                                                <EyeOff className="h-4 w-4" />
-                                                            ) : (
-                                                                <Eye className="h-4 w-4" />
-                                                            )}
+                                                            {module.is_published ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                                         </LoadingButton>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -374,7 +366,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                                                             size="sm"
                                                             loading={processingActions[module.id]}
                                                             onClick={() => handleDelete(module.id, module.title)}
-                                                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                                                            className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950"
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </LoadingButton>
@@ -387,11 +379,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                                         )}
                                     </div>
 
-                                    {module.description && (
-                                        <CardDescription className="text-base mt-3">
-                                            {module.description}
-                                        </CardDescription>
-                                    )}
+                                    {module.description && <CardDescription className="mt-3 text-base">{module.description}</CardDescription>}
                                 </CardHeader>
 
                                 <CardContent className="pt-0">
@@ -403,7 +391,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                                             </span>
                                             <span className="flex items-center gap-2">
                                                 <Clock className="h-4 w-4" />
-                                                Est. {Math.max(1, Math.ceil((module.module_items_count || module.itemsCount || 0) * 15 / 60))}h
+                                                Est. {Math.max(1, Math.ceil(((module.module_items_count || module.itemsCount || 0) * 15) / 60))}h
                                             </span>
                                             <span className="flex items-center gap-2">
                                                 <Calendar className="h-4 w-4" />
@@ -425,17 +413,16 @@ function Index({ course, modules }: ModulesIndexProps) {
                 ) : (
                     <Card>
                         <CardContent className="flex flex-col items-center justify-center py-16">
-                            <BookOpen className="h-16 w-16 text-muted-foreground mb-6" />
-                            <h3 className="text-xl font-semibold mb-3">
+                            <BookOpen className="mb-6 h-16 w-16 text-muted-foreground" />
+                            <h3 className="mb-3 text-xl font-semibold">
                                 {searchTerm || statusFilter !== 'all' ? 'No modules match your criteria' : 'No modules yet'}
                             </h3>
-                            <p className="text-muted-foreground text-center mb-6 max-w-md">
+                            <p className="mb-6 max-w-md text-center text-muted-foreground">
                                 {searchTerm || statusFilter !== 'all'
-                                    ? 'Try adjusting your search terms or filters to find what you\'re looking for.'
+                                    ? "Try adjusting your search terms or filters to find what you're looking for."
                                     : isInstructor
-                                        ? "Start building your course by creating the first module. Modules help organize your content into logical learning units."
-                                        : "This course doesn't have any modules yet. Check back later for content."
-                                }
+                                      ? 'Start building your course by creating the first module. Modules help organize your content into logical learning units.'
+                                      : "This course doesn't have any modules yet. Check back later for content."}
                             </p>
                             {isInstructor && !searchTerm && statusFilter === 'all' && (
                                 <Button size="lg" asChild>

@@ -1,12 +1,11 @@
-import React from 'react';
-import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Users, UserCheck, UserX, TrendingUp, BookOpen } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { User } from '@/types';
+import { Head, Link } from '@inertiajs/react';
+import { ArrowLeft, BookOpen, TrendingUp, UserCheck, Users, UserX } from 'lucide-react';
 import { route } from 'ziggy-js';
 
 interface StatsUser extends User {
@@ -67,9 +66,7 @@ export default function UserStats({ stats }: Props) {
                         </Link>
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight">User Statistics</h1>
-                            <p className="text-muted-foreground">
-                                Overview of user analytics and insights
-                            </p>
+                            <p className="text-muted-foreground">Overview of user analytics and insights</p>
                         </div>
                     </div>
                 </div>
@@ -83,9 +80,7 @@ export default function UserStats({ stats }: Props) {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.total_users}</div>
-                            <p className="text-xs text-muted-foreground">
-                                All registered users
-                            </p>
+                            <p className="text-xs text-muted-foreground">All registered users</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -95,9 +90,7 @@ export default function UserStats({ stats }: Props) {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.active_users}</div>
-                            <p className="text-xs text-muted-foreground">
-                                {((stats.active_users / stats.total_users) * 100).toFixed(1)}% of total
-                            </p>
+                            <p className="text-xs text-muted-foreground">{((stats.active_users / stats.total_users) * 100).toFixed(1)}% of total</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -107,9 +100,7 @@ export default function UserStats({ stats }: Props) {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.inactive_users}</div>
-                            <p className="text-xs text-muted-foreground">
-                                {((stats.inactive_users / stats.total_users) * 100).toFixed(1)}% of total
-                            </p>
+                            <p className="text-xs text-muted-foreground">{((stats.inactive_users / stats.total_users) * 100).toFixed(1)}% of total</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -119,9 +110,7 @@ export default function UserStats({ stats }: Props) {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">+12.5%</div>
-                            <p className="text-xs text-muted-foreground">
-                                This month
-                            </p>
+                            <p className="text-xs text-muted-foreground">This month</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -136,21 +125,21 @@ export default function UserStats({ stats }: Props) {
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-2">
-                                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                                        <div className="h-3 w-3 rounded-full bg-red-500"></div>
                                         <span className="text-sm font-medium">Admins</span>
                                     </div>
                                     <div className="text-sm font-bold">{stats.role_distribution.admin}</div>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-2">
-                                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                        <div className="h-3 w-3 rounded-full bg-blue-500"></div>
                                         <span className="text-sm font-medium">Instructors</span>
                                     </div>
                                     <div className="text-sm font-bold">{stats.role_distribution.instructor}</div>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-2">
-                                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                                        <div className="h-3 w-3 rounded-full bg-gray-500"></div>
                                         <span className="text-sm font-medium">Students</span>
                                     </div>
                                     <div className="text-sm font-bold">{stats.role_distribution.student}</div>
@@ -170,18 +159,19 @@ export default function UserStats({ stats }: Props) {
                                     <div key={user.id} className="flex items-center space-x-3">
                                         <Avatar className="h-8 w-8">
                                             <AvatarFallback className="text-xs">
-                                                {user.name.split(' ').map(n => n[0]).join('')}
+                                                {user.name
+                                                    .split(' ')
+                                                    .map((n) => n[0])
+                                                    .join('')}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium truncate">{user.name}</p>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-medium">{user.name}</p>
                                             <p className="text-xs text-muted-foreground">{user.email}</p>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             {getRoleBadge(user.role)}
-                                            <span className="text-xs text-muted-foreground">
-                                                {formatDate(user.created_at)}
-                                            </span>
+                                            <span className="text-xs text-muted-foreground">{formatDate(user.created_at)}</span>
                                         </div>
                                     </div>
                                 ))}
@@ -201,14 +191,17 @@ export default function UserStats({ stats }: Props) {
                     <CardContent>
                         <div className="space-y-4">
                             {stats.top_instructors.map((instructor, index) => (
-                                <div key={instructor.id} className="flex items-center justify-between p-4 border rounded-lg">
+                                <div key={instructor.id} className="flex items-center justify-between rounded-lg border p-4">
                                     <div className="flex items-center space-x-4">
-                                        <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-full text-sm font-bold">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                                             {index + 1}
                                         </div>
                                         <Avatar>
                                             <AvatarFallback>
-                                                {instructor.name.split(' ').map(n => n[0]).join('')}
+                                                {instructor.name
+                                                    .split(' ')
+                                                    .map((n) => n[0])
+                                                    .join('')}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div>

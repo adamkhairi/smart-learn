@@ -1,26 +1,20 @@
-import React, { useState } from 'react';
-import { Head, useForm, Link, router } from '@inertiajs/react';
-import { ArrowLeft, Save, Plus, X, Search } from 'lucide-react';
+import InputError from '@/components/input-error';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import InputError from '@/components/input-error';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import AppLayout from '@/layouts/app-layout';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFlashToast } from '@/hooks/use-flash-toast';
 import { useToast } from '@/hooks/use-toast';
-import { useConfirmDialog } from '@/components/ui/confirm-dialog';
-import { User, Course } from '@/types';
+import AppLayout from '@/layouts/app-layout';
+import { Course, User } from '@/types';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { ArrowLeft, Plus, Save, Search, X } from 'lucide-react';
+import React, { useState } from 'react';
 import { route } from 'ziggy-js';
 
 // No custom Enrollment/EditUser interfaces needed for this approach
@@ -32,7 +26,7 @@ interface Props {
             pivot: {
                 enrolled_as: 'student' | 'instructor' | 'admin';
                 created_at: string;
-            }
+            };
         })[];
         created_courses: Course[];
     };
@@ -49,7 +43,13 @@ export default function EditUser({ user, availableCourses }: Props) {
     const { success, error } = useToast();
     const { confirm, confirmDialog } = useConfirmDialog();
 
-    const { data, setData, put, processing, errors: formErrors } = useForm({
+    const {
+        data,
+        setData,
+        put,
+        processing,
+        errors: formErrors,
+    } = useForm({
         name: user.name,
         email: user.email,
         username: user.username,
@@ -68,22 +68,26 @@ export default function EditUser({ user, availableCourses }: Props) {
     const handleAssignCourse = () => {
         if (!newCourseId || !newCourseRole) return;
 
-        const courseName = availableCourses.find(c => c.id.toString() === newCourseId)?.name || 'course';
+        const courseName = availableCourses.find((c) => c.id.toString() === newCourseId)?.name || 'course';
 
-        router.post(route('admin.users.assign-course', user.id), {
-            course_id: parseInt(newCourseId),
-            role: newCourseRole,
-        }, {
-            onSuccess: () => {
-                setNewCourseId('');
-                setNewCourseRole('student');
-                setSearchTerm('');
-                success(`${user.name} has been assigned to ${courseName} successfully!`);
+        router.post(
+            route('admin.users.assign-course', user.id),
+            {
+                course_id: parseInt(newCourseId),
+                role: newCourseRole,
             },
-            onError: () => {
-                error('Failed to assign user to course. Please try again.');
-            }
-        });
+            {
+                onSuccess: () => {
+                    setNewCourseId('');
+                    setNewCourseRole('student');
+                    setSearchTerm('');
+                    success(`${user.name} has been assigned to ${courseName} successfully!`);
+                },
+                onError: () => {
+                    error('Failed to assign user to course. Please try again.');
+                },
+            },
+        );
     };
 
     const handleRemoveCourse = (courseId: number, courseName: string) => {
@@ -100,26 +104,30 @@ export default function EditUser({ user, availableCourses }: Props) {
                     },
                     onError: () => {
                         error('Failed to remove user from course. Please try again.');
-                    }
+                    },
                 });
-            }
+            },
         });
     };
 
     const handleUpdateCourseRole = (courseId: number, role: string) => {
-        const courseName = user.enrollments.find(c => c.id === courseId)?.name || 'course';
+        const courseName = user.enrollments.find((c) => c.id === courseId)?.name || 'course';
 
-        router.patch(route('admin.users.update-course-role', user.id), {
-            course_id: courseId,
-            role: role,
-        }, {
-            onSuccess: () => {
-                success(`${user.name}'s role in ${courseName} has been updated to ${role}.`);
+        router.patch(
+            route('admin.users.update-course-role', user.id),
+            {
+                course_id: courseId,
+                role: role,
             },
-            onError: () => {
-                error('Failed to update user role. Please try again.');
-            }
-        });
+            {
+                onSuccess: () => {
+                    success(`${user.name}'s role in ${courseName} has been updated to ${role}.`);
+                },
+                onError: () => {
+                    error('Failed to update user role. Please try again.');
+                },
+            },
+        );
     };
 
     const getRoleBadge = (role: string) => {
@@ -133,7 +141,11 @@ export default function EditUser({ user, availableCourses }: Props) {
     };
 
     const getInitials = (name: string) => {
-        return name.split(' ').map(n => n[0]).join('').toUpperCase();
+        return name
+            .split(' ')
+            .map((n) => n[0])
+            .join('')
+            .toUpperCase();
     };
 
     return (
@@ -141,7 +153,6 @@ export default function EditUser({ user, availableCourses }: Props) {
             <Head title={`Edit User - ${user.name}`} />
 
             <div className="space-y-6 pt-4">
-
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -154,9 +165,7 @@ export default function EditUser({ user, availableCourses }: Props) {
                         <div className="flex items-center space-x-4">
                             <Avatar>
                                 <AvatarImage src={user.photo ?? undefined} />
-                                <AvatarFallback>
-                                    {getInitials(user.name)}
-                                </AvatarFallback>
+                                <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                             </Avatar>
                             <div>
                                 <h1 className="text-3xl font-bold tracking-tight">Edit User</h1>
@@ -316,9 +325,9 @@ export default function EditUser({ user, availableCourses }: Props) {
                                 <div className="space-y-3">
                                     {user.enrollments.length > 0 ? (
                                         user.enrollments.map((course) => (
-                                            <div key={course.id} className="flex items-center justify-between p-3 border rounded-lg">
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="font-medium truncate">{course.name}</div>
+                                            <div key={course.id} className="flex items-center justify-between rounded-lg border p-3">
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="truncate font-medium">{course.name}</div>
                                                     <div className="text-sm text-muted-foreground">
                                                         {getRoleBadge(course.pivot?.enrolled_as || 'student')}
                                                     </div>
@@ -337,20 +346,14 @@ export default function EditUser({ user, availableCourses }: Props) {
                                                             <SelectItem value="admin">Admin</SelectItem>
                                                         </SelectContent>
                                                     </Select>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleRemoveCourse(course.id, course.name)}
-                                                    >
+                                                    <Button variant="ghost" size="sm" onClick={() => handleRemoveCourse(course.id, course.name)}>
                                                         <X className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-muted-foreground text-center py-4">
-                                            No course enrollments
-                                        </p>
+                                        <p className="py-4 text-center text-muted-foreground">No course enrollments</p>
                                     )}
                                 </div>
                             </CardContent>
@@ -368,7 +371,7 @@ export default function EditUser({ user, availableCourses }: Props) {
                                         <div className="space-y-2">
                                             <Label>Search Courses</Label>
                                             <div className="relative">
-                                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                                <Search className="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
                                                 <Input
                                                     placeholder="Search courses..."
                                                     value={searchTerm}
@@ -380,30 +383,40 @@ export default function EditUser({ user, availableCourses }: Props) {
 
                                         <div className="grid gap-4 md:grid-cols-2">
                                             <div className="space-y-2">
-                                                <Label>Course ({availableCourses.filter(course =>
-                                                    course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                    (course.description && course.description.toLowerCase().includes(searchTerm.toLowerCase()))
-                                                ).length} found)</Label>
+                                                <Label>
+                                                    Course (
+                                                    {
+                                                        availableCourses.filter(
+                                                            (course) =>
+                                                                course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                                (course.description &&
+                                                                    course.description.toLowerCase().includes(searchTerm.toLowerCase())),
+                                                        ).length
+                                                    }{' '}
+                                                    found)
+                                                </Label>
                                                 <Select value={newCourseId} onValueChange={setNewCourseId}>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Select course" />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         {availableCourses
-                                                            .filter(course =>
-                                                                course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                                (course.description && course.description.toLowerCase().includes(searchTerm.toLowerCase()))
+                                                            .filter(
+                                                                (course) =>
+                                                                    course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                                    (course.description &&
+                                                                        course.description.toLowerCase().includes(searchTerm.toLowerCase())),
                                                             )
                                                             .map((course) => (
-                                                            <SelectItem key={course.id} value={course.id.toString()}>
-                                                                <div>
-                                                                    <div className="font-medium">{course.name}</div>
-                                                                    <div className="text-xs text-muted-foreground truncate max-w-60">
-                                                                        {course.description}
+                                                                <SelectItem key={course.id} value={course.id.toString()}>
+                                                                    <div>
+                                                                        <div className="font-medium">{course.name}</div>
+                                                                        <div className="max-w-60 truncate text-xs text-muted-foreground">
+                                                                            {course.description}
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                            </SelectItem>
-                                                        ))}
+                                                                </SelectItem>
+                                                            ))}
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -421,11 +434,7 @@ export default function EditUser({ user, availableCourses }: Props) {
                                                 </Select>
                                             </div>
                                         </div>
-                                        <Button
-                                            onClick={handleAssignCourse}
-                                            disabled={!newCourseId || !newCourseRole}
-                                            className="w-full"
-                                        >
+                                        <Button onClick={handleAssignCourse} disabled={!newCourseId || !newCourseRole} className="w-full">
                                             <Plus className="mr-2 h-4 w-4" />
                                             Assign to Course
                                         </Button>
@@ -436,10 +445,8 @@ export default function EditUser({ user, availableCourses }: Props) {
 
                         {availableCourses.length === 0 && (
                             <Card>
-                                <CardContent className="text-center py-8">
-                                    <p className="text-muted-foreground">
-                                        User is enrolled in all available courses
-                                    </p>
+                                <CardContent className="py-8 text-center">
+                                    <p className="text-muted-foreground">User is enrolled in all available courses</p>
                                 </CardContent>
                             </Card>
                         )}

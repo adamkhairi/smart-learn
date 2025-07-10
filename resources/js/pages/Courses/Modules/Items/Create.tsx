@@ -1,18 +1,18 @@
-import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CourseModuleItemCreatePageProps, QuestionFormData } from '@/types';
-import { Head, useForm, Link, router } from '@inertiajs/react';
+import { QuestionBuilder } from '@/components/question-builder';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
-import { QuestionBuilder } from '@/components/question-builder';
-import { ArrowLeft, Play, HelpCircle, ClipboardList } from 'lucide-react';
-import { useState, ChangeEvent, FormEvent } from 'react';
+import { Textarea } from '@/components/ui/textarea';
 import { useFlashToast } from '@/hooks/use-flash-toast';
 import { useToast } from '@/hooks/use-toast';
+import AppLayout from '@/layouts/app-layout';
+import { BreadcrumbItem, CourseModuleItemCreatePageProps, QuestionFormData } from '@/types';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { ArrowLeft, ClipboardList, HelpCircle, Play } from 'lucide-react';
+import { ChangeEvent, FormEvent, useState } from 'react';
 
 function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) {
     const [selectedType, setSelectedType] = useState<'lecture' | 'assessment' | 'assignment' | ''>('');
@@ -27,7 +27,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
         description: '',
         item_type: '' as 'lecture' | 'assessment' | 'assignment',
         order: nextOrder,
-        is_required: false,
+        is_required: false as boolean,
         status: 'published' as 'draft' | 'published',
         video_url: '',
         duration: 0,
@@ -84,10 +84,9 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
             try {
                 const parsed = JSON.parse(jsonContent);
                 if (parsed && parsed.root && parsed.root.children) {
-                    return parsed.root.children.some((child: { children?: { text?: string }[] }) =>
-                        child.children && child.children.some((textNode: { text?: string }) =>
-                            textNode.text && textNode.text.trim() !== ''
-                        )
+                    return parsed.root.children.some(
+                        (child: { children?: { text?: string }[] }) =>
+                            child.children && child.children.some((textNode: { text?: string }) => textNode.text && textNode.text.trim() !== ''),
                     );
                 }
                 return false;
@@ -137,10 +136,13 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
         const loadingToastId = showLoading('Adding module item...');
 
         // Create submission data with questions if this is an assessment
-        const submitData = selectedType === 'assessment' ? {
-            ...data,
-            questions: JSON.stringify(questions)
-        } : data;
+        const submitData =
+            selectedType === 'assessment'
+                ? {
+                      ...data,
+                      questions: JSON.stringify(questions),
+                  }
+                : data;
 
         // Use the manual URL for now until we debug the route issue
         router.post(`/courses/${course.id}/modules/${module.id}/items`, submitData, {
@@ -159,7 +161,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                 } else {
                     showError('Failed to add module item. Please try again.');
                 }
-            }
+            },
         });
     };
 
@@ -281,9 +283,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold">Add Module Item</h1>
-                        <p className="text-muted-foreground">
-                            Add content to "{module.title}"
-                        </p>
+                        <p className="text-muted-foreground">Add content to "{module.title}"</p>
                     </div>
                 </div>
 
@@ -292,9 +292,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                         <Card>
                             <CardHeader>
                                 <CardTitle>Item Details</CardTitle>
-                                <CardDescription>
-                                    Configure your new module item
-                                </CardDescription>
+                                <CardDescription>Configure your new module item</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -312,22 +310,16 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     onClick={() => handleTypeChange(type.value as 'lecture' | 'assessment' | 'assignment')}
                                                 >
                                                     <div className="flex items-center gap-3">
-                                                        <div className={type.color}>
-                                                            {type.icon}
-                                                        </div>
+                                                        <div className={type.color}>{type.icon}</div>
                                                         <div>
                                                             <div className="font-medium">{type.label}</div>
-                                                            <div className="text-sm text-muted-foreground">
-                                                                {type.description}
-                                                            </div>
+                                                            <div className="text-sm text-muted-foreground">{type.description}</div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
-                                        {errors.item_type && (
-                                            <p className="text-sm text-destructive">{errors.item_type}</p>
-                                        )}
+                                        {errors.item_type && <p className="text-sm text-destructive">{errors.item_type}</p>}
                                     </div>
 
                                     <div className="space-y-4 pt-4">
@@ -341,9 +333,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                 placeholder="Enter the module item title"
                                                 className={errors.title ? 'border-destructive' : ''}
                                             />
-                                            {errors.title && (
-                                                <p className="text-sm text-destructive mt-1">{errors.title}</p>
-                                            )}
+                                            {errors.title && <p className="mt-1 text-sm text-destructive">{errors.title}</p>}
                                         </div>
 
                                         <div>
@@ -355,9 +345,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                 placeholder="Enter a description for this item"
                                                 rows={3}
                                             />
-                                            {errors.description && (
-                                                <p className="text-sm text-destructive mt-1">{errors.description}</p>
-                                            )}
+                                            {errors.description && <p className="mt-1 text-sm text-destructive">{errors.description}</p>}
                                         </div>
                                     </div>
 
@@ -374,9 +362,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     placeholder="https://youtube.com/watch?v=..."
                                                     className={errors.video_url ? 'border-destructive' : ''}
                                                 />
-                                                {errors.video_url && (
-                                                    <p className="text-sm text-destructive mt-1">{errors.video_url}</p>
-                                                )}
+                                                {errors.video_url && <p className="mt-1 text-sm text-destructive">{errors.video_url}</p>}
                                             </div>
                                             <div>
                                                 <Label htmlFor="duration">Duration (seconds)</Label>
@@ -388,9 +374,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     placeholder="e.g., 300 for 5 minutes"
                                                     className={errors.duration ? 'border-destructive' : ''}
                                                 />
-                                                {errors.duration && (
-                                                    <p className="text-sm text-destructive mt-1">{errors.duration}</p>
-                                                )}
+                                                {errors.duration && <p className="mt-1 text-sm text-destructive">{errors.duration}</p>}
                                             </div>
                                             <div>
                                                 <RichTextEditor
@@ -406,7 +390,6 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     maxLength={10000}
                                                     showWordCount
                                                     showContentQuality
-                                                    placeholder="Write your lecture content here. Use headings, lists, and formatting to make it engaging..."
                                                 />
                                             </div>
                                         </div>
@@ -426,7 +409,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     className={errors.assessment_title ? 'border-destructive' : ''}
                                                 />
                                                 {errors.assessment_title && (
-                                                    <p className="text-sm text-destructive mt-1">{errors.assessment_title}</p>
+                                                    <p className="mt-1 text-sm text-destructive">{errors.assessment_title}</p>
                                                 )}
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
@@ -436,20 +419,22 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         id="max_score"
                                                         type="number"
                                                         value={data.max_score}
-                                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setData('max_score', parseInt(e.target.value, 10))}
+                                                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                                                            setData('max_score', parseInt(e.target.value, 10))
+                                                        }
                                                         placeholder="100"
                                                         className={errors.max_score ? 'border-destructive' : ''}
                                                     />
-                                                    {errors.max_score && (
-                                                        <p className="text-sm text-destructive mt-1">{errors.max_score}</p>
-                                                    )}
+                                                    {errors.max_score && <p className="mt-1 text-sm text-destructive">{errors.max_score}</p>}
                                                 </div>
                                                 <div>
                                                     <Label htmlFor="assessment_type">Assessment Type</Label>
                                                     <select
                                                         id="assessment_type"
                                                         value={data.assessment_type}
-                                                        onChange={(e: ChangeEvent<HTMLSelectElement>) => setData('assessment_type', e.target.value as 'quiz' | 'exam' | 'project')}
+                                                        onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                                                            setData('assessment_type', e.target.value as 'quiz' | 'exam' | 'project')
+                                                        }
                                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                                                     >
                                                         <option value="quiz">Quiz</option>
@@ -485,10 +470,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
 
                                             {/* Questions Builder */}
                                             <div className="border-t pt-4">
-                                                <QuestionBuilder
-                                                    questions={questions}
-                                                    onChange={setQuestions}
-                                                />
+                                                <QuestionBuilder questions={questions} onChange={setQuestions} />
                                             </div>
                                         </div>
                                     )}
@@ -507,7 +489,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     className={errors.assignment_title ? 'border-destructive' : ''}
                                                 />
                                                 {errors.assignment_title && (
-                                                    <p className="text-sm text-destructive mt-1">{errors.assignment_title}</p>
+                                                    <p className="mt-1 text-sm text-destructive">{errors.assignment_title}</p>
                                                 )}
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
@@ -517,13 +499,13 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         id="total_points"
                                                         type="number"
                                                         value={data.total_points}
-                                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setData('total_points', parseInt(e.target.value, 10))}
+                                                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                                                            setData('total_points', parseInt(e.target.value, 10))
+                                                        }
                                                         placeholder="100"
                                                         className={errors.total_points ? 'border-destructive' : ''}
                                                     />
-                                                    {errors.total_points && (
-                                                        <p className="text-sm text-destructive mt-1">{errors.total_points}</p>
-                                                    )}
+                                                    {errors.total_points && <p className="mt-1 text-sm text-destructive">{errors.total_points}</p>}
                                                 </div>
                                                 <div>
                                                     <Label htmlFor="assignment_type">Assignment Type</Label>
@@ -547,9 +529,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         onChange={(e) => setData('started_at', e.target.value)}
                                                         className={errors.started_at ? 'border-destructive' : ''}
                                                     />
-                                                    {errors.started_at && (
-                                                        <p className="text-sm text-destructive mt-1">{errors.started_at}</p>
-                                                    )}
+                                                    {errors.started_at && <p className="mt-1 text-sm text-destructive">{errors.started_at}</p>}
                                                 </div>
                                                 <div>
                                                     <Label htmlFor="expired_at">Due Date</Label>
@@ -560,9 +540,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         onChange={(e) => setData('expired_at', e.target.value)}
                                                         className={errors.expired_at ? 'border-destructive' : ''}
                                                     />
-                                                    {errors.expired_at && (
-                                                        <p className="text-sm text-destructive mt-1">{errors.expired_at}</p>
-                                                    )}
+                                                    {errors.expired_at && <p className="mt-1 text-sm text-destructive">{errors.expired_at}</p>}
                                                 </div>
                                             </div>
 
@@ -668,21 +646,21 @@ const itemTypes = [
         label: 'Lecture',
         icon: <Play className="h-4 w-4" />,
         description: 'Video content',
-        color: 'text-blue-500'
+        color: 'text-blue-500',
     },
     {
         value: 'assessment',
         label: 'Assessment',
         icon: <HelpCircle className="h-4 w-4" />,
         description: 'Quiz, exam, etc.',
-        color: 'text-orange-500'
+        color: 'text-orange-500',
     },
     {
         value: 'assignment',
         label: 'Assignment',
         icon: <ClipboardList className="h-4 w-4" />,
         description: 'Homework, projects',
-        color: 'text-red-500'
+        color: 'text-red-500',
     },
 ];
 

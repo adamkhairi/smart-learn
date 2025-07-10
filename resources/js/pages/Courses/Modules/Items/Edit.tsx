@@ -1,14 +1,14 @@
-import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CourseModuleItemEditPageProps, Lecture, Assessment, Assignment } from '@/types';
-import { Head, useForm, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
-import { ArrowLeft, Save, Play, HelpCircle, ClipboardList, Eye, Trash2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import AppLayout from '@/layouts/app-layout';
+import { Assessment, Assignment, BreadcrumbItem, CourseModuleItemEditPageProps, Lecture } from '@/types';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft, ClipboardList, Eye, HelpCircle, Play, Save, Trash2 } from 'lucide-react';
 
 function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
     // Helper function to get item type from polymorphic relationship
@@ -29,7 +29,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             item_type: itemType,
             order: item.order,
             is_required: item.is_required || false,
-            status: item.status as 'draft' | 'published' || 'published',
+            status: (item.status as 'draft' | 'published') || 'published',
         };
 
         if (itemType === 'lecture' && item.itemable) {
@@ -75,9 +75,9 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 content_html: '',
                 assessment_title: assessment.title || '',
                 max_score: assessment.max_score?.toString() || '',
-                assessment_type: assessment.type as 'quiz' | 'exam' | 'project' || 'quiz',
-                questions_type: assessment.questions_type as 'online' | 'file' || 'online',
-                submission_type: assessment.submission_type as 'online' | 'written' || 'online',
+                assessment_type: (assessment.type as 'quiz' | 'exam' | 'project') || 'quiz',
+                questions_type: (assessment.questions_type as 'online' | 'file') || 'online',
+                submission_type: (assessment.submission_type as 'online' | 'written') || 'online',
                 assignment_title: '',
                 total_points: '',
                 assignment_type: '',
@@ -184,10 +184,9 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             try {
                 const parsed = JSON.parse(jsonContent);
                 if (parsed && parsed.root && parsed.root.children) {
-                    return parsed.root.children.some((child: { children?: { text?: string }[] }) =>
-                        child.children && child.children.some((textNode: { text?: string }) =>
-                            textNode.text && textNode.text.trim() !== ''
-                        )
+                    return parsed.root.children.some(
+                        (child: { children?: { text?: string }[] }) =>
+                            child.children && child.children.some((textNode: { text?: string }) => textNode.text && textNode.text.trim() !== ''),
                     );
                 }
                 return false;
@@ -223,7 +222,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             },
             onError: (errors: Record<string, string>) => {
                 console.error('Form submission errors:', errors);
-            }
+            },
         };
 
         put(`/courses/${course.id}/modules/${module.id}/items/${item.id}`, options);
@@ -240,10 +239,9 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             try {
                 const parsed = JSON.parse(jsonContent);
                 if (parsed && parsed.root && parsed.root.children) {
-                    return parsed.root.children.some((child: { children?: { text?: string }[] }) =>
-                        child.children && child.children.some((textNode: { text?: string }) =>
-                            textNode.text && textNode.text.trim() !== ''
-                        )
+                    return parsed.root.children.some(
+                        (child: { children?: { text?: string }[] }) =>
+                            child.children && child.children.some((textNode: { text?: string }) => textNode.text && textNode.text.trim() !== ''),
                     );
                 }
                 return false;
@@ -270,21 +268,21 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             label: 'Lecture',
             icon: <Play className="h-4 w-4" />,
             description: 'Video content (YouTube, Vimeo, etc.)',
-            color: 'text-blue-500'
+            color: 'text-blue-500',
         },
         {
             value: 'assessment',
             label: 'Assessment',
             icon: <HelpCircle className="h-4 w-4" />,
             description: 'Quiz, exam, or project assessment',
-            color: 'text-orange-500'
+            color: 'text-orange-500',
         },
         {
             value: 'assignment',
             label: 'Assignment',
             icon: <ClipboardList className="h-4 w-4" />,
             description: 'Homework or project assignment',
-            color: 'text-red-500'
+            color: 'text-red-500',
         },
     ];
 
@@ -317,48 +315,38 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {/* Main Form */}
                     <div className="lg:col-span-2">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Item Details</CardTitle>
-                                <CardDescription>
-                                    Update the configuration for this module item
-                                </CardDescription>
+                                <CardDescription>Update the configuration for this module item</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <form onSubmit={handleSubmit} className="space-y-6">
                                     {/* Item Type Selection (Read-only for editing) */}
                                     <div className="space-y-3">
                                         <Label>Item Type</Label>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                                             {itemTypes.map((type) => (
                                                 <div
                                                     key={type.value}
-                                                    className={`border rounded-lg p-4 ${
-                                                        itemType === type.value
-                                                            ? 'border-primary bg-primary/5'
-                                                            : 'border-border opacity-50'
+                                                    className={`rounded-lg border p-4 ${
+                                                        itemType === type.value ? 'border-primary bg-primary/5' : 'border-border opacity-50'
                                                     }`}
                                                 >
                                                     <div className="flex items-center gap-3">
-                                                        <div className={type.color}>
-                                                            {type.icon}
-                                                        </div>
+                                                        <div className={type.color}>{type.icon}</div>
                                                         <div>
                                                             <div className="font-medium">{type.label}</div>
-                                                            <div className="text-sm text-muted-foreground">
-                                                                {type.description}
-                                                            </div>
+                                                            <div className="text-sm text-muted-foreground">{type.description}</div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
-                                        <p className="text-sm text-muted-foreground">
-                                            Note: Item type cannot be changed after creation.
-                                        </p>
+                                        <p className="text-sm text-muted-foreground">Note: Item type cannot be changed after creation.</p>
                                     </div>
 
                                     {/* Common Fields */}
@@ -373,9 +361,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                 placeholder="Enter the module item title"
                                                 className={errors.title ? 'border-destructive' : ''}
                                             />
-                                            {errors.title && (
-                                                <p className="text-sm text-destructive mt-1">{errors.title}</p>
-                                            )}
+                                            {errors.title && <p className="mt-1 text-sm text-destructive">{errors.title}</p>}
                                         </div>
 
                                         <div>
@@ -388,9 +374,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                 rows={3}
                                                 className={errors.description ? 'border-destructive' : ''}
                                             />
-                                            {errors.description && (
-                                                <p className="text-sm text-destructive mt-1">{errors.description}</p>
-                                            )}
+                                            {errors.description && <p className="mt-1 text-sm text-destructive">{errors.description}</p>}
                                         </div>
                                     </div>
 
@@ -409,9 +393,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                     placeholder="https://youtube.com/watch?v=..."
                                                     className={errors.video_url ? 'border-destructive' : ''}
                                                 />
-                                                {errors.video_url && (
-                                                    <p className="text-sm text-destructive mt-1">{errors.video_url}</p>
-                                                )}
+                                                {errors.video_url && <p className="mt-1 text-sm text-destructive">{errors.video_url}</p>}
                                             </div>
 
                                             <div>
@@ -424,9 +406,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                     placeholder="e.g., 300 for 5 minutes"
                                                     className={errors.duration ? 'border-destructive' : ''}
                                                 />
-                                                {errors.duration && (
-                                                    <p className="text-sm text-destructive mt-1">{errors.duration}</p>
-                                                )}
+                                                {errors.duration && <p className="mt-1 text-sm text-destructive">{errors.duration}</p>}
                                             </div>
 
                                             <div>
@@ -459,7 +439,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                     className={errors.assessment_title ? 'border-destructive' : ''}
                                                 />
                                                 {errors.assessment_title && (
-                                                    <p className="text-sm text-destructive mt-1">{errors.assessment_title}</p>
+                                                    <p className="mt-1 text-sm text-destructive">{errors.assessment_title}</p>
                                                 )}
                                             </div>
 
@@ -474,9 +454,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                         placeholder="100"
                                                         className={errors.max_score ? 'border-destructive' : ''}
                                                     />
-                                                    {errors.max_score && (
-                                                        <p className="text-sm text-destructive mt-1">{errors.max_score}</p>
-                                                    )}
+                                                    {errors.max_score && <p className="mt-1 text-sm text-destructive">{errors.max_score}</p>}
                                                 </div>
 
                                                 <div>
@@ -539,7 +517,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                     className={errors.assignment_title ? 'border-destructive' : ''}
                                                 />
                                                 {errors.assignment_title && (
-                                                    <p className="text-sm text-destructive mt-1">{errors.assignment_title}</p>
+                                                    <p className="mt-1 text-sm text-destructive">{errors.assignment_title}</p>
                                                 )}
                                             </div>
 
@@ -554,9 +532,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                         placeholder="100"
                                                         className={errors.total_points ? 'border-destructive' : ''}
                                                     />
-                                                    {errors.total_points && (
-                                                        <p className="text-sm text-destructive mt-1">{errors.total_points}</p>
-                                                    )}
+                                                    {errors.total_points && <p className="mt-1 text-sm text-destructive">{errors.total_points}</p>}
                                                 </div>
 
                                                 <div>
@@ -582,9 +558,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                         onChange={(e) => setData('started_at', e.target.value)}
                                                         className={errors.started_at ? 'border-destructive' : ''}
                                                     />
-                                                    {errors.started_at && (
-                                                        <p className="text-sm text-destructive mt-1">{errors.started_at}</p>
-                                                    )}
+                                                    {errors.started_at && <p className="mt-1 text-sm text-destructive">{errors.started_at}</p>}
                                                 </div>
 
                                                 <div>
@@ -596,9 +570,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                         onChange={(e) => setData('expired_at', e.target.value)}
                                                         className={errors.expired_at ? 'border-destructive' : ''}
                                                     />
-                                                    {errors.expired_at && (
-                                                        <p className="text-sm text-destructive mt-1">{errors.expired_at}</p>
-                                                    )}
+                                                    {errors.expired_at && <p className="mt-1 text-sm text-destructive">{errors.expired_at}</p>}
                                                 </div>
                                             </div>
 
@@ -656,9 +628,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                 checked={data.is_required}
                                                 onCheckedChange={(checked) => setData('is_required', Boolean(checked))}
                                             />
-                                            <Label htmlFor="is_required">
-                                                This item is required for course completion
-                                            </Label>
+                                            <Label htmlFor="is_required">This item is required for course completion</Label>
                                         </div>
 
                                         <div>
@@ -684,23 +654,16 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                 onChange={(e) => setData('order', parseInt(e.target.value) || 1)}
                                                 className={errors.order ? 'border-destructive' : ''}
                                             />
-                                            {errors.order && (
-                                                <p className="text-sm text-destructive mt-1">{errors.order}</p>
-                                            )}
+                                            {errors.order && <p className="mt-1 text-sm text-destructive">{errors.order}</p>}
                                         </div>
                                     </div>
 
                                     {/* Submit Button */}
                                     <div className="flex justify-end gap-2 pt-4">
                                         <Button type="button" variant="outline" asChild>
-                                            <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}`}>
-                                                Cancel
-                                            </Link>
+                                            <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}`}>Cancel</Link>
                                         </Button>
-                                        <Button
-                                            type="submit"
-                                            disabled={!isFormValid() || processing}
-                                        >
+                                        <Button type="submit" disabled={!isFormValid() || processing}>
                                             <Save className="mr-2 h-4 w-4" />
                                             {processing ? 'Updating...' : 'Update Item'}
                                         </Button>
@@ -748,11 +711,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                     </Link>
                                 </Button>
                                 <Button variant="outline" size="sm" className="w-full text-destructive" asChild>
-                                    <Link
-                                        href={`/courses/${course.id}/modules/${module.id}/items/${item.id}`}
-                                        method="delete"
-                                        as="button"
-                                    >
+                                    <Link href={`/courses/${course.id}/modules/${module.id}/items/${item.id}`} method="delete" as="button">
                                         <Trash2 className="mr-2 h-4 w-4" />
                                         Delete Item
                                     </Link>

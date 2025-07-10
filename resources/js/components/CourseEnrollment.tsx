@@ -1,15 +1,15 @@
-import { useState } from 'react';
-import { useForm, router } from '@inertiajs/react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Users, UserPlus, UserMinus, Search } from 'lucide-react';
-import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Course, User } from '@/types';
+import { router, useForm } from '@inertiajs/react';
+import { Search, UserMinus, UserPlus, Users } from 'lucide-react';
+import { useState } from 'react';
 
 interface CourseEnrollmentProps {
     course: Course;
@@ -40,7 +40,7 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
             },
             onError: () => {
                 showError('Failed to enroll user. Please try again.');
-            }
+            },
         });
     };
 
@@ -59,19 +59,19 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                     onError: () => {
                         showError('Failed to remove user from course. Please try again.');
                     },
-                    onFinish: () => setUnenrollingUserId(null)
+                    onFinish: () => setUnenrollingUserId(null),
                 });
-            }
+            },
         });
     };
 
-    const filteredUsers = course.enrolled_users?.filter(user =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || [];
+    const filteredUsers =
+        course.enrolled_users?.filter(
+            (user) => user.name.toLowerCase().includes(searchTerm.toLowerCase()) || user.email.toLowerCase().includes(searchTerm.toLowerCase()),
+        ) || [];
 
     const getRoleBadge = (user: User) => {
-        const enrollment = course.enrolled_users?.find(u => u.id === user.id);
+        const enrollment = course.enrolled_users?.find((u) => u.id === user.id);
         const role = enrollment?.pivot?.enrolled_as || 'student';
 
         return role === 'instructor' ? (
@@ -100,16 +100,14 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                     <Users className="h-5 w-5" />
                     Course Enrollment
                 </CardTitle>
-                <CardDescription>
-                    Manage student and instructor enrollments
-                </CardDescription>
+                <CardDescription>Manage student and instructor enrollments</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 {/* Enroll New User */}
                 <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Enroll New User</h3>
                     <form onSubmit={handleEnroll} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                                 <Label htmlFor="user_id">User ID</Label>
                                 <Input
@@ -120,16 +118,11 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                                     placeholder="Enter user ID"
                                     className={errors.user_id ? 'border-red-500' : ''}
                                 />
-                                {errors.user_id && (
-                                    <p className="text-sm text-red-500">{errors.user_id}</p>
-                                )}
+                                {errors.user_id && <p className="text-sm text-red-500">{errors.user_id}</p>}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="role">Role</Label>
-                                <Select
-                                    value={data.role}
-                                    onValueChange={(value) => setData('role', value as 'student' | 'instructor')}
-                                >
+                                <Select value={data.role} onValueChange={(value) => setData('role', value as 'student' | 'instructor')}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select role" />
                                     </SelectTrigger>
@@ -138,9 +131,7 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                                         <SelectItem value="instructor">Instructor</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                {errors.role && (
-                                    <p className="text-sm text-red-500">{errors.role}</p>
-                                )}
+                                {errors.role && <p className="text-sm text-red-500">{errors.role}</p>}
                             </div>
                         </div>
                         <Button type="submit" disabled={processing}>
@@ -155,13 +146,13 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                     <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold">Enrolled Users ({course.enrolled_users?.length || 0})</h3>
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
                             <Input
                                 type="text"
                                 placeholder="Search users..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-10 w-64"
+                                className="w-64 pl-10"
                             />
                         </div>
                     </div>
@@ -169,12 +160,10 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                     {filteredUsers.length > 0 ? (
                         <div className="space-y-2">
                             {filteredUsers.map((user) => (
-                                <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
+                                <div key={user.id} className="flex items-center justify-between rounded-lg border p-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                                            <span className="text-sm font-medium">
-                                                {user.name.charAt(0).toUpperCase()}
-                                            </span>
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                                            <span className="text-sm font-medium">{user.name.charAt(0).toUpperCase()}</span>
                                         </div>
                                         <div>
                                             <p className="font-medium">{user.name}</p>
@@ -203,11 +192,9 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-8">
-                            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <p className="text-muted-foreground">
-                                {searchTerm ? 'No users found matching your search.' : 'No users enrolled yet.'}
-                            </p>
+                        <div className="py-8 text-center">
+                            <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                            <p className="text-muted-foreground">{searchTerm ? 'No users found matching your search.' : 'No users enrolled yet.'}</p>
                         </div>
                     )}
                 </div>
