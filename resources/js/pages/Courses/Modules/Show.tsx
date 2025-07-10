@@ -8,6 +8,7 @@ import { LoadingButton } from '@/components/ui/loading-button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/use-auth';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem, CourseModuleItem, CourseModuleShowPageProps } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
@@ -277,6 +278,7 @@ function Show({ course, module }: CourseModuleShowPageProps) {
     const { patch } = useForm();
     const { canManageCourse } = useAuth();
     const { confirm, confirmDialog } = useConfirmDialog();
+    const { success, error } = useToast();
     const isMobile = useIsMobile();
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -310,10 +312,17 @@ function Show({ course, module }: CourseModuleShowPageProps) {
             confirmText: 'Delete Module',
             variant: 'destructive',
             onConfirm: () => {
-                router.delete(`/courses/${course.id}/modules/${module.id}`);
+                router.delete(`/courses/${course.id}/modules/${module.id}`, {
+                    onSuccess: () => {
+                        success(`Module "${module.title}" deleted successfully.`);
+                    },
+                    onError: () => {
+                        error(`Failed to delete module "${module.title}". Please try again.`);
+                    },
+                });
             },
         });
-    }, [confirm, module.title, course.id, module.id]);
+    }, [confirm, module.title, course.id, module.id, success, error]);
 
     const handleDuplicate = useCallback(() => {
         setProcessingActions((prev) => ({ ...prev, [module.id]: true }));
@@ -348,11 +357,17 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                         onFinish: () => {
                             setProcessingActions((prev) => ({ ...prev, [itemId]: false }));
                         },
+                        onSuccess: () => {
+                            success(`Module item "${itemTitle}" deleted successfully.`);
+                        },
+                        onError: () => {
+                            error(`Failed to delete module item "${itemTitle}". Please try again.`);
+                        },
                     });
                 },
             });
         },
-        [confirm, course.id, module.id],
+        [confirm, course.id, module.id, success, error],
     );
 
     const handleItemDuplicate = useCallback(

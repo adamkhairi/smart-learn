@@ -10,6 +10,7 @@ import { Course, User } from '@/types';
 import { router, useForm } from '@inertiajs/react';
 import { Search, UserMinus, UserPlus, Users } from 'lucide-react';
 import { useState } from 'react';
+import InputError from '@/components/input-error';
 
 interface CourseEnrollmentProps {
     course: Course;
@@ -118,7 +119,7 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                                     placeholder="Enter user ID"
                                     className={errors.user_id ? 'border-red-500' : ''}
                                 />
-                                {errors.user_id && <p className="text-sm text-red-500">{errors.user_id}</p>}
+                                <InputError message={errors.user_id} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="role">Role</Label>
@@ -131,7 +132,7 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                                         <SelectItem value="instructor">Instructor</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                {errors.role && <p className="text-sm text-red-500">{errors.role}</p>}
+                                <InputError message={errors.role} />
                             </div>
                         </div>
                         <Button type="submit" disabled={processing}>

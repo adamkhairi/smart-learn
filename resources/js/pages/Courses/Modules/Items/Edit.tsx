@@ -9,6 +9,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Assessment, Assignment, BreadcrumbItem, CourseModuleItemEditPageProps, Lecture } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, ClipboardList, Eye, HelpCircle, Play, Save, Trash2 } from 'lucide-react';
+import InputError from '@/components/input-error';
 
 function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
     // Helper function to get item type from polymorphic relationship
@@ -216,16 +217,11 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             return;
         }
 
-        const options = {
-            onSuccess: () => {
-                console.log('Module item updated successfully');
+        put(route('courses.modules.items.update', { course: course.id, module: module.id, item: item.id }), {
+            onError: (formErrors) => {
+                console.error('Submission Errors:', formErrors);
             },
-            onError: (errors: Record<string, string>) => {
-                console.error('Form submission errors:', errors);
-            },
-        };
-
-        put(`/courses/${course.id}/modules/${module.id}/items/${item.id}`, options);
+        });
     };
 
     // Validation helper
@@ -352,16 +348,16 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                     {/* Common Fields */}
                                     <div className="space-y-4">
                                         <div>
-                                            <Label htmlFor="title">Module Item Title *</Label>
+                                            <Label htmlFor="title">Title *</Label>
                                             <Input
                                                 id="title"
                                                 type="text"
                                                 value={data.title}
                                                 onChange={(e) => setData('title', e.target.value)}
-                                                placeholder="Enter the module item title"
-                                                className={errors.title ? 'border-destructive' : ''}
+                                                placeholder="e.g., Introduction to Algebra"
+                                                className="mt-1"
                                             />
-                                            {errors.title && <p className="mt-1 text-sm text-destructive">{errors.title}</p>}
+                                            <InputError message={errors.title} />
                                         </div>
 
                                         <div>
@@ -370,11 +366,10 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                 id="description"
                                                 value={data.description}
                                                 onChange={(e) => setData('description', e.target.value)}
-                                                placeholder="Enter a description for this item"
-                                                rows={3}
-                                                className={errors.description ? 'border-destructive' : ''}
+                                                placeholder="Briefly describe this module item..."
+                                                className="mt-1"
                                             />
-                                            {errors.description && <p className="mt-1 text-sm text-destructive">{errors.description}</p>}
+                                            <InputError message={errors.description} />
                                         </div>
                                     </div>
 
@@ -390,14 +385,14 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                     type="url"
                                                     value={data.video_url}
                                                     onChange={(e) => setData('video_url', e.target.value)}
-                                                    placeholder="https://youtube.com/watch?v=..."
-                                                    className={errors.video_url ? 'border-destructive' : ''}
+                                                    placeholder="https://www.youtube.com/watch?v=..."
+                                                    className="mt-1"
                                                 />
-                                                {errors.video_url && <p className="mt-1 text-sm text-destructive">{errors.video_url}</p>}
+                                                <InputError message={errors.video_url} />
                                             </div>
 
                                             <div>
-                                                <Label htmlFor="duration">Duration (seconds)</Label>
+                                                <Label htmlFor="duration">Duration (minutes)</Label>
                                                 <Input
                                                     id="duration"
                                                     type="number"
@@ -435,12 +430,10 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                     type="text"
                                                     value={data.assessment_title}
                                                     onChange={(e) => setData('assessment_title', e.target.value)}
-                                                    placeholder="Enter assessment title"
-                                                    className={errors.assessment_title ? 'border-destructive' : ''}
+                                                    placeholder="e.g., Chapter 1 Quiz"
+                                                    className="mt-1"
                                                 />
-                                                {errors.assessment_title && (
-                                                    <p className="mt-1 text-sm text-destructive">{errors.assessment_title}</p>
-                                                )}
+                                                <InputError message={errors.assessment_title} />
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-4">
@@ -513,12 +506,10 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                     type="text"
                                                     value={data.assignment_title}
                                                     onChange={(e) => setData('assignment_title', e.target.value)}
-                                                    placeholder="Enter assignment title"
-                                                    className={errors.assignment_title ? 'border-destructive' : ''}
+                                                    placeholder="e.g., Research Paper"
+                                                    className="mt-1"
                                                 />
-                                                {errors.assignment_title && (
-                                                    <p className="mt-1 text-sm text-destructive">{errors.assignment_title}</p>
-                                                )}
+                                                <InputError message={errors.assignment_title} />
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-4">
@@ -550,27 +541,26 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
 
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <Label htmlFor="started_at">Start Date</Label>
+                                                    <Label htmlFor="started_at">Start Date *</Label>
                                                     <Input
                                                         id="started_at"
                                                         type="datetime-local"
                                                         value={data.started_at}
                                                         onChange={(e) => setData('started_at', e.target.value)}
-                                                        className={errors.started_at ? 'border-destructive' : ''}
+                                                        className="mt-1"
                                                     />
-                                                    {errors.started_at && <p className="mt-1 text-sm text-destructive">{errors.started_at}</p>}
+                                                    <InputError message={errors.started_at} />
                                                 </div>
-
                                                 <div>
-                                                    <Label htmlFor="expired_at">Due Date</Label>
+                                                    <Label htmlFor="expired_at">Due Date *</Label>
                                                     <Input
                                                         id="expired_at"
                                                         type="datetime-local"
                                                         value={data.expired_at}
                                                         onChange={(e) => setData('expired_at', e.target.value)}
-                                                        className={errors.expired_at ? 'border-destructive' : ''}
+                                                        className="mt-1"
                                                     />
-                                                    {errors.expired_at && <p className="mt-1 text-sm text-destructive">{errors.expired_at}</p>}
+                                                    <InputError message={errors.expired_at} />
                                                 </div>
                                             </div>
 

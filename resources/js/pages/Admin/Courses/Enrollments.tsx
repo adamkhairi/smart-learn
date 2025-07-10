@@ -13,6 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { Course, User } from '@/types';
+import { useToast } from '@/hooks/use-toast';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface Props {
     course: Course;
@@ -26,6 +28,10 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
     const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
     const [enrollRole, setEnrollRole] = useState('student');
     const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false);
+
+    // Initialize toast and confirmation dialog
+    const { success, error } = useToast();
+    const { confirm } = useConfirmDialog();
 
     const getInitials = (name: string) => {
         return name
@@ -74,30 +80,64 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
     const handleEnrollUsers = () => {
         if (selectedUsers.length === 0) return;
 
-        router.post(route('admin.courses.enroll-users', course.id), {
-            user_ids: selectedUsers,
-            role: enrollRole,
-        });
-
-        setSelectedUsers([]);
-        setIsEnrollDialogOpen(false);
+        router.post(
+            route('admin.courses.enroll-users', course.id),
+            {
+                user_ids: selectedUsers,
+                role: enrollRole,
+            },
+            {
+                onSuccess: () => {
+                    success(`Successfully enrolled ${selectedUsers.length} user(s).`);
+                    setSelectedUsers([]);
+                    setIsEnrollDialogOpen(false);
+                },
+                onError: () => {
+                    error('Failed to enroll users. Please try again.');
+                },
+            },
+        );
     };
 
     const handleUnenrollUsers = () => {
         if (selectedUsers.length === 0) return;
 
-        router.delete(route('admin.courses.unenroll-users', course.id), {
-            data: { user_ids: selectedUsers },
+        confirm({
+            title: 'Unenroll Users',
+            description: `Are you sure you want to unenroll ${selectedUsers.length} user(s) from this course?`,
+            variant: 'destructive',
+            confirmText: 'Unenroll',
+            onConfirm: () => {
+                router.delete(route('admin.courses.unenroll-users', course.id), {
+                    data: { user_ids: selectedUsers },
+                    onSuccess: () => {
+                        success(`Successfully unenrolled ${selectedUsers.length} user(s).`);
+                        setSelectedUsers([]);
+                    },
+                    onError: () => {
+                        error('Failed to unenroll users. Please try again.');
+                    },
+                });
+            },
         });
-
-        setSelectedUsers([]);
     };
 
     const handleUpdateRole = (userId: number, newRole: string) => {
-        router.patch(route('admin.users.update-course-role', userId), {
-            course_id: course.id,
-            role: newRole,
-        });
+        router.patch(
+            route('admin.users.update-course-role', userId),
+            {
+                course_id: course.id,
+                role: newRole,
+            },
+            {
+                onSuccess: () => {
+                    success('User role updated successfully.');
+                },
+                onError: () => {
+                    error('Failed to update user role. Please try again.');
+                },
+            },
+        );
     };
 
     return (
@@ -179,6 +219,11 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
                                 </div>
                             </DialogContent>
                         </Dialog>
+
+                        <Button variant="destructive" onClick={handleUnenrollUsers} disabled={selectedUsers.length === 0}>
+                            <X className="mr-2 h-4 w-4" />
+                            Unenroll Selected ({selectedUsers.length})
+                        </Button>
                     </div>
                 </div>
 

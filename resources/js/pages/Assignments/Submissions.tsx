@@ -11,6 +11,7 @@ import { Assignment, PageProps, Submission } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, Download } from 'lucide-react';
 import { useState } from 'react';
+import InputError from '@/components/input-error';
 
 interface SubmissionsPageProps extends PageProps {
     assignment: Assignment;
@@ -132,7 +133,7 @@ function Submissions({ assignment, submissions }: SubmissionsPageProps) {
                                     onChange={(e) => setData('score', parseInt(e.target.value, 10))}
                                     className={errors.score ? 'border-destructive' : ''}
                                 />
-                                {errors.score && <p className="mt-1 text-sm text-destructive">{errors.score}</p>}
+                                <InputError message={errors.score} />
                             </div>
                             <div>
                                 <Label htmlFor="feedback">Feedback</Label>
@@ -142,7 +143,7 @@ function Submissions({ assignment, submissions }: SubmissionsPageProps) {
                                     onChange={(e) => setData('feedback', e.target.value)}
                                     className={errors.feedback ? 'border-destructive' : ''}
                                 />
-                                {errors.feedback && <p className="mt-1 text-sm text-destructive">{errors.feedback}</p>}
+                                <InputError message={errors.feedback} />
                             </div>
                         </div>
                         <DialogFooter>

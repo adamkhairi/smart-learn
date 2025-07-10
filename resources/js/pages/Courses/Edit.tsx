@@ -9,8 +9,10 @@ import { useFlashToast } from '@/hooks/use-flash-toast';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem, CourseEditPageProps } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, Palette, Save, Upload, X } from 'lucide-react';
+import { ArrowLeft, Save, Upload, X } from 'lucide-react';
 import { useState } from 'react';
+import { ColorPicker } from '@/components/ui/color-picker';
+import { useToast } from '@/hooks/use-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -26,6 +28,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 function Edit({ course }: CourseEditPageProps) {
     // Initialize flash toast notifications
     useFlashToast();
+    const { success, error } = useToast();
 
     const [formData, setFormData] = useState({
         name: course.name,
@@ -56,7 +59,7 @@ function Edit({ course }: CourseEditPageProps) {
 
     const removeImage = () => {
         setFormData((prev) => ({ ...prev, image: null }));
-        setImagePreview(course.image ? `/storage/${course.image}` : null);
+        setImagePreview(null);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -77,18 +80,14 @@ function Edit({ course }: CourseEditPageProps) {
         router.post(`/courses/${course.id}`, data, {
             onSuccess: () => {
                 setProcessing(false);
+                success('Course updated successfully!');
             },
             onError: (errors) => {
                 setErrors(errors);
                 setProcessing(false);
+                error('Failed to save changes. Please check the form for errors.');
             },
         });
-    };
-
-    const generateRandomColor = () => {
-        const colors = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'];
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        setFormData((prev) => ({ ...prev, background_color: randomColor }));
     };
 
     return (
@@ -230,34 +229,13 @@ function Edit({ course }: CourseEditPageProps) {
                                     </div>
 
                                     {/* Background Color */}
-                                    <div className="space-y-4">
-                                        <Label htmlFor="background_color">Background Color</Label>
-
-                                        <div className="space-y-4">
-                                            {/* Color Preview */}
-                                            <div
-                                                className="h-20 w-full rounded-lg border shadow-sm"
-                                                style={{ backgroundColor: formData.background_color || '#f3f4f6' }}
-                                            />
-
-                                            {/* Color Controls */}
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded border" style={{ backgroundColor: formData.background_color }} />
-                                                <Input
-                                                    type="text"
-                                                    value={formData.background_color}
-                                                    onChange={(e) => handleInputChange('background_color', e.target.value)}
-                                                    placeholder="#3B82F6"
-                                                    className="font-mono text-sm"
-                                                />
-                                                <Button type="button" variant="outline" size="sm" onClick={generateRandomColor}>
-                                                    <Palette className="mr-2 h-4 w-4" />
-                                                    Random
-                                                </Button>
-                                            </div>
-                                        </div>
-
-                                        {errors.background_color && <InputError message={errors.background_color} />}
+                                    <div className="space-y-2">
+                                        <ColorPicker
+                                            value={formData.background_color}
+                                            onChange={(color) => handleInputChange('background_color', color)}
+                                            label="Background Color"
+                                            error={errors.background_color}
+                                        />
                                     </div>
                                 </div>
                             </div>

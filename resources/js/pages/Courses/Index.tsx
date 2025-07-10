@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -37,7 +37,6 @@ function Index({ courses, userRole }: CoursesPageProps) {
     // State for search and filtering
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'archived'>('all');
-    const [deletingCourseId, setDeletingCourseId] = useState<number | null>(null);
 
     // Filter and search courses
     const filteredCourses = useMemo(() => {
@@ -59,7 +58,6 @@ function Index({ courses, userRole }: CoursesPageProps) {
             confirmText: 'Yes, Delete Course',
             variant: 'destructive',
             onConfirm: () => {
-                setDeletingCourseId(courseId);
                 router.delete(`/courses/${courseId}`, {
                     onSuccess: () => {
                         showSuccess('Course deleted successfully.');
@@ -67,7 +65,6 @@ function Index({ courses, userRole }: CoursesPageProps) {
                     onError: () => {
                         showError('Failed to delete course. Please try again.');
                     },
-                    onFinish: () => setDeletingCourseId(null),
                 });
             },
         });
@@ -174,7 +171,7 @@ function Index({ courses, userRole }: CoursesPageProps) {
                 {courses.length > 0 && searchQuery && (
                     <div className="text-sm text-muted-foreground">
                         {filteredCourses.length === 0 ? (
-                            <span>No courses found matching "{searchQuery}"</span>
+                            <span>No courses found matching "${searchQuery}"</span>
                         ) : (
                             <span>
                                 {filteredCourses.length} of {courses.length} courses
@@ -198,162 +195,94 @@ function Index({ courses, userRole }: CoursesPageProps) {
                                       : "You haven't enrolled in any courses yet"}
                             </p>
                             {!searchQuery && canCreateCourse && (
-                                <Button asChild size={isMobile ? 'sm' : 'default'}>
+                                <Button asChild>
                                     <Link href="/courses/create">
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Create Your First Course
+                                        <Plus className="mr-2 h-4 w-4" /> Create Course
                                     </Link>
-                                </Button>
-                            )}
-                            {searchQuery && (
-                                <Button variant="outline" onClick={() => setSearchQuery('')} size={isMobile ? 'sm' : 'default'}>
-                                    Clear Search
                                 </Button>
                             )}
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {filteredCourses.map((course) => (
-                            <Card key={course.id} className="group flex h-full flex-col transition-all duration-200 hover:shadow-lg">
-                                <CardHeader className="flex-shrink-0 pb-3 sm:pb-4">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="min-w-0 flex-1">
-                                            <Link href={`/courses/${course.id}`} className="block">
-                                                <CardTitle className="line-clamp-2 cursor-pointer text-base leading-snug transition-colors hover:text-primary sm:text-lg">
-                                                    {course.name}
-                                                </CardTitle>
-                                            </Link>
-                                            <div className="mt-2 flex flex-wrap items-center gap-2">
-                                                {getStatusBadge(course.status)}
-                                                {getRoleBadge(course)}
-                                            </div>
+                            <Card key={course.id} className="group flex flex-col overflow-hidden">
+                                <Link href={`/courses/${course.id}`} className="relative block h-40 overflow-hidden" tabIndex={-1}>
+                                    {course.image ? (
+                                        <img
+                                            src={course.image.startsWith('http') ? course.image : `/storage/${course.image}`}
+                                            alt={course.name}
+                                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                        />
+                                    ) : (
+                                        <div
+                                            className="flex h-full w-full items-center justify-center"
+                                            style={{ backgroundColor: course.background_color || '#f3f4f6' }}
+                                        >
+                                            <span className="text-4xl font-bold text-white opacity-70">
+                                                {course.name.charAt(0).toUpperCase()}
+                                            </span>
                                         </div>
-
-                                        {/* Action Menu - Enhanced for Touch */}
-                                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100">
-                                            {/* Mobile: Always show dropdown */}
-                                            {isMobile ? (
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-8 w-8 p-0"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                            <MoreVertical className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="w-40">
-                                                        <DropdownMenuItem asChild>
-                                                            <Link href={`/courses/${course.id}`}>
-                                                                <Eye className="mr-2 h-4 w-4" />
-                                                                View
-                                                            </Link>
-                                                        </DropdownMenuItem>
-                                                        {canEditCourse(course) && (
-                                                            <>
-                                                                <DropdownMenuItem asChild>
-                                                                    <Link href={`/courses/${course.id}/edit`}>
-                                                                        <Edit className="mr-2 h-4 w-4" />
-                                                                        Edit
-                                                                    </Link>
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem
-                                                                    onClick={() => handleDelete(course.id, course.name)}
-                                                                    className="text-red-600"
-                                                                    disabled={deletingCourseId === course.id}
-                                                                >
-                                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                                    {deletingCourseId === course.id ? 'Deleting...' : 'Delete'}
-                                                                </DropdownMenuItem>
-                                                            </>
-                                                        )}
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            ) : (
-                                                /* Desktop: Individual buttons */
-                                                <>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        asChild
-                                                        className="h-8 w-8 p-0"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        <Link href={`/courses/${course.id}`}>
-                                                            <Eye className="h-4 w-4" />
-                                                        </Link>
-                                                    </Button>
-                                                    {canEditCourse(course) && (
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className="h-8 w-8 p-0"
-                                                                    onClick={(e) => e.stopPropagation()}
-                                                                >
-                                                                    <MoreVertical className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end" className="w-32">
-                                                                <DropdownMenuItem asChild>
-                                                                    <Link href={`/courses/${course.id}/edit`}>
-                                                                        <Edit className="mr-2 h-4 w-4" />
-                                                                        Edit
-                                                                    </Link>
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem
-                                                                    onClick={() => handleDelete(course.id, course.name)}
-                                                                    className="text-red-600"
-                                                                    disabled={deletingCourseId === course.id}
-                                                                >
-                                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                                    {deletingCourseId === course.id ? 'Deleting...' : 'Delete'}
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    )}
-                                                </>
-                                            )}
-                                        </div>
+                                    )}
+                                    <div className="absolute top-2 right-2 z-10">
+                                        {getStatusBadge(course.status)}
                                     </div>
-                                </CardHeader>
-
-                                <CardContent className="flex flex-1 flex-col justify-between pt-0">
-                                    <div className="flex-1">
-                                        {course.description && (
-                                            <CardDescription className="mb-4 line-clamp-3 text-sm leading-relaxed sm:text-base">
-                                                {course.description}
-                                            </CardDescription>
+                                    {getRoleBadge(course) && (
+                                        <div className="absolute bottom-2 left-2 z-10">
+                                            {getRoleBadge(course)}
+                                        </div>
+                                    )}
+                                </Link>
+                                <CardContent className="flex flex-1 flex-col p-4">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-lg font-semibold leading-tight">
+                                            <Link href={`/courses/${course.id}`} className="hover:underline">
+                                                {course.name}
+                                            </Link>
+                                        </h3>
+                                        {canEditCourse(course) && (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                                        <span className="sr-only">Open menu</span>
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/courses/${course.id}/edit`}>
+                                                            <Edit className="mr-2 h-4 w-4" /> Edit
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/courses/${course.id}`}>
+                                                            <Eye className="mr-2 h-4 w-4" /> View
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleDelete(course.id, course.name)}
+                                                        className="text-destructive focus:text-destructive"
+                                                    >
+                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         )}
                                     </div>
-
-                                    {/* Course Stats - Responsive Grid */}
-                                    <div className="space-y-3">
-                                        <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground sm:text-sm">
-                                            <div className="flex items-center gap-1.5">
-                                                <Users className="h-3 w-3 flex-shrink-0 sm:h-4 sm:w-4" />
-                                                <span className="truncate">{course.enrolled_users?.length || 0} students</span>
+                                    <p className="mt-2 flex-1 text-sm text-muted-foreground line-clamp-2">
+                                        {course.description || 'No description provided.'}
+                                    </p>
+                                    <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                                        {course.creator && (
+                                            <div className="flex items-center">
+                                                <Users className="mr-2 h-4 w-4" />
+                                                <span>{course.creator.name}</span>
                                             </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <BookOpen className="h-3 w-3 flex-shrink-0 sm:h-4 sm:w-4" />
-                                                <span className="truncate">{course.modules?.length || 0} modules</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
-                                            <div className="flex items-center gap-1">
-                                                <Calendar className="h-3 w-3" />
-                                                <span className="truncate">
-                                                    {formatDistanceToNow(new Date(course.created_at), { addSuffix: true })}
-                                                </span>
-                                            </div>
-                                            {course.creator && <span className="max-w-[120px] truncate">by {course.creator.name}</span>}
+                                        )}
+                                        <div className="flex items-center">
+                                            <Calendar className="mr-2 h-4 w-4" />
+                                            <span>Last updated {formatDistanceToNow(new Date(course.updated_at))} ago</span>
                                         </div>
                                     </div>
                                 </CardContent>

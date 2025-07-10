@@ -8,6 +8,7 @@ import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem, CourseModuleEditPageProps } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, BookOpen, Eye, EyeOff, Save } from 'lucide-react';
+import InputError from '@/components/input-error';
 
 function Edit({ course, module }: CourseModuleEditPageProps) {
     const { data, setData, put, processing, errors } = useForm({
@@ -73,7 +74,7 @@ function Edit({ course, module }: CourseModuleEditPageProps) {
                                             placeholder="Enter module title"
                                             className={errors.title ? 'border-red-500' : ''}
                                         />
-                                        {errors.title && <p className="text-sm text-red-500">{errors.title}</p>}
+                                        <InputError message={errors.title} />
                                     </div>
 
                                     {/* Module Description */}
@@ -87,7 +88,7 @@ function Edit({ course, module }: CourseModuleEditPageProps) {
                                             rows={8}
                                             className={errors.description ? 'border-red-500' : ''}
                                         />
-                                        {errors.description && <p className="text-sm text-red-500">{errors.description}</p>}
+                                        <InputError message={errors.description} />
                                         <p className="text-xs text-muted-foreground">
                                             Provide a clear overview of the module content and learning objectives
                                         </p>
@@ -104,7 +105,7 @@ function Edit({ course, module }: CourseModuleEditPageProps) {
                                             onChange={(e) => setData('order', parseInt(e.target.value) || 1)}
                                             className={errors.order ? 'border-red-500' : ''}
                                         />
-                                        {errors.order && <p className="text-sm text-red-500">{errors.order}</p>}
+                                        <InputError message={errors.order} />
                                         <p className="text-xs text-muted-foreground">The order in which this module appears in the course</p>
                                     </div>
 

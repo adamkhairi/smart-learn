@@ -8,6 +8,8 @@ import AppLayout from '@/layouts/app-layout';
 import { Course, User } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Calendar, Edit, Mail, Phone, X } from 'lucide-react';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface Stats {
     courses_created: number;
@@ -25,16 +27,40 @@ interface Props {
 }
 
 export default function ShowUser({ user, stats }: Props) {
-    const handleRemoveCourse = (courseId: number) => {
-        router.delete(route('admin.users.remove-course', user.id), {
-            data: { course_id: courseId },
+    const { confirm, confirmDialog } = useConfirmDialog();
+    const { success, error } = useToast();
+
+    const handleRemoveCourse = (courseId: number, courseName: string) => {
+        confirm({
+            title: 'Remove User from Course',
+            description: `Are you sure you want to remove ${user.name} from "${courseName}"? This action cannot be undone.`,
+            variant: 'destructive',
+            confirmText: 'Remove',
+            onConfirm: () => {
+                router.delete(route('admin.users.remove-course', user.id), {
+                    data: { course_id: courseId },
+                    onSuccess: () => {
+                        success(`${user.name} has been removed from ${courseName} successfully.`);
+                    },
+                    onError: () => {
+                        error('Failed to remove user from course. Please try again.');
+                    },
+                });
+            },
         });
     };
 
-    const handleUpdateCourseRole = (courseId: number, role: string) => {
+    const handleUpdateCourseRole = (courseId: number, role: string, courseName: string) => {
         router.patch(route('admin.users.update-course-role', user.id), {
             course_id: courseId,
             role: role,
+        }, {
+            onSuccess: () => {
+                success(`${user.name}'s role in ${courseName} has been updated to ${role}.`);
+            },
+            onError: () => {
+                error('Failed to update user role. Please try again.');
+            },
         });
     };
 
@@ -201,19 +227,19 @@ export default function ShowUser({ user, stats }: Props) {
                             <CardContent>
                                 <div className="space-y-4">
                                     {((user.enrollments as Course[]) || []).length > 0 ? (
-                                        ((user.enrollments as Course[]) || []).map((course: Course) => (
-                                            <div key={course.id} className="flex items-center justify-between rounded-lg border p-4">
+                                        ((user.enrollments as Course[]) || []).map((enrollment: Course) => (
+                                            <div key={enrollment.id} className="flex items-center justify-between rounded-lg border p-4">
                                                 <div>
-                                                    <div className="font-medium">{course.name}</div>
-                                                    <div className="text-sm text-muted-foreground">{course.description}</div>
+                                                    <div className="font-medium">{enrollment.name}</div>
+                                                    <div className="text-sm text-muted-foreground">{enrollment.description}</div>
                                                     <div className="mt-1 text-xs text-muted-foreground">
-                                                        Enrolled: {course.pivot ? formatDate(course.pivot.created_at) : 'N/A'}
+                                                        Enrolled: {enrollment.pivot ? formatDate(enrollment.pivot.created_at) : 'N/A'}
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center space-x-2">
                                                     <Select
-                                                        value={course.pivot?.enrolled_as}
-                                                        onValueChange={(value) => handleUpdateCourseRole(course.id, value)}
+                                                        value={enrollment.pivot?.enrolled_as}
+                                                        onValueChange={(value) => handleUpdateCourseRole(enrollment.id, value, enrollment.name)}
                                                     >
                                                         <SelectTrigger className="w-32">
                                                             <SelectValue />
@@ -224,8 +250,13 @@ export default function ShowUser({ user, stats }: Props) {
                                                             <SelectItem value="admin">Admin</SelectItem>
                                                         </SelectContent>
                                                     </Select>
-                                                    <Button variant="ghost" size="sm" onClick={() => handleRemoveCourse(course.id)}>
-                                                        <X className="h-4 w-4" />
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-destructive focus:text-destructive"
+                                                        onClick={() => handleRemoveCourse(enrollment.id, enrollment.name)}
+                                                    >
+                                                        <X className="mr-2 h-4 w-4" /> Remove
                                                     </Button>
                                                 </div>
                                             </div>
@@ -252,6 +283,7 @@ export default function ShowUser({ user, stats }: Props) {
                     </div>
                 </div>
             </div>
+            {confirmDialog}
         </AppLayout>
     );
 }

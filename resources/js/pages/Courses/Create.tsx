@@ -10,6 +10,8 @@ import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, Upload } from 'lucide-react';
+import InputError from '@/components/input-error';
+import { useToast } from '@/hooks/use-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -25,6 +27,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 function Create() {
     // Initialize flash toast notifications
     useFlashToast();
+    const { success, error } = useToast();
 
     const { data, setData, post, processing, errors } = useForm({
         name: '',
@@ -36,7 +39,14 @@ function Create() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/courses');
+        post('/courses', {
+            onSuccess: () => {
+                success('Course created successfully!');
+            },
+            onError: () => {
+                error('Failed to create course. Please check the form for errors.');
+            },
+        });
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,7 +89,7 @@ function Create() {
                                     placeholder="Enter course name"
                                     className={errors.name ? 'border-red-500' : ''}
                                 />
-                                {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+                                {errors.name && <InputError message={errors.name} />}
                             </div>
 
                             {/* Course Description */}
@@ -93,7 +103,7 @@ function Create() {
                                     rows={4}
                                     className={errors.description ? 'border-red-500' : ''}
                                 />
-                                {errors.description && <p className="text-sm text-red-500">{errors.description}</p>}
+                                {errors.description && <InputError message={errors.description} />}
                             </div>
 
                             {/* Course Image */}
@@ -109,7 +119,7 @@ function Create() {
                                     />
                                     <Upload className="h-4 w-4 text-muted-foreground" />
                                 </div>
-                                {errors.image && <p className="text-sm text-red-500">{errors.image}</p>}
+                                {errors.image && <InputError message={errors.image} />}
                                 <p className="text-xs text-muted-foreground">Recommended size: 1200x630px. Max file size: 2MB.</p>
                             </div>
 
@@ -135,7 +145,7 @@ function Create() {
                                         <SelectItem value="archived">Archived</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                {errors.status && <p className="text-sm text-red-500">{errors.status}</p>}
+                                {errors.status && <InputError message={errors.status} />}
                             </div>
 
                             {/* Submit Button */}

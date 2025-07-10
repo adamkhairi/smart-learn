@@ -28,6 +28,7 @@ import {
     XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 // Using CourseModulesPageProps directly since no additional props needed
 type ModulesIndexProps = CourseModulesPageProps;
@@ -41,6 +42,7 @@ function Index({ course, modules }: ModulesIndexProps) {
     const { patch } = useForm();
     const { canManageCourse } = useAuth();
     const { confirm, confirmDialog } = useConfirmDialog();
+    const { success: showSuccess, error: showError } = useToast();
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Courses', href: '/courses' },
@@ -54,9 +56,15 @@ function Index({ course, modules }: ModulesIndexProps) {
     // Filter modules based on user role - students only see published modules
     const visibleModules = isStudent ? modules.filter((module) => module.is_published) : modules;
 
-    const handleTogglePublished = (moduleId: number) => {
+    const handleTogglePublished = (moduleId: number, moduleTitle: string, isPublished: boolean) => {
         setProcessingActions((prev) => ({ ...prev, [moduleId]: true }));
         patch(`/courses/${course.id}/modules/${moduleId}/toggle-published`, {
+            onSuccess: () => {
+                showSuccess(`Module "${moduleTitle}" ${isPublished ? 'unpublished' : 'published'} successfully.`);
+            },
+            onError: () => {
+                showError(`Failed to ${isPublished ? 'unpublish' : 'publish'} module "${moduleTitle}". Please try again.`);
+            },
             onFinish: () => {
                 setProcessingActions((prev) => ({ ...prev, [moduleId]: false }));
             },
@@ -80,12 +88,18 @@ function Index({ course, modules }: ModulesIndexProps) {
         });
     };
 
-    const handleDuplicate = (moduleId: number) => {
+    const handleDuplicate = (moduleId: number, moduleTitle: string) => {
         setProcessingActions((prev) => ({ ...prev, [moduleId]: true }));
         router.post(
             `/courses/${course.id}/modules/${moduleId}/duplicate`,
             {},
             {
+                onSuccess: () => {
+                    showSuccess(`Module "${moduleTitle}" duplicated successfully.`);
+                },
+                onError: () => {
+                    showError(`Failed to duplicate module "${moduleTitle}". Please try again.`);
+                },
                 onFinish: () => {
                     setProcessingActions((prev) => ({ ...prev, [moduleId]: false }));
                 },
@@ -321,7 +335,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                                                             variant="ghost"
                                                             size="sm"
                                                             loading={processingActions[module.id]}
-                                                            onClick={() => handleTogglePublished(module.id)}
+                                                            onClick={() => handleTogglePublished(module.id, module.title, module.is_published)}
                                                             className="hover:bg-muted"
                                                         >
                                                             {module.is_published ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -349,7 +363,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                                                             variant="ghost"
                                                             size="sm"
                                                             loading={processingActions[module.id]}
-                                                            onClick={() => handleDuplicate(module.id)}
+                                                            onClick={() => handleDuplicate(module.id, module.title)}
                                                             className="hover:bg-muted"
                                                         >
                                                             <Copy className="h-4 w-4" />
