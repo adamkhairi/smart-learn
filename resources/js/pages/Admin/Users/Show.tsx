@@ -21,37 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
-
-interface Course {
-    id: number;
-    name: string;
-    description: string;
-    pivot: {
-        enrolled_as: string;
-        created_at: string;
-    };
-}
-
-interface User {
-    id: number;
-    name: string;
-    email: string;
-    username: string;
-    role: 'admin' | 'instructor' | 'student';
-    is_active: boolean;
-    mobile: string;
-    photo: string;
-    created_at: string;
-    last_seen_at: string;
-    enrollments: Course[];
-    created_courses: Course[];
-    instructor_courses: Course[];
-    admin_courses: Course[];
-    submissions: Record<string, unknown>[];
-    articles: Record<string, unknown>[];
-    followers: Record<string, unknown>[];
-    follows: Record<string, unknown>[];
-}
+import { Course, User } from '@/types';
 
 interface Stats {
     courses_created: number;
@@ -238,19 +208,19 @@ export default function ShowUser({ user, stats }: Props) {
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    {user.enrollments.length > 0 ? (
-                                        user.enrollments.map((course) => (
+                                    {(user.enrollments as Course[] || []).length > 0 ? (
+                                        (user.enrollments as Course[] || []).map((course: Course) => (
                                             <div key={course.id} className="flex items-center justify-between p-4 border rounded-lg">
                                                 <div>
                                                     <div className="font-medium">{course.name}</div>
                                                     <div className="text-sm text-muted-foreground">{course.description}</div>
                                                     <div className="text-xs text-muted-foreground mt-1">
-                                                        Enrolled: {formatDate(course.pivot.created_at)}
+                                                        Enrolled: {course.pivot ? formatDate(course.pivot.created_at) : 'N/A'}
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center space-x-2">
                                                     <Select
-                                                        value={course.pivot.enrolled_as}
+                                                        value={course.pivot?.enrolled_as}
                                                         onValueChange={(value) => handleUpdateCourseRole(course.id, value)}
                                                     >
                                                         <SelectTrigger className="w-32">
@@ -273,9 +243,7 @@ export default function ShowUser({ user, stats }: Props) {
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-muted-foreground text-center py-8">
-                                            No course enrollments
-                                        </p>
+                                        <p className="text-sm text-muted-foreground">This user is not enrolled in any courses.</p>
                                     )}
                                 </div>
                             </CardContent>

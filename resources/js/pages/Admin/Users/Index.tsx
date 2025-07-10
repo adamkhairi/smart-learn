@@ -39,36 +39,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useFlashToast } from '@/hooks/use-flash-toast';
 import { useToast } from '@/hooks/use-toast';
+import { SimplePaginatedResponse, User } from '@/types';
 
-interface User {
-    id: number;
-    name: string;
-    email: string;
-    username: string;
-    role: 'admin' | 'instructor' | 'student';
-    is_active: boolean;
-    photo: string;
-    created_at: string;
+interface IndexUser extends User {
     enrollments_count: number;
     created_courses_count: number;
     submissions_count: number;
 }
 
-interface PaginationLink {
-    url: string | null;
-    label: string;
-    active: boolean;
-}
-
 interface Props {
-    users: {
-        data: User[];
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
-        links: PaginationLink[];
-    };
+    users: SimplePaginatedResponse<IndexUser>;
     filters: {
         search?: string;
         role?: string;
@@ -473,7 +453,7 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
                         {users.last_page > 1 && (
                             <div className="mt-6 flex justify-center">
                                 <nav className="flex items-center space-x-2">
-                                    {users.links.map((link: PaginationLink, index: number) => (
+                                    {users.links.map((link, index) => (
                                         link.url ? (
                                             <Link
                                                 key={index}

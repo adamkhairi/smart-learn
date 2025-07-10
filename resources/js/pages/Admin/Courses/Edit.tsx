@@ -11,22 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import InputError from '@/components/input-error';
 import AppLayout from '@/layouts/app-layout';
 import { useFlashToast } from '@/hooks/use-flash-toast';
-
-interface Instructor {
-  id: number;
-  name: string;
-  email: string;
-}
-
-interface Course {
-  id: number;
-  name: string;
-  description: string;
-  created_by: number;
-  status: 'draft' | 'published' | 'archived';
-  image?: string;
-  background_color: string;
-}
+import { Course, User as Instructor } from '@/types';
 
 interface Props {
   course: Course;
@@ -34,24 +19,33 @@ interface Props {
   errors?: Record<string, string>;
 }
 
+interface FormData {
+    name: string;
+    description: string;
+    created_by: string;
+    status: 'draft' | 'published' | 'archived';
+    background_color: string;
+    image: File | null;
+}
+
 export default function Edit({ course, instructors, errors }: Props) {
   // Initialize flash toast notifications
   useFlashToast();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: course.name,
     description: course.description || '',
-    created_by: course.created_by.toString(),
+    created_by: (course.created_by || '').toString(),
     status: course.status,
-    background_color: course.background_color,
-    image: null as File | null,
+    background_color: course.background_color || '',
+    image: null,
   });
 
   const [imagePreview, setImagePreview] = useState<string | null>(
     course.image ? (course.image.startsWith('http') ? course.image : `/storage/${course.image}`) : null
   );
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -74,7 +68,7 @@ export default function Edit({ course, instructors, errors }: Props) {
     const data = new FormData();
     data.append('_method', 'PUT');
     data.append('name', formData.name);
-    data.append('description', formData.description);
+    data.append('description', formData.description || '');
     data.append('created_by', formData.created_by);
     data.append('status', formData.status);
     data.append('background_color', formData.background_color);

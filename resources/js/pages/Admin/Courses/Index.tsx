@@ -12,41 +12,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/app-layout';
 import { useFlashToast } from '@/hooks/use-flash-toast';
-
-interface Course {
-  id: number;
-  name: string;
-  description: string;
-  status: 'draft' | 'published' | 'archived';
-  background_color: string;
-  image?: string;
-  created_at: string;
-  creator?: {
-    id: number;
-    name: string;
-    email: string;
-  } | null;
-  enrolled_users: Array<{
-    id: number;
-    name: string;
-    pivot: {
-      enrolled_as: string;
-    };
-  }>;
-}
-
-interface Creator {
-  id: number;
-  name: string;
-  email: string;
-}
+import { PaginatedResponse, Course, User as Creator } from '@/types';
 
 interface Props {
-  courses: {
-    data: Course[];
-    links: Record<string, unknown>;
-    meta: Record<string, unknown>;
-  };
+  courses: PaginatedResponse<Course>;
   creators: Creator[];
   filters: {
     search?: string;
@@ -205,7 +174,7 @@ export default function Index({ courses, creators, filters }: Props) {
 
         {/* Course List */}
         <div className="grid gap-6">
-          {courses.data.map((course) => (
+          {courses.data.map((course: Course) => (
             <Card key={course.id}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
@@ -248,7 +217,7 @@ export default function Index({ courses, creators, filters }: Props) {
 
                         <div className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
-                          <span>{course.enrolled_users.length} enrolled</span>
+                          <span>{course.enrolled_users?.length || 0} enrolled</span>
                         </div>
 
                         <span>
@@ -314,7 +283,7 @@ export default function Index({ courses, creators, filters }: Props) {
         </div>
 
         {/* Pagination */}
-        {courses.meta.last_page > 1 && (
+        {courses?.meta?.last_page && courses.meta.last_page > 1 && (
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
               Showing {((courses.meta.current_page - 1) * courses.meta.per_page) + 1} to{' '}

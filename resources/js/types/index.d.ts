@@ -45,6 +45,7 @@ export interface User {
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;
+    enrollments?: Course[];
     pivot?: {
         enrolled_as: 'student' | 'instructor' | 'admin';
         created_at: string;
@@ -71,6 +72,11 @@ export interface Course {
     assessments?: Assessment[];
     announcements?: Announcement[];
     discussions?: Discussion[];
+    pivot?: {
+        enrolled_as: 'student' | 'instructor' | 'admin';
+        created_at: string;
+        updated_at: string;
+    };
     [key: string]: unknown;
 }
 
@@ -422,4 +428,42 @@ export interface CourseModuleItemEditPageProps extends PageProps {
     course: Course;
     module: CourseModule;
     item: CourseModuleItem;
+}
+
+// Pagination interfaces
+export interface PaginationLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+export interface PaginationMeta {
+    current_page: number;
+    first_page_url: string;
+    from: number | null;
+    last_page: number;
+    last_page_url: string;
+    next_page_url: string | null;
+    path: string;
+    per_page: number;
+    prev_page_url: string | null;
+    to: number | null;
+    total: number;
+}
+
+// Laravel paginated response structure (when using ->paginate())
+export interface PaginatedResponse<T> {
+    data: T[];
+    links: PaginationLink[];
+    meta: PaginationMeta;
+}
+
+// Simple pagination structure (when manually building pagination)
+export interface SimplePaginatedResponse<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    links: PaginationLink[];
 }

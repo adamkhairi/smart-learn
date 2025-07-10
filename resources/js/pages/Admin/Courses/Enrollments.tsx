@@ -12,23 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
-
-interface Course {
-  id: number;
-  name: string;
-  background_color: string;
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  pivot?: {
-    enrolled_as: string;
-    created_at: string;
-  };
-}
+import { Course, User } from '@/types';
 
 interface Props {
   course: Course;

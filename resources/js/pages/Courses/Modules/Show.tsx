@@ -98,7 +98,7 @@ const ModuleItemCard = React.memo<{
     const externalUrl = useMemo(() => {
         if (!item.itemable) return null;
         if (itemType === 'lecture') {
-            return (item.itemable as { video_url?: string })?.video_url || null;
+            return (item.itemable as unknown as { video_url?: string })?.video_url || null;
         }
         return null;
     }, [item.itemable, itemType]);
@@ -176,16 +176,16 @@ const ModuleItemCard = React.memo<{
                                     <>
                                         <ContentPreview
                                             content={{
-                                                content_html: (item.itemable as Record<string, unknown>).content_html as string,
-                                                content_json: (item.itemable as Record<string, unknown>).content_json as string | object,
-                                                content: (item.itemable as Record<string, unknown>).content as string
+                                                content_html: (item.itemable as unknown as Record<string, unknown>).content_html as string,
+                                                content_json: (item.itemable as unknown as Record<string, unknown>).content_json as string | object,
+                                                content: (item.itemable as unknown as Record<string, unknown>).content as string
                                             }}
                                             type={itemType as 'lecture' | 'assessment' | 'assignment'}
                                         />
 
                                         {/* Assessment Questions Preview */}
-                                        {itemType === 'assessment' && (item.itemable as Record<string, unknown>).questions && (
-                                            <QuestionPreview questions={(item.itemable as Record<string, unknown>).questions as Array<{id: number; question_text: string; type: string; points: number}>} />
+                                        {itemType === 'assessment' && (item.itemable as unknown as Record<string, unknown>).questions && (
+                                            <QuestionPreview questions={(item.itemable as unknown as Record<string, unknown>).questions as Array<{id: number; question_text: string; type: string; points: number}>} />
                                         )}
                                     </>
                                 )}

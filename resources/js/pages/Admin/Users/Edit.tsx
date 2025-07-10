@@ -20,38 +20,22 @@ import AppLayout from '@/layouts/app-layout';
 import { useFlashToast } from '@/hooks/use-flash-toast';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { User, Course } from '@/types';
+import { route } from 'ziggy-js';
 
-interface Course {
-    id: number;
-    name: string;
-    description: string;
-}
-
-interface Enrollment {
-    id: number;
-    name: string;
-    description: string;
-    pivot: {
-        enrolled_as: string;
-        created_at: string;
-    };
-}
-
-interface User {
-    id: number;
-    name: string;
-    email: string;
-    username: string;
-    role: 'admin' | 'instructor' | 'student';
-    is_active: boolean;
-    mobile: string;
-    photo: string;
-    enrollments: Enrollment[];
-    created_courses: Course[];
-}
+// No custom Enrollment/EditUser interfaces needed for this approach
 
 interface Props {
-    user: User;
+    user: User & {
+        mobile?: string;
+        enrollments: (Course & {
+            pivot: {
+                enrolled_as: 'student' | 'instructor' | 'admin';
+                created_at: string;
+            }
+        })[];
+        created_courses: Course[];
+    };
     availableCourses: Course[];
 }
 
@@ -169,7 +153,7 @@ export default function EditUser({ user, availableCourses }: Props) {
                         </Link>
                         <div className="flex items-center space-x-4">
                             <Avatar>
-                                <AvatarImage src={user.photo} />
+                                <AvatarImage src={user.photo ?? undefined} />
                                 <AvatarFallback>
                                     {getInitials(user.name)}
                                 </AvatarFallback>
@@ -336,12 +320,12 @@ export default function EditUser({ user, availableCourses }: Props) {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="font-medium truncate">{course.name}</div>
                                                     <div className="text-sm text-muted-foreground">
-                                                        {getRoleBadge(course.pivot.enrolled_as)}
+                                                        {getRoleBadge(course.pivot?.enrolled_as || 'student')}
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center space-x-2">
                                                     <Select
-                                                        value={course.pivot.enrolled_as}
+                                                        value={course.pivot?.enrolled_as}
                                                         onValueChange={(value) => handleUpdateCourseRole(course.id, value)}
                                                     >
                                                         <SelectTrigger className="w-32">
@@ -398,7 +382,7 @@ export default function EditUser({ user, availableCourses }: Props) {
                                             <div className="space-y-2">
                                                 <Label>Course ({availableCourses.filter(course =>
                                                     course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                    course.description.toLowerCase().includes(searchTerm.toLowerCase())
+                                                    (course.description && course.description.toLowerCase().includes(searchTerm.toLowerCase()))
                                                 ).length} found)</Label>
                                                 <Select value={newCourseId} onValueChange={setNewCourseId}>
                                                     <SelectTrigger>
@@ -408,7 +392,7 @@ export default function EditUser({ user, availableCourses }: Props) {
                                                         {availableCourses
                                                             .filter(course =>
                                                                 course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                                course.description.toLowerCase().includes(searchTerm.toLowerCase())
+                                                                (course.description && course.description.toLowerCase().includes(searchTerm.toLowerCase()))
                                                             )
                                                             .map((course) => (
                                                             <SelectItem key={course.id} value={course.id.toString()}>

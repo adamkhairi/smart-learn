@@ -6,13 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
+import { User } from '@/types';
+import { route } from 'ziggy-js';
 
-interface User {
-    id: number;
-    name: string;
-    email: string;
-    role: string;
-    created_at: string;
+interface StatsUser extends User {
     created_courses_count: number;
 }
 
@@ -27,8 +24,8 @@ interface Stats {
     active_users: number;
     inactive_users: number;
     role_distribution: RoleDistribution;
-    recent_registrations: User[];
-    top_instructors: User[];
+    recent_registrations: StatsUser[];
+    top_instructors: StatsUser[];
 }
 
 interface Props {

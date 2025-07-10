@@ -7,13 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import AppLayout from '@/layouts/app-layout';
-
-interface Course {
-  id: number;
-  name: string;
-  status: string;
-  background_color: string;
-}
+import { Course } from '@/types';
+import { route } from 'ziggy-js';
 
 interface Stats {
   total_students: number;

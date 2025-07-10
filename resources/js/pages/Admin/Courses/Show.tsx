@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
+import { route } from 'ziggy-js';
 import {
   ArrowLeft,
   Edit,
@@ -39,66 +40,7 @@ import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useFlashToast } from '@/hooks/use-flash-toast';
-
-interface Course {
-  id: number;
-  name: string;
-  description: string;
-  status: 'draft' | 'published' | 'archived';
-  image?: string;
-  background_color: string;
-  created_at: string;
-  creator: {
-    id: number;
-    name: string;
-    email: string;
-  };
-  enrolled_users: Array<{
-    id: number;
-    name: string;
-    email: string;
-    pivot: {
-      enrolled_as: string;
-      created_at: string;
-    };
-  }>;
-  modules: Array<{
-    id: number;
-    name: string;
-    is_published: boolean;
-    module_items: Array<{
-      id: number;
-      title: string;
-      type: string;
-    }>;
-  }>;
-  assignments: Array<{
-    id: number;
-    title: string;
-    due_date: string;
-  }>;
-  assessments: Array<{
-    id: number;
-    title: string;
-    type: string;
-  }>;
-  announcements: Array<{
-    id: number;
-    title: string;
-    created_at: string;
-    creator: {
-      name: string;
-    };
-  }>;
-  discussions: Array<{
-    id: number;
-    title: string;
-    created_at: string;
-    creator: {
-      name: string;
-    };
-  }>;
-}
+import { Course } from '@/types';
 
 interface Stats {
   total_students: number;
@@ -217,9 +159,9 @@ export default function Show({ course, stats, recentActivity }: Props) {
     </Card>
   );
 
-  const filteredUsers = course.enrolled_users.filter(user =>
+  const filteredUsers = (course.enrolled_users || []).filter(user =>
     user.name.toLowerCase().includes(searchUsers.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchUsers.toLowerCase())
+    (user.email && user.email.toLowerCase().includes(searchUsers.toLowerCase()))
   );
 
   return (
@@ -249,43 +191,40 @@ export default function Show({ course, stats, recentActivity }: Props) {
 
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center gap-4">
-              {course.image ? (
-                <div
-                  className="w-16 h-16 rounded-lg overflow-hidden border-2 border-white shadow-sm"
-                  style={{ backgroundColor: course.background_color }}
-                >
+              <div
+                className="w-24 h-24 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-bold text-3xl"
+                style={{ backgroundColor: course.background_color }}
+              >
+                {course.image ? (
                   <img
-                    src={`/storage/${course.image}`}
+                    src={course.image.startsWith('http') ? course.image : `/storage/${course.image}`}
                     alt={course.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-lg"
                   />
-                </div>
-              ) : (
-                <div
-                  className="w-16 h-16 rounded-lg flex items-center justify-center text-white font-bold text-xl border-2 border-white shadow-sm"
-                  style={{ backgroundColor: course.background_color }}
-                >
-                  {course.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-
-              <div>
-                <div className="flex items-center gap-3 mb-1">
+                ) : (
+                  getInitials(course.name)
+                )}
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-3">
                   <h1 className="text-3xl font-bold tracking-tight">{course.name}</h1>
                   {getStatusBadge(course.status)}
                 </div>
-                <p className="text-muted-foreground flex items-center gap-2">
+                <p className="text-muted-foreground max-w-2xl">{course.description}</p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground pt-1">
                   <Avatar className="h-5 w-5">
                     <AvatarFallback className="text-xs">
-                      {getInitials(course.creator.name)}
+                      {course.creator ? getInitials(course.creator.name) : '?'}
                     </AvatarFallback>
                   </Avatar>
-                  Created by {course.creator.name} on {new Date(course.created_at).toLocaleDateString()}
-                </p>
+                  <span>Created by {course.creator?.name || 'Unknown Creator'}</span>
+                  <Separator orientation="vertical" className="h-4" />
+                  <Calendar className="h-4 w-4" />
+                  <span>Created on {new Date(course.created_at).toLocaleDateString()}</span>
+                </div>
               </div>
             </div>
-
-            <div className="flex flex-wrap gap-2">
+            <div className="flex-shrink-0">
               <Link href={route('admin.courses.edit', course.id)}>
                 <Button>
                   <Edit className="mr-2 h-4 w-4" />
@@ -506,13 +445,13 @@ export default function Show({ course, stats, recentActivity }: Props) {
                         <BookOpen className="h-4 w-4 text-blue-600" />
                         <p className="text-sm font-medium text-muted-foreground">Module Status</p>
                       </div>
-                      <p className="text-lg font-bold">{stats.total_published_modules}/{course.modules.length}</p>
+                      <p className="text-lg font-bold">{stats.total_published_modules}/{course.modules?.length || 0}</p>
                       <p className="text-xs text-muted-foreground">Published/Total</p>
                     </div>
                     <div className="text-right">
                       <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                         <span className="text-sm font-bold text-blue-600">
-                          {course.modules.length > 0 ? Math.round((stats.total_published_modules / course.modules.length) * 100) : 0}%
+                          {(course.modules?.length || 0) > 0 ? Math.round((stats.total_published_modules / (course.modules?.length || 0)) * 100) : 0}%
                         </span>
                       </div>
                     </div>
@@ -528,12 +467,12 @@ export default function Show({ course, stats, recentActivity }: Props) {
                         <Target className="h-4 w-4 text-orange-600" />
                         <p className="text-sm font-medium text-muted-foreground">Active Tasks</p>
                       </div>
-                      <p className="text-lg font-bold">{course.assignments.length + course.assessments.length}</p>
+                      <p className="text-lg font-bold">{(course.assignments?.length || 0) + (course.assessments?.length || 0)}</p>
                       <p className="text-xs text-muted-foreground">Assignments + Assessments</p>
                     </div>
                     <div className="text-right">
                       <Badge variant="outline" className="text-orange-600 border-orange-600">
-                        {course.assignments.length} + {course.assessments.length}
+                        {(course.assignments?.length || 0)} + {(course.assessments?.length || 0)}
                       </Badge>
                     </div>
                   </div>
@@ -548,7 +487,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
                         <MessageSquare className="h-4 w-4 text-green-600" />
                         <p className="text-sm font-medium text-muted-foreground">Communication</p>
                       </div>
-                      <p className="text-lg font-bold">{course.discussions.length}</p>
+                      <p className="text-lg font-bold">{course.discussions?.length || 0}</p>
                       <p className="text-xs text-muted-foreground">Active Discussions</p>
                     </div>
                     <div className="text-right">
@@ -568,7 +507,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
                         <Bell className="h-4 w-4 text-purple-600" />
                         <p className="text-sm font-medium text-muted-foreground">Updates</p>
                       </div>
-                      <p className="text-lg font-bold">{course.announcements.length}</p>
+                      <p className="text-lg font-bold">{course.announcements?.length || 0}</p>
                       <p className="text-xs text-muted-foreground">Recent Announcements</p>
                     </div>
                     <div className="text-right">
@@ -598,7 +537,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <BookOpen className="h-5 w-5" />
-                        <CardTitle>Course Modules ({course.modules.length})</CardTitle>
+                        <CardTitle>Course Modules ({course.modules?.length || 0})</CardTitle>
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline">
@@ -615,9 +554,9 @@ export default function Show({ course, stats, recentActivity }: Props) {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {course.modules.length > 0 ? (
+                    {(course.modules?.length || 0) > 0 ? (
                       <div className="space-y-4">
-                        {course.modules.map((module, index) => (
+                        {(course.modules || []).map((module, index) => (
                           <Card key={module.id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
                               <div className="flex items-start gap-4">
@@ -626,7 +565,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
                                 </div>
                                 <div className="flex-1 space-y-2">
                                   <div className="flex items-center justify-between">
-                                    <h4 className="font-semibold text-lg">{module.name}</h4>
+                                    <h4 className="font-semibold text-lg">{module.title}</h4>
                                     <div className="flex items-center gap-2">
                                       <Badge variant={module.is_published ? 'default' : 'secondary'}>
                                         {module.is_published ? (
@@ -684,11 +623,11 @@ export default function Show({ course, stats, recentActivity }: Props) {
                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                     <span className="flex items-center gap-1">
                                       <FileText className="h-3 w-3" />
-                                      {module.module_items.length} items
+                                      {module.module_items?.length || 0} items
                                     </span>
                                     <span className="flex items-center gap-1">
                                       <Clock className="h-3 w-3" />
-                                      ~{Math.max(1, Math.ceil(module.module_items.length * 15 / 60))}h duration
+                                      ~{Math.max(1, Math.ceil((module.module_items?.length || 0) * 15 / 60))}h duration
                                     </span>
                                     <span className="flex items-center gap-1">
                                       <Users className="h-3 w-3" />
@@ -739,7 +678,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Target className="h-5 w-5" />
-                        <CardTitle>Course Assignments ({course.assignments.length})</CardTitle>
+                        <CardTitle>Course Assignments ({course.assignments?.length || 0})</CardTitle>
                       </div>
                       <Link href={`/courses/${course.id}/assignments/create`}>
                         <Button size="sm">
@@ -750,9 +689,9 @@ export default function Show({ course, stats, recentActivity }: Props) {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {course.assignments.length > 0 ? (
+                    {(course.assignments?.length || 0) > 0 ? (
                       <div className="space-y-4">
-                        {course.assignments.map((assignment) => (
+                        {(course.assignments || []).map((assignment) => (
                           <Card key={assignment.id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
@@ -761,7 +700,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                     <span className="flex items-center gap-1">
                                       <Calendar className="h-3 w-3" />
-                                      Due: {new Date(assignment.due_date).toLocaleDateString()}
+                                      Due: {assignment.expired_at ? new Date(assignment.expired_at).toLocaleDateString() : 'N/A'}
                                     </span>
                                     <span className="flex items-center gap-1">
                                       <Users className="h-3 w-3" />
@@ -828,7 +767,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FileText className="h-5 w-5" />
-                        <CardTitle>Course Assessments ({course.assessments.length})</CardTitle>
+                        <CardTitle>Course Assessments ({course.assessments?.length || 0})</CardTitle>
                       </div>
                       <Link href={`/courses/${course.id}/assessments/create`}>
                         <Button size="sm">
@@ -839,9 +778,9 @@ export default function Show({ course, stats, recentActivity }: Props) {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {course.assessments.length > 0 ? (
+                    {(course.assessments?.length || 0) > 0 ? (
                       <div className="space-y-4">
-                        {course.assessments.map((assessment) => (
+                        {(course.assessments || []).map((assessment) => (
                           <Card key={assessment.id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
@@ -911,7 +850,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <MessageSquare className="h-5 w-5" />
-                        <CardTitle>Course Discussions ({course.discussions.length})</CardTitle>
+                        <CardTitle>Course Discussions ({course.discussions?.length || 0})</CardTitle>
                       </div>
                       <Link href={`/courses/${course.id}/discussions/create`}>
                         <Button size="sm">
@@ -922,16 +861,15 @@ export default function Show({ course, stats, recentActivity }: Props) {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {course.discussions.length > 0 ? (
+                    {(course.discussions?.length || 0) > 0 ? (
                       <div className="space-y-4">
-                        {course.discussions.map((discussion) => (
+                        {(course.discussions || []).map((discussion) => (
                           <Card key={discussion.id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div className="space-y-2">
                                   <h4 className="font-semibold text-lg">{discussion.title}</h4>
                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <span>Started by {discussion.creator.name}</span>
                                     <span>{new Date(discussion.created_at).toLocaleDateString()}</span>
                                     <span className="flex items-center gap-1">
                                       <MessageSquare className="h-3 w-3" />
@@ -995,7 +933,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Bell className="h-5 w-5" />
-                        <CardTitle>Course Announcements ({course.announcements.length})</CardTitle>
+                        <CardTitle>Course Announcements ({course.announcements?.length || 0})</CardTitle>
                       </div>
                       <Link href={`/courses/${course.id}/announcements/create`}>
                         <Button size="sm">
@@ -1006,16 +944,15 @@ export default function Show({ course, stats, recentActivity }: Props) {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {course.announcements.length > 0 ? (
+                    {(course.announcements?.length || 0) > 0 ? (
                       <div className="space-y-4">
-                        {course.announcements.map((announcement) => (
+                        {(course.announcements || []).map((announcement) => (
                           <Card key={announcement.id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div className="space-y-2">
                                   <h4 className="font-semibold text-lg">{announcement.title}</h4>
                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <span>By {announcement.creator.name}</span>
                                     <span>{new Date(announcement.created_at).toLocaleDateString()}</span>
                                     <Badge variant="outline">Published</Badge>
                                   </div>
@@ -1076,7 +1013,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Enrolled Users ({course.enrolled_users.length})</CardTitle>
+                  <CardTitle>Enrolled Users ({course.enrolled_users?.length || 0})</CardTitle>
                   <div className="flex gap-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1095,14 +1032,14 @@ export default function Show({ course, stats, recentActivity }: Props) {
                 </div>
               </CardHeader>
               <CardContent>
-                {filteredUsers.length > 0 ? (
+                {(filteredUsers || []).length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredUsers.map((user) => (
+                    {(filteredUsers || []).map((user) => (
                       <Card key={user.id} className="hover:shadow-md transition-shadow">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-3 mb-3">
                             <Avatar className="h-10 w-10">
-                              <AvatarImage src="" />
+                              <AvatarImage src={user.photo} alt={user.name} />
                               <AvatarFallback>
                                 {getInitials(user.name)}
                               </AvatarFallback>
@@ -1113,9 +1050,9 @@ export default function Show({ course, stats, recentActivity }: Props) {
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
-                            {getRoleBadge(user.pivot.enrolled_as)}
+                            {getRoleBadge(user.pivot?.enrolled_as || 'student')}
                             <span className="text-xs text-muted-foreground">
-                              {new Date(user.pivot.created_at).toLocaleDateString()}
+                              {new Date(user.pivot?.created_at || user.created_at).toLocaleDateString()}
                             </span>
                           </div>
                         </CardContent>
@@ -1141,15 +1078,15 @@ export default function Show({ course, stats, recentActivity }: Props) {
                 <CardTitle>Recent Activity</CardTitle>
               </CardHeader>
               <CardContent>
-                {recentActivity.length > 0 ? (
+                {(recentActivity || []).length > 0 ? (
                   <div className="space-y-4">
-                    {recentActivity.map((activity, index) => (
+                    {(recentActivity || []).map((activity, index) => (
                       <div key={index} className="flex items-start gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors">
                         {getActivityIcon(activity.type)}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium">{activity.title}</p>
                           <p className="text-sm text-muted-foreground">
-                            by {activity.user.name} • {new Date(activity.created_at).toLocaleDateString()}
+                            by {activity.user?.name || 'Unknown'} • {new Date(activity.created_at).toLocaleDateString()}
                           </p>
                         </div>
                         <Badge variant="outline" className="text-xs">
