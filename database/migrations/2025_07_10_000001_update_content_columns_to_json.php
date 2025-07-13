@@ -13,20 +13,32 @@ return new class extends Migration
     {
         // Update course_module_items table
         Schema::table('course_module_items', function (Blueprint $table) {
-            $table->json('content_json')->nullable()->after('description');
-            $table->longText('content_html')->nullable()->after('content_json');
+            if (!Schema::hasColumn('course_module_items', 'content_json')) {
+                $table->json('content_json')->nullable()->after('description');
+            }
+            if (!Schema::hasColumn('course_module_items', 'content_html')) {
+                $table->longText('content_html')->nullable()->after('content_json');
+            }
         });
 
         // Update lectures table
         Schema::table('lectures', function (Blueprint $table) {
-            $table->json('content_json')->nullable()->after('content');
-            $table->longText('content_html')->nullable()->after('content_json');
+            if (!Schema::hasColumn('lectures', 'content_json')) {
+                $table->json('content_json')->nullable()->after('content');
+            }
+            if (!Schema::hasColumn('lectures', 'content_html')) {
+                $table->longText('content_html')->nullable()->after('content_json');
+            }
         });
 
         // Update articles table
         Schema::table('articles', function (Blueprint $table) {
-            $table->json('content_json')->nullable()->after('text');
-            $table->longText('content_html')->nullable()->after('content_json');
+            if (!Schema::hasColumn('articles', 'content_json')) {
+                $table->json('content_json')->nullable()->after('text');
+            }
+            if (!Schema::hasColumn('articles', 'content_html')) {
+                $table->longText('content_html')->nullable()->after('content_json');
+            }
         });
     }
 

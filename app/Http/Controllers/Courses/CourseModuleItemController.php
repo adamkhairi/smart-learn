@@ -10,6 +10,7 @@ use App\Models\Course;
 use App\Models\CourseModule;
 use App\Models\CourseModuleItem;
 use App\Models\Lecture;
+use App\Models\UserProgress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -104,13 +105,30 @@ class CourseModuleItemController extends Controller
         // Add created_by field to course for frontend compatibility
         $course->created_by = $course->created_by ?? $course->user_id;
 
+        // Get user progress for this item
+        $userProgress = $course->getUserProgressForItem(Auth::id(), $item->id);
+
+        // Mark item as started if not already started
+        if (!$userProgress || $userProgress->isNotStarted()) {
+            $course->markItemAsStarted(Auth::id(), $item->id);
+            $userProgress = $course->getUserProgressForItem(Auth::id(), $item->id);
+        }
+
+        // Get completed items for this module
+        $completedItems = UserProgress::where('user_id', Auth::id())
+            ->where('course_id', $course->id)
+            ->where('course_module_id', $module->id)
+            ->where('status', 'completed')
+            ->pluck('course_module_item_id')
+            ->toArray();
+
         return Inertia::render('Courses/Modules/Items/Show', [
             'course' => $course->load('creator'),
             'module' => $module,
             'item' => $item,
             'userSubmission' => $userSubmission,
-            // TODO: Add user progress tracking for completedItems
-            'completedItems' => [], // This would come from user progress tracking
+            'userProgress' => $userProgress,
+            'completedItems' => $completedItems,
         ]);
     }
 

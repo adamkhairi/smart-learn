@@ -5,7 +5,6 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
-import { useFlashToast } from '@/hooks/use-flash-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/layouts/app-layout';
@@ -28,7 +27,6 @@ function Index({ courses, userRole }: CoursesPageProps) {
     const canCreateCourse = userRole === 'admin' || userRole === 'instructor';
 
     // Initialize flash toast notifications
-    useFlashToast();
 
     // Initialize confirmation dialog and toast
     const { confirm, confirmDialog } = useConfirmDialog();
@@ -140,7 +138,7 @@ function Index({ courses, userRole }: CoursesPageProps) {
                 {courses.length > 0 && (
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                         {/* Search Input */}
-                        <div className="relative flex-1 sm:max-w-sm">
+                        <div className="relative flex-1 w-full">
                             <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search courses..."

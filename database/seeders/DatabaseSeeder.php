@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             AdminUserSeeder::class,
-            LMSTestSeeder::class,
+            LMSSeeder::class,
         ]);
 
         // Create additional test user

@@ -107,14 +107,16 @@ export function ModuleNavigation({ course, module, currentItem, completedItems =
                                     href={`/courses/${course.id}/modules/${module.id}/items/${item.id}`}
                                     className={`flex items-center gap-3 rounded-lg p-2 text-sm transition-colors hover:bg-accent ${
                                         isCurrent ? 'border border-border bg-accent' : ''
-                                    }`}
+                                    } ${isCompleted ? 'bg-green-50 dark:bg-green-900/20' : ''}`}
                                 >
                                     <div className="flex min-w-0 flex-1 items-center gap-2">
                                         {getItemIcon(item)}
                                         <Badge variant="outline" className="flex-shrink-0 px-1.5 py-0.5 text-xs">
                                             {index + 1}
                                         </Badge>
-                                        <span className="flex-1 truncate">{item.title}</span>
+                                        <span className={`flex-1 truncate ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
+                                            {item.title}
+                                        </span>
                                     </div>
 
                                     <div className="flex flex-shrink-0 items-center gap-1">
@@ -125,13 +127,27 @@ export function ModuleNavigation({ course, module, currentItem, completedItems =
                                                 {Math.ceil(item.duration / 60)}m
                                             </div>
                                         )}
-                                        {isCompleted && <CheckCircle className="h-4 w-4 text-green-500" />}
+                                        {isCompleted && (
+                                            <CheckCircle className="h-4 w-4 text-green-500" />
+                                        )}
                                     </div>
                                 </Link>
                             );
                         })}
                     </div>
                 </div>
+
+                {/* Completion Summary */}
+                {completedItems.length > 0 && (
+                    <div className="rounded-lg bg-green-50 p-3 dark:bg-green-900/20">
+                        <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="font-medium">
+                                {completedItems.length} of {items.length} items completed
+                            </span>
+                        </div>
+                    </div>
+                )}
 
                 {/* Quick Actions */}
                 <div className="space-y-2 border-t pt-4">

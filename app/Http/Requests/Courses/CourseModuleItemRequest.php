@@ -44,7 +44,7 @@ class CourseModuleItemRequest extends FormRequest
             case 'assessment':
                 $rules['assessment_title'] = 'required|string|min:3|max:255';
                 $rules['max_score'] = 'nullable|integer|min:1|max:1000';
-                $rules['assessment_type'] = ['nullable', Rule::in(['quiz', 'exam', 'project'])];
+                $rules['assessment_type'] = ['nullable', Rule::in(['Quiz', 'Exam', 'Project'])];
                 $rules['questions_type'] = ['nullable', Rule::in(['online', 'file'])];
                 $rules['submission_type'] = ['nullable', Rule::in(['online', 'written'])];
                 $rules['assessment_content_json'] = 'nullable|string|max:200000';
@@ -78,6 +78,18 @@ class CourseModuleItemRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('questions') && is_string($this->questions)) {
+            $this->merge([
+                'questions' => json_decode($this->questions, true),
+            ]);
+        }
     }
 
     /**

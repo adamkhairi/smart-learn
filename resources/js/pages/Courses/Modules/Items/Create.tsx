@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Textarea } from '@/components/ui/textarea';
-import { useFlashToast } from '@/hooks/use-flash-toast';
 import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem, CourseModuleItemCreatePageProps, QuestionFormData } from '@/types';
@@ -20,10 +19,9 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
     const [questions, setQuestions] = useState<QuestionFormData[]>([]);
 
     // Initialize flash toast notifications
-    useFlashToast();
-    const { success: showSuccess, error: showError, loading: showLoading, dismiss: dismissToast } = useToast();
+    const { success: showSuccess, loading: showLoading, dismiss: dismissToast } = useToast();
 
-    const { data, setData, processing, errors } = useForm({
+    const { data, setData, processing, errors, setError, clearErrors } = useForm({
         title: '',
         description: '',
         item_type: '' as 'lecture' | 'assessment' | 'assignment',
@@ -36,7 +34,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
         content_html: '',
         assessment_title: '',
         max_score: 100,
-        assessment_type: 'quiz' as 'quiz' | 'exam' | 'project',
+        assessment_type: 'Quiz' as 'Quiz' | 'Exam' | 'Project',
         assignment_title: '',
         total_points: 100,
         assignment_type: '',
@@ -54,6 +52,8 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
         assessment_content_html: '',
         assessment_instructions_json: '',
         assessment_instructions_html: '',
+        // Questions field for assessments
+        questions: '[]',
     });
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -67,14 +67,17 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
+        // Clear previous errors
+        clearErrors();
+
         // Basic validation
         if (!data.title.trim()) {
-            showError('Please enter a title for the module item.');
+            setError('title', 'Please enter a title for the module item.');
             return;
         }
 
         if (!selectedType) {
-            showError('Please select an item type (lecture, assessment, or assignment).');
+            setError('item_type', 'Please select an item type (lecture, assessment, or assignment).');
             return;
         }
 
@@ -102,33 +105,35 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
             const hasContent = hasRichTextContent(data.content_json);
 
             if (!hasVideoUrl && !hasContent) {
-                showError('Please provide either a video URL or content for the lecture.');
+                setError('video_url', 'Please provide either a video URL or content for the lecture.');
+                setError('content_json', 'Please provide either a video URL or content for the lecture.');
                 return;
             }
         }
 
         if (selectedType === 'assessment') {
             if (!data.assessment_title.trim()) {
-                showError('Please enter a title for the assessment.');
+                setError('assessment_title', 'Please enter a title for the assessment.');
                 return;
             }
             if (questions.length === 0) {
-                showError('Please add at least one question to the assessment.');
+                // Show error in the questions section
+                setError('questions', 'Please add at least one question to the assessment.');
                 return;
             }
         }
 
         if (selectedType === 'assignment') {
             if (!data.assignment_title.trim()) {
-                showError('Please enter a title for the assignment.');
+                setError('assignment_title', 'Please enter a title for the assignment.');
                 return;
             }
             if (!data.started_at) {
-                showError('Please set a start date for the assignment.');
+                setError('started_at', 'Please set a start date for the assignment.');
                 return;
             }
             if (!data.expired_at) {
-                showError('Please set a due date for the assignment.');
+                setError('expired_at', 'Please set a due date for the assignment.');
                 return;
             }
         }
@@ -137,13 +142,11 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
         const loadingToastId = showLoading('Adding module item...');
 
         // Create submission data with questions if this is an assessment
-        const submitData =
-            selectedType === 'assessment'
-                ? {
-                      ...data,
-                      questions: JSON.stringify(questions),
-                  }
-                : data;
+        const submitData = { ...data }; // Start with a copy of the current form data
+
+        if (selectedType === 'assessment') {
+            submitData.questions = JSON.stringify(questions);
+        }
 
         // Use the manual URL for now until we debug the route issue
         router.post(`/courses/${course.id}/modules/${module.id}/items`, submitData, {
@@ -156,13 +159,29 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                 // Dismiss the loading toast
                 dismissToast(loadingToastId);
                 console.error('Submission errors:', formErrors);
-                showError('Please check the form for errors.');
+
+                // Debug: Log the errors object to see what we're getting
+                console.log('Current errors object:', errors);
+                console.log('Form errors received:', formErrors);
+
+                // Inertia.js will automatically set the errors in the form
+                // But let's also manually set them to ensure they show up
+                Object.entries(formErrors).forEach(([field, message]) => {
+                    if (typeof message === 'string') {
+                        setError(field as keyof typeof data, message);
+                    } else if (Array.isArray(message)) {
+                        setError(field as keyof typeof data, message[0]);
+                    }
+                });
             },
         });
     };
 
     const handleTypeChange = (type: 'lecture' | 'assessment' | 'assignment') => {
         setSelectedType(type);
+
+        // Clear errors when changing type
+        clearErrors();
 
         // Set the item type first
         setData('item_type', type);
@@ -179,7 +198,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                 // Clear other type fields
                 assessment_title: '',
                 max_score: 100,
-                assessment_type: 'quiz',
+                assessment_type: 'Quiz',
                 assessment_content_json: '',
                 assessment_content_html: '',
                 assessment_instructions_json: '',
@@ -195,6 +214,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                 assignment_instructions_html: '',
                 assignment_rubric_json: '',
                 assignment_rubric_html: '',
+                questions: '[]', // Ensure questions is an empty JSON array string
             });
         } else if (type === 'assessment') {
             setData({
@@ -202,7 +222,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                 item_type: type,
                 assessment_title: '',
                 max_score: 100,
-                assessment_type: 'quiz',
+                assessment_type: 'Quiz',
                 assessment_content_json: '',
                 assessment_content_html: '',
                 assessment_instructions_json: '',
@@ -223,6 +243,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                 assignment_instructions_html: '',
                 assignment_rubric_json: '',
                 assignment_rubric_html: '',
+                questions: '[]', // Ensure questions is an empty JSON array string
             });
         } else if (type === 'assignment') {
             setData({
@@ -246,7 +267,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                 content_html: '',
                 assessment_title: '',
                 max_score: 100,
-                assessment_type: 'quiz',
+                assessment_type: 'Quiz',
                 assessment_content_json: '',
                 assessment_content_html: '',
                 assessment_instructions_json: '',
@@ -302,6 +323,8 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         selectedType === type.value
                                                             ? 'border-primary bg-primary/5'
                                                             : 'border-border hover:border-primary/50'
+                                                    } ${
+                                                        errors.item_type ? 'border-destructive' : ''
                                                     }`}
                                                     onClick={() => handleTypeChange(type.value as 'lecture' | 'assessment' | 'assignment')}
                                                 >
@@ -315,7 +338,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                 </div>
                                             ))}
                                         </div>
-                                        {errors.item_type && <p className="text-sm text-destructive">{errors.item_type}</p>}
+                                        <InputError message={errors.item_type} />
                                     </div>
 
                                     <div className="space-y-4 pt-4">
@@ -327,7 +350,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                 value={data.title}
                                                 onChange={(e) => setData('title', e.target.value)}
                                                 placeholder="e.g., Introduction to Algebra"
-                                                className="mt-1"
+                                                className={`mt-1 ${errors.title ? 'border-destructive' : ''}`}
                                             />
                                             <InputError message={errors.title} />
                                         </div>
@@ -339,7 +362,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                 value={data.description}
                                                 onChange={(e) => setData('description', e.target.value)}
                                                 placeholder="Briefly describe this module item..."
-                                                className="mt-1"
+                                                className={`mt-1 ${errors.description ? 'border-destructive' : ''}`}
                                             />
                                             <InputError message={errors.description} />
                                         </div>
@@ -370,7 +393,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     placeholder="e.g., 300 for 5 minutes"
                                                     className={errors.duration ? 'border-destructive' : ''}
                                                 />
-                                                {errors.duration && <p className="mt-1 text-sm text-destructive">{errors.duration}</p>}
+                                                <InputError message={errors.duration} />
                                             </div>
                                             <div>
                                                 <RichTextEditor
@@ -419,7 +442,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         placeholder="100"
                                                         className={errors.max_score ? 'border-destructive' : ''}
                                                     />
-                                                    {errors.max_score && <p className="mt-1 text-sm text-destructive">{errors.max_score}</p>}
+                                                    <InputError message={errors.max_score} />
                                                 </div>
                                                 <div>
                                                     <Label htmlFor="assessment_type">Assessment Type</Label>
@@ -427,14 +450,15 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         id="assessment_type"
                                                         value={data.assessment_type}
                                                         onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                                                            setData('assessment_type', e.target.value as 'quiz' | 'exam' | 'project')
+                                                            setData('assessment_type', e.target.value as 'Quiz' | 'Exam' | 'Project')
                                                         }
-                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                                                        className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background ${errors.assessment_type ? 'border-destructive' : ''}`}
                                                     >
-                                                        <option value="quiz">Quiz</option>
-                                                        <option value="exam">Exam</option>
-                                                        <option value="project">Project</option>
+                                                        <option value="Quiz">Quiz</option>
+                                                        <option value="Exam">Exam</option>
+                                                        <option value="Project">Project</option>
                                                     </select>
+                                                    <InputError message={errors.assessment_type} />
                                                 </div>
                                             </div>
                                             <div>
@@ -465,6 +489,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                             {/* Questions Builder */}
                                             <div className="border-t pt-4">
                                                 <QuestionBuilder questions={questions} onChange={setQuestions} />
+                                                <InputError message={errors.questions} />
                                             </div>
                                         </div>
                                     )}
@@ -497,7 +522,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         placeholder="100"
                                                         className={errors.total_points ? 'border-destructive' : ''}
                                                     />
-                                                    {errors.total_points && <p className="mt-1 text-sm text-destructive">{errors.total_points}</p>}
+                                                    <InputError message={errors.total_points} />
                                                 </div>
                                                 <div>
                                                     <Label htmlFor="assignment_type">Assignment Type</Label>
@@ -509,6 +534,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                         placeholder="e.g., essay, project, homework"
                                                         className={errors.assignment_type ? 'border-destructive' : ''}
                                                     />
+                                                    <InputError message={errors.assignment_type} />
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
@@ -606,9 +632,10 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                 </div>
                                 <div>
                                     <Label>Status</Label>
-                                    <div>
+                                    <div className="flex gap-2 mt-2">
                                         <Button
                                             type="button"
+                                            size="sm"
                                             variant={data.status === 'published' ? 'default' : 'secondary'}
                                             onClick={() => setData('status', 'published')}
                                         >
@@ -616,6 +643,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                         </Button>
                                         <Button
                                             type="button"
+                                            size="sm"
                                             variant={data.status === 'draft' ? 'default' : 'secondary'}
                                             onClick={() => setData('status', 'draft')}
                                         >

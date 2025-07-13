@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useFlashToast } from '@/hooks/use-flash-toast';
+
 import AppLayout from '@/layouts/app-layout';
 import { Course, User as Creator, PaginatedResponse } from '@/types';
 
@@ -28,7 +28,6 @@ interface Props {
 
 export default function Index({ courses, creators, filters }: Props) {
     // Initialize flash toast notifications
-    useFlashToast();
 
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');

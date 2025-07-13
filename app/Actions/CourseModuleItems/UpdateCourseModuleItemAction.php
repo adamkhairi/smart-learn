@@ -55,7 +55,7 @@ class UpdateCourseModuleItemAction
             case 'assessment':
                 $item->itemable()->update([
                     'title' => $data['assessment_title'],
-                    'type' => $data['assessment_type'] ?? 'quiz',
+                    'type' => $data['assessment_type'] ?? 'Quiz',
                     'max_score' => $data['max_score'] ?? 100,
                     'visibility' => ($data['status'] ?? 'published') === 'published' ? 'published' : 'unpublished',
                     'content_json' => $data['assessment_content_json'] ? json_decode($data['assessment_content_json'], true) : null,

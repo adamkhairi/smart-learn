@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('course_id')->constrained('courses')->cascadeOnDelete();
             $table->foreignId('assessment_id')->constrained('assessments')->cascadeOnDelete();
+            $table->foreignId('assignment_id')->nullable()->constrained('assignments')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->json('files')->nullable();
             $table->enum('plagiarism_status', ['processing', 'unCalculated', 'none', 'med', 'high', 'veryHigh'])->default('unCalculated');

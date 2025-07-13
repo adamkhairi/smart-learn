@@ -8,7 +8,6 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useFlashToast } from '@/hooks/use-flash-toast';
 import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/layouts/app-layout';
 import { Course, User } from '@/types';
@@ -39,7 +38,6 @@ export default function EditUser({ user, availableCourses }: Props) {
     const [searchTerm, setSearchTerm] = useState<string>('');
 
     // Initialize toast notifications
-    useFlashToast();
     const { success, error } = useToast();
     const { confirm, confirmDialog } = useConfirmDialog();
 

@@ -63,7 +63,7 @@ class CreateCourseModuleItemAction
             case 'assessment':
                 $assessment = Assessment::create([
                     'title' => $data['assessment_title'],
-                    'type' => $data['assessment_type'] ?? 'quiz',
+                    'type' => $data['assessment_type'] ?? 'Quiz',
                     'max_score' => $data['max_score'] ?? 100,
                     'course_id' => $course->id,
                     'created_by' => $userId,

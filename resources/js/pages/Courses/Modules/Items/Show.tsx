@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/use-auth';
+import { useProgressTracking } from '@/hooks/use-progress';
 import AppLayout from '@/layouts/app-layout';
 import { getDisplayableContent } from '@/lib/content-renderer';
 import { Assessment, Assignment, CourseModuleItemShowPageProps, Lecture } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
     AlertCircle,
+    Award,
     CheckCircle,
     ChevronLeft,
     ChevronRight,
@@ -27,11 +29,32 @@ import {
     Upload,
     X,
 } from 'lucide-react';
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useEffect } from 'react';
 
-function Show({ course, module, item, userSubmission }: CourseModuleItemShowPageProps) {
+interface ShowProps extends CourseModuleItemShowPageProps {
+    completedItems?: number[];
+}
+
+function Show({ course, module, item, userSubmission, completedItems = [] }: ShowProps) {
     const { canManageCourse } = useAuth();
     const isInstructor = canManageCourse(course.created_by);
+
+    // Progress tracking for students
+    const { markAsStarted, markAsCompleted } = useProgressTracking({
+        courseId: course.id,
+        moduleId: module.id,
+        itemId: item.id,
+    });
+
+    // Track when user starts viewing content
+    useEffect(() => {
+        if (!isInstructor) {
+            markAsStarted().catch(console.error);
+        }
+    }, [isInstructor, markAsStarted]);
+
+    // Check if current item is completed
+    const isCompleted = completedItems.includes(item.id);
 
     // Navigation items for breadcrumb
     const navigationItems = [
@@ -170,6 +193,12 @@ function Show({ course, module, item, userSubmission }: CourseModuleItemShowPage
             content: lecture.content,
         });
 
+        const handleComplete = () => {
+            if (!isInstructor) {
+                markAsCompleted().catch(console.error);
+            }
+        };
+
         return (
             <div className="space-y-6">
                 {embedUrl ? (
@@ -210,6 +239,26 @@ function Show({ course, module, item, userSubmission }: CourseModuleItemShowPage
                             </div>
                         </CardContent>
                     </Card>
+                )}
+
+                {/* Complete Lecture Button */}
+                {!isInstructor && !isCompleted && (
+                    <div className="flex justify-center">
+                        <Button onClick={handleComplete} className="bg-blue-600 hover:bg-blue-700">
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Mark as Completed
+                        </Button>
+                    </div>
+                )}
+
+                {/* Completion Status */}
+                {isCompleted && (
+                    <div className="flex justify-center">
+                        <div className="flex items-center gap-2 rounded-lg bg-green-50 p-4 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            <CheckCircle className="h-5 w-5" />
+                            <span className="font-medium">Completed</span>
+                        </div>
+                    </div>
                 )}
             </div>
         );
@@ -417,11 +466,27 @@ function Show({ course, module, item, userSubmission }: CourseModuleItemShowPage
                         <p className="text-gray-600">{isEnded ? 'This assignment has ended.' : 'This assignment is not yet available.'}</p>
                     </div>
                 )}
+
+                {/* Completion Status */}
+                {isCompleted && (
+                    <div className="flex justify-center">
+                        <div className="flex items-center gap-2 rounded-lg bg-green-50 p-4 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            <CheckCircle className="h-5 w-5" />
+                            <span className="font-medium">Completed</span>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     };
 
     const AssessmentContent = ({ assessment }: { assessment: Assessment }) => {
+        const handleComplete = () => {
+            if (!isInstructor) {
+                markAsCompleted().catch(console.error);
+            }
+        };
+
         return (
             <div className="space-y-6">
                 {/* Assessment Header */}
@@ -525,10 +590,22 @@ function Show({ course, module, item, userSubmission }: CourseModuleItemShowPage
 
                 {/* Action Buttons */}
                 <div className="flex gap-3">
-                    <Button className="flex-1">
-                        <HelpCircle className="mr-2 h-4 w-4" />
-                        Start Assessment
-                    </Button>
+                    {/* Check if user has already submitted this assessment */}
+                    {userSubmission && userSubmission.finished ? (
+                        <Button className="flex-1" asChild>
+                            <Link href={`/courses/${course.id}/assessments/${assessment.id}/results`}>
+                                <Award className="mr-2 h-4 w-4" />
+                                View Results
+                            </Link>
+                        </Button>
+                    ) : (
+                        <Button className="flex-1" asChild>
+                            <Link href={`/courses/${course.id}/assessments/${assessment.id}/take`}>
+                                <HelpCircle className="mr-2 h-4 w-4" />
+                                Start Assessment
+                            </Link>
+                        </Button>
+                    )}
                     {assessment.files && assessment.files.length > 0 && (
                         <Button variant="outline">
                             <Download className="mr-2 h-4 w-4" />
@@ -536,6 +613,38 @@ function Show({ course, module, item, userSubmission }: CourseModuleItemShowPage
                         </Button>
                     )}
                 </div>
+
+                {/* Complete Assessment Button */}
+                {!isInstructor && !isCompleted && (
+                    <div className="flex justify-center">
+                        <Button onClick={handleComplete} className="bg-blue-600 hover:bg-blue-700">
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Mark as Completed
+                        </Button>
+                    </div>
+                )}
+
+                {/* Completion Status */}
+                {isCompleted && (
+                    <div className="flex justify-center">
+                        <div className="flex items-center gap-2 rounded-lg bg-green-50 p-4 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            <CheckCircle className="h-5 w-5" />
+                            <span className="font-medium">Completed</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* View Results Button for Completed Assessments */}
+                {!isInstructor && isCompleted && (
+                    <div className="flex justify-center">
+                        <Button asChild variant="outline">
+                            <Link href={`/courses/${course.id}/assessments/${assessment.id}/results`}>
+                                <Award className="mr-2 h-4 w-4" />
+                                View Results
+                            </Link>
+                        </Button>
+                    </div>
+                )}
             </div>
         );
     };
@@ -592,6 +701,12 @@ function Show({ course, module, item, userSubmission }: CourseModuleItemShowPage
                                 {item.is_required && (
                                     <Badge variant="destructive" className="text-xs">
                                         Required
+                                    </Badge>
+                                )}
+                                {isCompleted && (
+                                    <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                        <CheckCircle className="mr-1 h-3 w-3" />
+                                        Completed
                                     </Badge>
                                 )}
                             </div>
@@ -672,7 +787,7 @@ function Show({ course, module, item, userSubmission }: CourseModuleItemShowPage
 
                     {/* Sidebar */}
                     <div className="lg:col-span-1">
-                        <ModuleNavigation course={course} module={module} currentItem={item} />
+                        <ModuleNavigation course={course} module={module} currentItem={item} completedItems={completedItems} />
                     </div>
                 </div>
             </div>

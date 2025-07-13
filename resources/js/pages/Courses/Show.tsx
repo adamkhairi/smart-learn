@@ -27,6 +27,7 @@ import {
     Star,
     Target,
     Users,
+    BarChart3,
 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -143,6 +144,19 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                         )}
                     </div>
                 </div>
+
+                  {/* Course Image Banner - Mobile Only */}
+                  {course.image && isMobile && (
+                    <Card className="overflow-hidden p-0">
+                        <CardContent className="p-0">
+                            <img src={`/storage/${course.image}`} alt={course.name} className="h-48 w-full object-cover" />
+                            <div className="p-3">
+                                <p className="text-xs text-muted-foreground">Course Banner</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
 
                 {/* Course Stats Overview - Responsive Grid */}
                 {!isStudent && (
@@ -444,11 +458,11 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
 
                     {/* Sidebar - Full width on mobile, 1/3 on desktop */}
                     <div className="space-y-4 lg:space-y-6">
-                        {/* Course Image */}
-                        {course.image && (
+                        {/* Course Image - Desktop Only */}
+                        {course.image && !isMobile && (
                             <Card className="overflow-hidden p-0">
                                 <CardContent className="p-0">
-                                    <img src={`/storage/${course.image}`} alt={course.name} className="h-32 w-full object-cover sm:h-48" />
+                                    <img src={`/storage/${course.image}`} alt={course.name} className="h-48 w-full object-cover" />
                                     <div className="p-3 sm:p-4">
                                         <p className="text-xs text-muted-foreground sm:text-sm">Course Banner</p>
                                     </div>
@@ -514,10 +528,18 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                         {isStudent && (
                             <Card>
                                 <CardHeader className="pb-3 sm:pb-4">
-                                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                                        <Target className="h-4 w-4 sm:h-5 sm:w-5" />
-                                        Your Progress
-                                    </CardTitle>
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                                            <Target className="h-4 w-4 sm:h-5 sm:w-5" />
+                                            Your Progress
+                                        </CardTitle>
+                                        <Button variant="outline" size="sm" asChild>
+                                            <Link href={`/courses/${course.id}/progress`}>
+                                                <BarChart3 className="mr-2 h-4 w-4" />
+                                                View Details
+                                            </Link>
+                                        </Button>
+                                    </div>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-2 sm:space-y-3">

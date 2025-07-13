@@ -403,7 +403,9 @@ export interface CourseModuleCreatePageProps extends PageProps {
 export interface CourseModuleShowPageProps extends PageProps {
     course: Course;
     module: CourseModule;
+    item: CourseModuleItem;
     userSubmission?: Submission;
+    completedItems?: number[];
 }
 
 export interface CourseModuleEditPageProps extends PageProps {

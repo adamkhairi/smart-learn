@@ -410,35 +410,58 @@ class Course extends Model
 
     /**
      * Get course progress for a specific user.
-     * Note: This returns general course engagement metrics since we don't currently
-     * track user-specific progress. In a production system, you'd want to implement
-     * proper user progress tracking.
      */
     public function getUserProgress(int $userId): array
     {
-        $totalModules = $this->modules()->where('is_published', true)->count();
-        $totalItems = 0;
-        $viewedItems = 0;
+        return UserProgress::getCourseProgressSummary($userId, $this->id);
+    }
 
-        foreach ($this->modules()->where('is_published', true)->get() as $module) {
-            $moduleItems = $module->moduleItems;
-            $totalItems += $moduleItems->count();
+    /**
+     * Get user progress for a specific module item.
+     */
+    public function getUserProgressForItem(int $userId, int $itemId): ?UserProgress
+    {
+        return UserProgress::where('user_id', $userId)
+            ->where('course_id', $this->id)
+            ->where('course_module_item_id', $itemId)
+            ->first();
+    }
 
-            foreach ($moduleItems as $item) {
-                if ($item->view_count > 0) {
-                    $viewedItems++;
-                }
-            }
-        }
+    /**
+     * Mark item as started for a user.
+     */
+    public function markItemAsStarted(int $userId, int $itemId): void
+    {
+        $progress = UserProgress::getOrCreate($userId, $this->id, null, $itemId);
+        $progress->markAsStarted();
+    }
 
-        return [
-            'total_modules' => $totalModules,
-            'completed_modules' => 0, // Cannot track without user-specific data
-            'total_items' => $totalItems,
-            'completed_items' => $viewedItems,
-            'module_progress' => 0, // Cannot track without user-specific data
-            'item_progress' => $totalItems > 0 ? round(($viewedItems / $totalItems) * 100, 2) : 0,
-            'note' => 'Progress shown is general course engagement, not user-specific'
-        ];
+    /**
+     * Mark item as completed for a user.
+     */
+    public function markItemAsCompleted(int $userId, int $itemId): void
+    {
+        $progress = UserProgress::getOrCreate($userId, $this->id, null, $itemId);
+        $progress->markAsCompleted();
+    }
+
+    /**
+     * Update user's time spent on an item.
+     */
+    public function updateUserTimeSpent(int $userId, int $itemId, int $seconds): void
+    {
+        $progress = UserProgress::getOrCreate($userId, $this->id, null, $itemId);
+        $progress->addTimeSpent($seconds);
+    }
+
+    /**
+     * Get all progress records for a user in this course.
+     */
+    public function getUserProgressRecords(int $userId)
+    {
+        return UserProgress::where('user_id', $userId)
+            ->where('course_id', $this->id)
+            ->with(['courseModule', 'courseModuleItem'])
+            ->get();
     }
 }

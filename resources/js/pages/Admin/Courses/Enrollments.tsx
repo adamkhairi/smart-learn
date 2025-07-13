@@ -219,11 +219,6 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
                                 </div>
                             </DialogContent>
                         </Dialog>
-
-                        <Button variant="destructive" onClick={handleUnenrollUsers} disabled={selectedUsers.length === 0}>
-                            <X className="mr-2 h-4 w-4" />
-                            Unenroll Selected ({selectedUsers.length})
-                        </Button>
                     </div>
                 </div>
 

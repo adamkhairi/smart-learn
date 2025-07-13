@@ -20,7 +20,7 @@ class AssessmentFactory extends Factory
     public function definition(): array
     {
         return [
-            'type' => $this->faker->randomElement(['Exam', 'Assignment']),
+            'type' => $this->faker->randomElement(['Quiz', 'Exam', 'Project']),
             'title' => $this->faker->words(4, true),
             'max_score' => $this->faker->numberBetween(50, 100),
             'weight' => $this->faker->numberBetween(1, 5),
@@ -58,7 +58,7 @@ class AssessmentFactory extends Factory
     public function assignment(): static
     {
         return $this->state(fn (array $attributes) => [
-            'type' => 'Assignment',
+            'type' => 'Project',
         ]);
     }
 

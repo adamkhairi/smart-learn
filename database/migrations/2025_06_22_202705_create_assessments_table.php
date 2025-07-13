@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('assessments', function (Blueprint $table) {
             $table->id();
-            $table->enum('type', ['Exam', 'Assignment'])->default('Assignment');
+            $table->enum('type', ['Quiz', 'Exam', 'Project'])->default('Quiz');
             $table->string('title');
             $table->integer('max_score');
             $table->integer('weight')->default(1);

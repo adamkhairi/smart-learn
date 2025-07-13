@@ -38,7 +38,6 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useFlashToast } from '@/hooks/use-flash-toast';
 import AppLayout from '@/layouts/app-layout';
 import { Course } from '@/types';
 
@@ -71,9 +70,6 @@ interface Props {
 }
 
 export default function Show({ course, stats, recentActivity }: Props) {
-    // Initialize flash toast notifications
-    useFlashToast();
-
     const [activeTab, setActiveTab] = useState('overview');
     const [searchUsers, setSearchUsers] = useState('');
 

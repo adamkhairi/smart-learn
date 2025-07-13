@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useFlashToast } from '@/hooks/use-flash-toast';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -26,7 +25,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 function Create() {
     // Initialize flash toast notifications
-    useFlashToast();
     const { success, error } = useToast();
 
     const { data, setData, post, processing, errors } = useForm({

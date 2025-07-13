@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useFlashToast } from '@/hooks/use-flash-toast';
+
 import AppLayout from '@/layouts/app-layout';
 
 interface Instructor {
@@ -25,9 +25,6 @@ interface Props {
 }
 
 export default function Create({ instructors, errors }: Props) {
-    // Initialize flash toast notifications
-    useFlashToast();
-
     const [formData, setFormData] = useState({
         name: '',
         description: '',

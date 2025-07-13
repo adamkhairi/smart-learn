@@ -109,10 +109,10 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                             <Button variant="ghost" size="icon" className="group h-9 w-9 cursor-pointer">
                                 <Search className="!size-5 opacity-80 group-hover:opacity-100" />
                             </Button>
-                            <div className="hidden lg:flex">
-                                {rightNavItems.map((item) => (
-                                    <TooltipProvider key={item.title} delayDuration={0}>
-                                        <Tooltip>
+                            <TooltipProvider delayDuration={0}>
+                                <div className="hidden lg:flex">
+                                    {rightNavItems.map((item) => (
+                                        <Tooltip key={item.title}>
                                             <TooltipTrigger>
                                                 <a
                                                     href={item.href}
@@ -128,9 +128,9 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                 <p>{item.title}</p>
                                             </TooltipContent>
                                         </Tooltip>
-                                    </TooltipProvider>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            </TooltipProvider>
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>

@@ -8,7 +8,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useFlashToast } from '@/hooks/use-flash-toast';
 import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/layouts/app-layout';
 import { SimplePaginatedResponse, User } from '@/types';
@@ -44,13 +43,10 @@ interface Props {
 
 export default function UsersIndex({ users, filters, stats, flash, errors }: Props) {
     // Initialize toast notifications
-    useFlashToast();
+    const { success: showSuccess, error: showError } = useToast();
 
     // Initialize confirmation dialog
     const { confirm, confirmDialog } = useConfirmDialog();
-
-    // Initialize toast for manual notifications
-    const { success: showSuccess, error: showError } = useToast();
 
     const [search, setSearch] = useState(filters.search || '');
     const [roleFilter, setRoleFilter] = useState(filters.role || 'all');
