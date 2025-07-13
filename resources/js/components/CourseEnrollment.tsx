@@ -23,7 +23,7 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
 
     // Initialize confirmation dialog and toast
     const { confirm, confirmDialog } = useConfirmDialog();
-    const { success: showSuccess, error: showError } = useToast();
+    const { error: showError } = useToast();
 
     const { data, setData, post, processing, errors } = useForm({
         user_id: '',
@@ -36,7 +36,7 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
         e.preventDefault();
         post(`/courses/${course.id}/enroll`, {
             onSuccess: () => {
-                showSuccess('User enrolled successfully.');
+                // Backend will provide flash message, no need for manual toast
                 setData({ user_id: '', role: 'student' });
             },
             onError: () => {
@@ -55,7 +55,7 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                 setUnenrollingUserId(userId);
                 router.delete(`/courses/${course.id}/unenroll/${userId}`, {
                     onSuccess: () => {
-                        showSuccess('User removed from course successfully.');
+                        // Backend will provide flash message, no need for manual toast
                     },
                     onError: () => {
                         showError('Failed to remove user from course. Please try again.');

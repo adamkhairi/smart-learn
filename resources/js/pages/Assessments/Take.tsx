@@ -34,7 +34,7 @@ export default function TakeAssessment({ course, assessment, submission, timeRem
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
 
-    const { success: showSuccess, error: showError } = useToast();
+    const { error: showError } = useToast();
 
     const { processing } = useForm({
         answers: {},
@@ -113,7 +113,7 @@ export default function TakeAssessment({ course, assessment, submission, timeRem
             time_spent: timeSpent,
         }, {
             onSuccess: () => {
-                showSuccess('Assessment submitted successfully!');
+                // Backend will provide flash message, no need for manual toast
             },
             onError: (errors: Record<string, string>) => {
                 console.error('Submission errors:', errors);

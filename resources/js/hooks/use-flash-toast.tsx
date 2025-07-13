@@ -1,6 +1,7 @@
 import { usePage } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
 import { useToast } from './use-toast';
+import { router } from '@inertiajs/react';
 
 interface FlashMessages {
     success?: string;
@@ -18,21 +19,13 @@ interface PageProps {
 export const useFlashToast = () => {
     const { flash, errors } = usePage<PageProps>().props;
     const { success, error, warning, info } = useToast();
+    const hasProcessedFlash = useRef(false);
     const hasProcessedErrors = useRef(false);
 
     useEffect(() => {
-        // Only process errors on initial page load, not on every render
-        if (hasProcessedErrors.current) {
+        // Only process flash messages once per page load
+        if (hasProcessedFlash.current) {
             return;
-        }
-
-        // Debug: Log flash messages
-        if (flash) {
-            console.log('Flash messages:', flash);
-        }
-
-        if (errors && Object.keys(errors).length > 0) {
-            console.log('Page errors:', errors);
         }
 
         // Handle flash messages
@@ -52,6 +45,16 @@ export const useFlashToast = () => {
             info(flash.info);
         }
 
+        // Mark as processed to prevent re-processing
+        hasProcessedFlash.current = true;
+    }, [flash, success, error, warning, info]);
+
+    useEffect(() => {
+        // Only process errors once per page load
+        if (hasProcessedErrors.current) {
+            return;
+        }
+
         // Handle all validation errors from Inertia's props.errors
         if (errors && Object.keys(errors).length > 0) {
             // Check if there's a general 'error' flash message, otherwise iterate all errors
@@ -66,12 +69,21 @@ export const useFlashToast = () => {
             }
         }
 
-        // Mark as processed to prevent re-processing on subsequent renders
+        // Mark as processed to prevent re-processing
         hasProcessedErrors.current = true;
-    }, [flash, errors, success, error, warning, info]);
+    }, [errors, flash?.error, error]);
 
-    // Reset the flag when the page changes (new navigation)
+    // Reset the flags when a new Inertia visit finishes (new navigation)
     useEffect(() => {
-        hasProcessedErrors.current = false;
+        const resetFlags = () => {
+            hasProcessedFlash.current = false;
+            hasProcessedErrors.current = false;
+        };
+
+        const unsubscribe = router.on('finish', resetFlags);
+
+        return () => {
+            unsubscribe();
+        };
     }, []);
 };

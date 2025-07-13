@@ -3,6 +3,7 @@
 namespace App\Actions\CourseModuleItems;
 
 use App\Models\CourseModuleItem;
+use App\Models\Question;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use App\Models\Lecture;
@@ -62,6 +63,15 @@ class UpdateCourseModuleItemAction
                     'content_html' => $data['assessment_content_html'] ?? null,
                     'instructions' => $data['assessment_instructions_json'] ? json_decode($data['assessment_instructions_json'], true) : null,
                 ]);
+
+                // Update questions if provided
+                if (isset($data['questions'])) {
+                    \Log::info('Questions data received:', [
+                        'type' => gettype($data['questions']),
+                        'value' => $data['questions']
+                    ]);
+                    $this->updateAssessmentQuestions($item->itemable, $data['questions']);
+                }
                 break;
             case 'assignment':
                 $item->itemable()->update([
@@ -79,6 +89,40 @@ class UpdateCourseModuleItemAction
                 break;
             default:
                 throw new Exception('Invalid item type specified for update.');
+        }
+    }
+
+    private function updateAssessmentQuestions(Assessment $assessment, $questionsData): void
+    {
+        // Delete existing questions
+        $assessment->questions()->delete();
+
+        // Handle both string and array inputs
+        $questions = [];
+        if (is_string($questionsData)) {
+            $questions = json_decode($questionsData, true);
+        } elseif (is_array($questionsData)) {
+            $questions = $questionsData;
+        }
+
+        if (!is_array($questions)) {
+            return;
+        }
+
+        // Create new questions
+        foreach ($questions as $index => $questionData) {
+            Question::create([
+                'assessment_id' => $assessment->id,
+                'type' => $questionData['type'],
+                'question_number' => $index + 1,
+                'points' => $questionData['points'],
+                'question_text' => $questionData['question_text'],
+                'auto_graded' => $questionData['type'] === 'MCQ',
+                'choices' => $questionData['choices'] ?? null,
+                'answer' => $questionData['answer'] ?? null,
+                'keywords' => $questionData['keywords'] ?? null,
+                'text_match' => false,
+            ]);
         }
     }
 }

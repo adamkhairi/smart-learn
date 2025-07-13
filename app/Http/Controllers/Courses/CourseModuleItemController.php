@@ -147,6 +147,13 @@ class CourseModuleItemController extends Controller
         // Load the polymorphic relationship
         $item->load('itemable');
 
+        // Load questions for assessments
+        if ($item->itemable_type === Assessment::class && $item->itemable) {
+            $item->itemable->load(['questions' => function ($query) {
+                $query->orderBy('question_number');
+            }]);
+        }
+
         return Inertia::render('Courses/Modules/Items/Edit', [
             'course' => $course->load('creator'),
             'module' => $module,
