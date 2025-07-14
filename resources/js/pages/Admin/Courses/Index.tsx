@@ -3,7 +3,6 @@ import { BarChart3, Edit, Eye, Filter, MoreHorizontal, Plus, Search, Trash2, Use
 import { useState, useEffect } from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -16,6 +15,7 @@ import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/utils';
 import { Course, User as Creator, PaginatedResponse } from '@/types';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { CourseStatusBadge } from '@/components/course-status-badge';
 
 interface Props {
     courses: PaginatedResponse<Course>;
@@ -78,16 +78,6 @@ export default function Index({ courses, creators, filters }: Props) {
     }, [debouncedSearchTerm, debouncedStatusFilter, debouncedCreatorFilter, debouncedSortBy, debouncedSortOrder]);
 
     // Removed handleSearch as it's now triggered by useEffect for debounced values
-
-    const getStatusBadge = (status: 'draft' | 'published' | 'archived') => {
-        const variants = {
-            draft: 'secondary',
-            published: 'default',
-            archived: 'destructive',
-        } as const;
-
-        return <Badge variant={variants[status]}>{status}</Badge>;
-    };
 
     const getInitials = (name: string) => {
         const words = name.trim().split(' ');
@@ -237,7 +227,7 @@ export default function Index({ courses, creators, filters }: Props) {
                                                     {course.description}
                                                 </p>
                                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    {getStatusBadge(course.status)}
+                                                    <CourseStatusBadge status={course.status} />
                                                     <span>&bull;</span>
                                                     <span>{course.category?.name || 'Uncategorized'}</span>
                                                 </div>

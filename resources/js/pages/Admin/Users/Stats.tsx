@@ -1,5 +1,4 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
@@ -7,6 +6,7 @@ import { User } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, BookOpen, TrendingUp, UserCheck, Users, UserX } from 'lucide-react';
 import { route } from 'ziggy-js';
+import { UserRoleBadge } from '@/components/user-role-badge';
 
 interface StatsUser extends User {
     created_courses_count: number;
@@ -38,16 +38,6 @@ export default function UserStats({ stats }: Props) {
             month: 'short',
             day: 'numeric',
         });
-    };
-
-    const getRoleBadge = (role: string) => {
-        if (role === 'admin') {
-            return <Badge variant="destructive">{role}</Badge>;
-        } else if (role === 'instructor') {
-            return <Badge variant="default">{role}</Badge>;
-        } else {
-            return <Badge variant="secondary">{role}</Badge>;
-        }
     };
 
     return (
@@ -170,7 +160,7 @@ export default function UserStats({ stats }: Props) {
                                             <p className="text-xs text-muted-foreground">{user.email}</p>
                                         </div>
                                         <div className="flex items-center space-x-2">
-                                            {getRoleBadge(user.role)}
+                                            <UserRoleBadge role={user.role} />
                                             <span className="text-xs text-muted-foreground">{formatDate(user.created_at)}</span>
                                         </div>
                                     </div>

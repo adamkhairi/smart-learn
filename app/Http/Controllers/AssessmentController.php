@@ -23,7 +23,7 @@ class AssessmentController extends Controller
 
         // Check if user is enrolled in the course
         if (!$course->enrolledUsers()->where('user_id', Auth::id())->exists()) {
-            abort(403, 'You must be enrolled in this course to take assessments.');
+            return redirect()->route('courses.show', $course)->with('error', 'You must be enrolled in this course to take assessments.');
         }
 
         // Check if assessment is available

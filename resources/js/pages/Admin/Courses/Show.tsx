@@ -41,6 +41,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { Course } from '@/types';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { CourseStatusBadge } from '@/components/course-status-badge';
+import { CourseRoleBadge } from '@/components/course-role-badge';
 
 interface Stats {
     total_students: number;
@@ -74,45 +76,12 @@ export default function Show({ course, stats, recentActivity }: Props) {
     const [activeTab, setActiveTab] = useState('overview');
     const [searchUsers, setSearchUsers] = useState('');
 
-    const getStatusBadge = (status: 'draft' | 'published' | 'archived') => {
-        const config = {
-            draft: { variant: 'secondary' as const, icon: Clock, color: 'text-yellow-600' },
-            published: { variant: 'default' as const, icon: CheckCircle, color: 'text-green-600' },
-            archived: { variant: 'destructive' as const, icon: AlertCircle, color: 'text-red-600' },
-        };
-
-        const { variant, icon: Icon, color } = config[status];
-        return (
-            <Badge variant={variant} className="capitalize">
-                <Icon className={`mr-1 h-3 w-3 ${color}`} />
-                {status}
-            </Badge>
-        );
-    };
-
     const getInitials = (name: string) => {
         return name
             .split(' ')
             .map((n) => n[0])
             .join('')
             .toUpperCase();
-    };
-
-    const getRoleBadge = (role: string) => {
-        const config = {
-            student: { variant: 'default' as const, icon: GraduationCap, color: 'bg-blue-100 text-blue-800' },
-            instructor: { variant: 'secondary' as const, icon: Users, color: 'bg-purple-100 text-purple-800' },
-            admin: { variant: 'destructive' as const, icon: Settings, color: 'bg-red-100 text-red-800' },
-        };
-
-        const { icon: Icon, color } = config[role as keyof typeof config] || { icon: Users, color: 'bg-gray-100 text-gray-800' };
-
-        return (
-            <Badge className={`${color} capitalize`}>
-                <Icon className="mr-1 h-3 w-3" />
-                {role}
-            </Badge>
-        );
     };
 
     const getActivityIcon = (type: string) => {
@@ -218,7 +187,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
                             <div className="space-y-1">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-3xl font-bold tracking-tight">{course.name}</h1>
-                                    {getStatusBadge(course.status)}
+                                    <CourseStatusBadge status={course.status} />
                                 </div>
                                 <p className="max-w-2xl text-muted-foreground">{course.description}</p>
                                 <div className="flex items-center gap-2 pt-1 text-sm text-muted-foreground">
@@ -1031,7 +1000,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center justify-between">
-                                                        {getRoleBadge(user.pivot?.enrolled_as || 'student')}
+                                                        <CourseRoleBadge course={course} user={user} />
                                                         <span className="text-xs text-muted-foreground">
                                                             {new Date(user.pivot?.created_at || user.created_at).toLocaleDateString()}
                                                         </span>
@@ -1100,7 +1069,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="text-sm font-medium">Status</label>
-                                            <div className="mt-1">{getStatusBadge(course.status)}</div>
+                                            <div className="mt-1"><CourseStatusBadge status={course.status} /></div>
                                         </div>
                                         <div>
                                             <label className="text-sm font-medium">Created</label>

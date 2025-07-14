@@ -56,6 +56,12 @@ export interface User {
     [key: string]: unknown;
 }
 
+export interface Category {
+    id: number;
+    name: string;
+    slug: string;
+}
+
 export interface Course {
     id: number;
     name: string;
@@ -71,7 +77,7 @@ export interface Course {
     created_at: string;
     updated_at: string;
     creator?: User;
-    category?: { id: number; name: string; slug: string };
+    category?: Category;
     enrolled_users?: User[];
     modules?: CourseModule[];
     assignments?: Assignment[];

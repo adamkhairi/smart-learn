@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -18,6 +17,8 @@ import { AlertCircle, BookOpen, Edit, Eye, Filter, MoreHorizontal, Plus, Trash2,
 import useDebounce from '@/hooks/use-debounce';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { UserRoleBadge } from '@/components/user-role-badge';
+import { UserStatusBadge } from '@/components/user-status-badge';
 
 interface IndexUser extends User {
     enrollments_count: number;
@@ -136,28 +137,6 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
         setRoleFilter('all');
         setStatusFilter('all');
         router.get(route('admin.users.index')); // This will be handled by useEffect due to debounced filters
-    };
-
-    const getRoleBadge = (role: string) => {
-        const config = {
-            admin: { variant: 'destructive' as const, label: 'Admin' },
-            instructor: { variant: 'default' as const, label: 'Instructor' },
-            student: { variant: 'secondary' as const, label: 'Student' },
-        };
-        const { variant, label } = config[role as keyof typeof config] || config.student;
-        return <Badge variant={variant}>{label}</Badge>;
-    };
-
-    const getStatusBadge = (isActive: boolean) => {
-        return isActive ? (
-            <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                Active
-            </Badge>
-        ) : (
-            <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
-                Inactive
-            </Badge>
-        );
     };
 
     const getInitials = (name: string) => {
@@ -334,8 +313,8 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
                                                 </div>
                                             </TableCell>
                                             <TableCell>{user.email}</TableCell>
-                                            <TableCell>{getRoleBadge(user.role)}</TableCell>
-                                            <TableCell>{getStatusBadge(user.is_active)}</TableCell>
+                                            <TableCell><UserRoleBadge role={user.role} /></TableCell>
+                                            <TableCell><UserStatusBadge isActive={user.is_active} /></TableCell>
                                             <TableCell>{user.created_courses_count}</TableCell>
                                             <TableCell>{user.enrollments_count}</TableCell>
                                             <TableCell className="text-right">

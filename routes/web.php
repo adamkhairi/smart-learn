@@ -6,6 +6,7 @@ use App\Http\Controllers\Courses\CourseModuleItemController;
 use App\Http\Controllers\Courses\AssignmentController;
 use App\Http\Controllers\AssessmentController;
 use App\Http\Controllers\ProgressController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -31,9 +32,7 @@ Route::get('/terms', function () {
 })->name('terms');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('Dashboard/dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Course routes
     Route::resource('courses', CourseController::class);

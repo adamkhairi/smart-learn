@@ -3,7 +3,6 @@ import { ArrowLeft, Filter, Plus, Search, Users, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -15,6 +14,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Course, User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { CourseEnrollmentRoleBadge } from '@/components/course-enrollment-role-badge';
 
 interface Props {
     course: Course;
@@ -39,16 +39,6 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
             .map((n) => n[0])
             .join('')
             .toUpperCase();
-    };
-
-    const getRoleBadge = (role: string) => {
-        const variants = {
-            student: 'default',
-            instructor: 'secondary',
-            admin: 'destructive',
-        } as const;
-
-        return <Badge variant={variants[role as keyof typeof variants]}>{role}</Badge>;
     };
 
     const filteredEnrolledUsers = enrolledUsers.filter((user) => {
@@ -362,7 +352,7 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
                                         </div>
 
                                         <div className="flex items-center gap-2">
-                                            {getRoleBadge(user.role)}
+                                            <CourseEnrollmentRoleBadge role={user.role} />
                                             <Button
                                                 variant="outline"
                                                 size="sm"

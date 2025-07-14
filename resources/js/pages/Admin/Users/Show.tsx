@@ -1,5 +1,4 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,6 +9,8 @@ import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Calendar, Edit, Mail, Phone, X } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { UserRoleBadge } from '@/components/user-role-badge';
+import { UserStatusBadge } from '@/components/user-status-badge';
 
 interface Stats {
     courses_created: number;
@@ -64,28 +65,6 @@ export default function ShowUser({ user, stats }: Props) {
         });
     };
 
-    const getRoleBadge = (role: string) => {
-        if (role === 'admin') {
-            return <Badge variant="destructive">{role}</Badge>;
-        } else if (role === 'instructor') {
-            return <Badge variant="default">{role}</Badge>;
-        } else {
-            return <Badge variant="secondary">{role}</Badge>;
-        }
-    };
-
-    const getStatusBadge = (isActive: boolean) => {
-        return isActive ? (
-            <Badge variant="default" className="bg-green-100 text-green-800">
-                Active
-            </Badge>
-        ) : (
-            <Badge variant="secondary" className="bg-gray-100 text-gray-800">
-                Inactive
-            </Badge>
-        );
-    };
-
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -122,8 +101,8 @@ export default function ShowUser({ user, stats }: Props) {
                                 <h1 className="text-3xl font-bold tracking-tight">{user.name}</h1>
                                 <p className="text-muted-foreground">@{user.username}</p>
                                 <div className="mt-2 flex items-center gap-2">
-                                    {getRoleBadge(user.role)}
-                                    {getStatusBadge(user.is_active)}
+                                    <UserRoleBadge role={user.role} />
+                                    <UserStatusBadge isActive={user.is_active} />
                                 </div>
                             </div>
                         </div>

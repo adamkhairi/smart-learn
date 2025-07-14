@@ -1,5 +1,5 @@
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { Badge } from '@/components/ui/badge';
+import { CourseStatusBadge } from '@/components/course-status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -68,18 +68,6 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
 
     // Course deletion would be handled by the parent component
 
-    const getStatusBadge = (status: string) => {
-        return status === 'published' ? (
-            <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                Published
-            </Badge>
-        ) : (
-            <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-                Archived
-            </Badge>
-        );
-    };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={course.name} />
@@ -144,7 +132,7 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                 <Card className="flex flex-col overflow-hidden">
                     {/* Course Image Banner */}
                     {course.image && (
-                        <div className="w-full">
+                        <div className="w-full h-56 mb-4 overflow-hidden">
                             <AspectRatio ratio={16 / 9}>
                                 <img
                                     src={`/storage/${course.image}`}
@@ -154,20 +142,20 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                             </AspectRatio>
                         </div>
                     )}
-                    <CardHeader className="flex-1">
+                    <CardHeader>
                         <div className="space-y-2">
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                                 <CardTitle className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
                                     {course.name}
                                 </CardTitle>
-                                {getStatusBadge(course.status)}
+                                <CourseStatusBadge status={course.status} />
                             </div>
                             <CardDescription className="text-sm text-muted-foreground sm:text-base lg:text-lg">
                                 Created by {course.creator?.name} • {new Date(course.created_at).toLocaleDateString()}
                             </CardDescription>
                         </div>
                     </CardHeader>
-                    </Card>
+                </Card>
 
                 {/* Course Stats Overview - Responsive Grid */}
                 {!isStudent && (
@@ -404,7 +392,7 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                                 {course.assessments.map((assessment) => (
                                                     <li key={assessment.id}>
                                                         <Link
-                                                            href={`/courses/${course.id}/assessments/${assessment.id}/take`}
+                                                            href={route('assessments.take', { course: course.id, assessment: assessment.id })}
                                                             className="block rounded-md p-3 transition-colors hover:bg-muted"
                                                         >
                                                             <h3 className="font-semibold">{assessment.title}</h3>
@@ -451,7 +439,7 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                         Unlock all course content, track your progress, and participate in discussions.
                                     </p>
                                     <Button asChild>
-                                        <Link href={`/courses/${course.id}/enroll`}>Enroll Now</Link>
+                                        <Link href={route('courses.enroll', { course: course.id })}>Enroll Now</Link>
                                     </Button>
                                 </CardContent>
                             </Card>

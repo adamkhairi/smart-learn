@@ -1,6 +1,5 @@
 import InputError from '@/components/input-error';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -15,6 +14,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Plus, Save, Search, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { route } from 'ziggy-js';
+import { UserRoleBadge } from '@/components/user-role-badge';
 
 // No custom Enrollment/EditUser interfaces needed for this approach
 
@@ -126,16 +126,6 @@ export default function EditUser({ user, availableCourses }: Props) {
                 },
             },
         );
-    };
-
-    const getRoleBadge = (role: string) => {
-        const config = {
-            admin: { variant: 'destructive' as const, label: 'Admin' },
-            instructor: { variant: 'default' as const, label: 'Instructor' },
-            student: { variant: 'secondary' as const, label: 'Student' },
-        };
-        const { variant, label } = config[role as keyof typeof config] || config.student;
-        return <Badge variant={variant}>{label}</Badge>;
     };
 
     const getInitials = (name: string) => {
@@ -327,7 +317,7 @@ export default function EditUser({ user, availableCourses }: Props) {
                                                 <div className="min-w-0 flex-1">
                                                     <div className="truncate font-medium">{course.name}</div>
                                                     <div className="text-sm text-muted-foreground">
-                                                        {getRoleBadge(course.pivot?.enrolled_as || 'student')}
+                                                        <UserRoleBadge role={course.pivot?.enrolled_as || 'student'} />
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center space-x-2">
