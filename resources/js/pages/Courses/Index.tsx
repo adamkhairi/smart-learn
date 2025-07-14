@@ -74,14 +74,7 @@ function Index({ courses, userRole }: CoursesPageProps) {
             confirmText: 'Yes, Delete Course',
             variant: 'destructive',
             onConfirm: () => {
-                router.delete(`/courses/${courseId}`, {
-                    onSuccess: () => {
-                        showSuccess('Course deleted successfully.');
-                    },
-                    onError: () => {
-                        showError('Failed to delete course. Please try again.');
-                    },
-                });
+                router.delete(`/courses/${courseId}`);
             },
         });
     };
