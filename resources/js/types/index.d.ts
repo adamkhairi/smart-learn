@@ -157,9 +157,11 @@ export interface Assignment {
     title: string;
     description?: string;
     content_json?: Record<string, unknown>;
-    content_html?: string;
+    content_html?: string | null;
     instructions?: Record<string, unknown>;
+    instructions_html?: string | null;
     rubric?: Record<string, unknown>;
+    rubric_html?: string | null;
     assignment_type?: string;
     total_points?: number;
     status: 'coming-soon' | 'open' | 'ended';
@@ -193,8 +195,9 @@ export interface Assessment {
     submission_type?: string;
     visibility: 'published' | 'unpublished';
     content_json?: Record<string, unknown>;
-    content_html?: string;
+    content_html?: string | null;
     instructions?: Record<string, unknown>;
+    instructions_html?: string | null;
     time_limit?: number;
     randomize_questions?: boolean;
     show_results?: boolean;

@@ -83,7 +83,7 @@ function Index({ courses, userRole }: CoursesPageProps) {
     const getRoleBadge = (course: Course) => {
         if (course.creator?.id === user?.id) {
             return (
-                <Badge variant="outline" className="border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300">
+                <Badge variant="default" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
                     Creator
                 </Badge>
             );
@@ -92,7 +92,7 @@ function Index({ courses, userRole }: CoursesPageProps) {
         const enrollment = course.enrolled_users?.find((enrolledUser: User) => enrolledUser.id === user?.id);
         if (enrollment) {
             return (
-                <Badge variant="outline" className="border-purple-200 text-purple-700 dark:border-purple-800 dark:text-purple-300">
+                <Badge variant="default" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
                     {enrollment.pivot?.enrolled_as || 'Student'}
                 </Badge>
             );
