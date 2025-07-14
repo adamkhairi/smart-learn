@@ -12,6 +12,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Validation\Rule;
 use App\Enums\CourseLevel;
+use Illuminate\Support\Facades\Log;
 
 class CourseController extends Controller
 {
@@ -85,7 +86,7 @@ class CourseController extends Controller
             'description' => 'nullable|string|max:1000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
-            'status' => 'required|in:published,archived',
+            'status' => 'required|in:published,archived,draft',
             'category_id' => 'nullable|exists:categories,id',
             'level' => ['nullable', Rule::enum(CourseLevel::class)],
             'duration' => 'nullable|integer|min:0',
@@ -190,6 +191,7 @@ class CourseController extends Controller
     {
         $this->authorize('update', $course);
 
+
         $categories = Category::all();
 
         return Inertia::render('Courses/Edit', [
@@ -205,37 +207,53 @@ class CourseController extends Controller
     {
         $this->authorize('update', $course);
 
+        Log::info('Request all data:', $request->all());
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
-            'status' => 'required|in:published,archived',
+            'status' => 'required|in:published,archived,draft',
             'category_id' => 'nullable|exists:categories,id',
             'level' => ['nullable', Rule::enum(CourseLevel::class)],
             'duration' => 'nullable|integer|min:0',
         ]);
 
         try {
-            // Handle image upload
+            // Handle image update
             if ($request->hasFile('image')) {
                 // Delete old image if exists
                 if ($course->image) {
                     Storage::disk('public')->delete($course->image);
+                    Log::info('Deleted old image: ' . $course->image);
                 }
 
                 $path = $request->file('image')->store('courses/images', 'public');
                 $validated['image'] = $path;
+                Log::info('New image uploaded: ' . $path);
+            } elseif ($request->has('image_removed') && $request->boolean('image_removed')) {
+                // User explicitly wants to remove the image
+                if ($course->image) {
+                    Storage::disk('public')->delete($course->image);
+                    Log::info('Deleted old image due to explicit removal: ' . $course->image);
+                }
+                $validated['image'] = null; // Explicitly set to null for removal
+                Log::info('Image explicitly removed, setting to null.');
+            } else {
+                // If no new image and not explicitly removed, keep the existing one
+                unset($validated['image']);
+                Log::info('No new image and not explicitly removed, keeping existing image.');
             }
 
             $course->update($validated);
 
-            return redirect()->route('courses.show', $course)
-                ->with('success', 'Course updated successfully!');
+            return redirect()->route('courses.index')->with('success', 'Course updated successfully.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            return back()
-                ->withInput()
-                ->with('error', 'Failed to update course. Please try again.');
+            Log::error('Error updating course:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'An unexpected error occurred while updating the course.')->withInput();
         }
     }
 

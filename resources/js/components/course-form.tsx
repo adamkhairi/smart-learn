@@ -30,6 +30,7 @@ export interface CourseFormData extends Record<string, FormDataConvertible> {
     category_id: string;
     level: Level; // Changed from string to Level
     duration: string;
+    image_removed?: boolean; // Add this line
 }
 
 interface CourseFormProps {
@@ -40,6 +41,7 @@ interface CourseFormProps {
     imagePreview: string | null;
     handleImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     removeImage: () => void;
+    processing: boolean;
 }
 
 export function CourseForm({
@@ -175,7 +177,10 @@ export function CourseForm({
                                     variant="destructive"
                                     size="sm"
                                     className="absolute top-2 right-2"
-                                    onClick={removeImage}
+                                    onClick={() => {
+                                        removeImage();
+                                        setData('image_removed', true); // Set image_removed to true
+                                    }}
                                 >
                                     <X className="h-4 w-4" />
                                 </Button>

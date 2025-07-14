@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -6,15 +5,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, Course, CoursesPageProps, User } from '@/types';
+import { BreadcrumbItem, Course, CoursesPageProps } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { formatDistanceToNow } from 'date-fns';
 import { BookOpen, Calendar, Edit, Eye, Filter, MoreVertical, Plus, Search, Trash2, Users } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import useDebounce from '@/hooks/use-debounce';
+import { CourseStatusBadge } from '@/components/course-status-badge';
+import { CourseRoleBadge } from '@/components/course-role-badge';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -28,11 +28,8 @@ function Index({ courses, userRole }: CoursesPageProps) {
     const isMobile = useIsMobile();
     const canCreateCourse = userRole === 'admin' || userRole === 'instructor';
 
-    // Initialize flash toast notifications
-
     // Initialize confirmation dialog and toast
     const { confirm, confirmDialog } = useConfirmDialog();
-    const { success: showSuccess, error: showError } = useToast();
 
     // State for search and filtering
     const [searchQuery, setSearchQuery] = useState('');
@@ -77,39 +74,6 @@ function Index({ courses, userRole }: CoursesPageProps) {
                 router.delete(`/courses/${courseId}`);
             },
         });
-    };
-
-    const getStatusBadge = (status: string) => {
-        return status === 'published' ? (
-            <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                Published
-            </Badge>
-        ) : (
-            <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-                Archived
-            </Badge>
-        );
-    };
-
-    const getRoleBadge = (course: Course) => {
-        if (course.creator?.id === user?.id) {
-            return (
-                <Badge variant="default" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                    Creator
-                </Badge>
-            );
-        }
-
-        const enrollment = course.enrolled_users?.find((enrolledUser: User) => enrolledUser.id === user?.id);
-        if (enrollment) {
-            return (
-                <Badge variant="default" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
-                    {enrollment.pivot?.enrolled_as || 'Student'}
-                </Badge>
-            );
-        }
-
-        return null;
     };
 
     const canEditCourse = (course: Course) => {
@@ -236,13 +200,12 @@ function Index({ courses, userRole }: CoursesPageProps) {
                                         </div>
                                     )}
                                     <div className="absolute top-2 right-2 z-10">
-                                        {getStatusBadge(course.status)}
+                                        <CourseStatusBadge status={course.status} />
                                     </div>
-                                    {getRoleBadge(course) && (
-                                        <div className="absolute bottom-2 left-2 z-10">
-                                            {getRoleBadge(course)}
-                                        </div>
-                                    )}
+                                    {/* Use the new CourseRoleBadge component */}
+                                    <div className="absolute bottom-2 left-2 z-10">
+                                        <CourseRoleBadge course={course} user={user} />
+                                    </div>
                                 </Link>
                                 <CardContent className="flex flex-1 flex-col p-4">
                                     <div className="flex items-center justify-between">
