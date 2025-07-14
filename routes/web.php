@@ -73,6 +73,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('courses/{course}/progress', [ProgressController::class, 'show'])->name('courses.progress');
     Route::get('progress/overall', [ProgressController::class, 'overall'])->name('progress.overall');
     Route::get('courses/{course}/progress/analytics', [ProgressController::class, 'analytics'])->name('courses.progress.analytics');
+    Route::get('progress/{course}', [ProgressController::class, 'show'])->name('progress.show');
 
     // Progress API routes
     Route::post('courses/{course}/progress/mark-started', [ProgressController::class, 'markAsStarted'])->name('courses.progress.mark-started');

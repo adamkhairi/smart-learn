@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\CourseController;
+use App\Http\Controllers\Admin\CategoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -21,4 +22,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('courses/{course}/enroll-users', [CourseController::class, 'enrollUsers'])->name('courses.enroll-users');
     Route::delete('courses/{course}/unenroll-users', [CourseController::class, 'unenrollUsers'])->name('courses.unenroll-users');
     Route::get('courses/{course}/analytics', [CourseController::class, 'analytics'])->name('courses.analytics');
+
+    // Category management routes
+    Route::resource('categories', CategoryController::class)->names('categories');
 });

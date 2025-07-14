@@ -1,3 +1,5 @@
+import React, { useState, useEffect } from 'react';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -12,8 +14,10 @@ import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/layouts/app-layout';
 import { SimplePaginatedResponse, User } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { AlertCircle, BookOpen, Edit, Eye, Filter, MoreHorizontal, Plus, Search, Trash2, TrendingUp, UserCheck, UserX, Users } from 'lucide-react';
-import React, { useState } from 'react';
+import { AlertCircle, BookOpen, Edit, Eye, Filter, MoreHorizontal, Plus, Trash2, TrendingUp, UserCheck, UserX, Users } from 'lucide-react';
+import useDebounce from '@/hooks/use-debounce';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface IndexUser extends User {
     enrollments_count: number;
@@ -51,31 +55,33 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
     const [search, setSearch] = useState(filters.search || '');
     const [roleFilter, setRoleFilter] = useState(filters.role || 'all');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
-    const [loading, setLoading] = useState(false);
     const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
     const [togglingUserId, setTogglingUserId] = useState<number | null>(null);
 
-    const handleSearch = () => {
-        setLoading(true);
+    const debouncedSearch = useDebounce(search, 500);
+    const debouncedRoleFilter = useDebounce(roleFilter, 500);
+    const debouncedStatusFilter = useDebounce(statusFilter, 500);
+
+    useEffect(() => {
         const searchParams: Record<string, string> = {};
 
-        if (search.trim()) {
-            searchParams.search = search.trim();
+        if (debouncedSearch.trim()) {
+            searchParams.search = debouncedSearch.trim();
         }
 
-        if (roleFilter !== 'all') {
-            searchParams.role = roleFilter;
+        if (debouncedRoleFilter !== 'all') {
+            searchParams.role = debouncedRoleFilter;
         }
 
-        if (statusFilter !== 'all') {
-            searchParams.status = statusFilter;
+        if (debouncedStatusFilter !== 'all') {
+            searchParams.status = debouncedStatusFilter;
         }
 
         router.get(route('admin.users.index'), searchParams, {
             preserveState: true,
-            onFinish: () => setLoading(false),
+            onFinish: () => {},
         });
-    };
+    }, [debouncedSearch, debouncedRoleFilter, debouncedStatusFilter]);
 
     const handleToggleActive = (userId: number, userName: string, isActive: boolean) => {
         const action = isActive ? 'deactivate' : 'activate';
@@ -125,17 +131,11 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
         });
     };
 
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            handleSearch();
-        }
-    };
-
     const clearFilters = () => {
         setSearch('');
         setRoleFilter('all');
         setStatusFilter('all');
-        router.get(route('admin.users.index'));
+        router.get(route('admin.users.index')); // This will be handled by useEffect due to debounced filters
     };
 
     const getRoleBadge = (role: string) => {
@@ -251,52 +251,49 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid gap-4 md:grid-cols-4">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Search</label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="Search users..."
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                        onKeyPress={handleKeyPress}
-                                    />
-                                </div>
+                                <Label htmlFor="search">Search</Label>
+                                <Input
+                                    id="search"
+                                    placeholder="Search users..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                />
                             </div>
+
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Role</label>
+                                <Label htmlFor="role">Role</Label>
                                 <Select value={roleFilter} onValueChange={setRoleFilter}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All roles" />
+                                    <SelectTrigger id="role">
+                                        <SelectValue placeholder="Select role" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">All roles</SelectItem>
+                                        <SelectItem value="all">All Roles</SelectItem>
                                         <SelectItem value="admin">Admin</SelectItem>
                                         <SelectItem value="instructor">Instructor</SelectItem>
                                         <SelectItem value="student">Student</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
+
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Status</label>
+                                <Label htmlFor="status">Status</Label>
                                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All status" />
+                                    <SelectTrigger id="status">
+                                        <SelectValue placeholder="Select status" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">All status</SelectItem>
+                                        <SelectItem value="all">All Status</SelectItem>
                                         <SelectItem value="active">Active</SelectItem>
                                         <SelectItem value="inactive">Inactive</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="flex items-end gap-2">
-                                <Button onClick={handleSearch} disabled={loading} className="flex-1">
-                                    <Search className="mr-2 h-4 w-4" />
-                                    {loading ? 'Searching...' : 'Search'}
-                                </Button>
-                                <Button variant="outline" onClick={clearFilters}>
-                                    Clear
+
+                            <div className="flex items-end">
+                                <Button onClick={clearFilters} variant="outline" className="w-full">
+                                    Clear Filters
                                 </Button>
                             </div>
                         </div>
@@ -305,153 +302,138 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
 
                 {/* Users Table */}
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Users ({users.total})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {users.data.length > 0 ? (
-                            <div className="space-y-4">
-                                {users.data.map((user) => (
-                                    <div
-                                        key={user.id}
-                                        className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
-                                    >
-                                        <div className="flex items-center space-x-4">
-                                            <Avatar>
-                                                <AvatarImage src={user.photo} />
-                                                <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <Link
-                                                    href={route('admin.users.show', user.id)}
-                                                    className="cursor-pointer font-medium transition-colors hover:text-primary"
-                                                >
-                                                    {user.name}
-                                                </Link>
-                                                <div className="text-sm text-muted-foreground">{user.email}</div>
-                                                {user.username && <div className="text-xs text-muted-foreground">@{user.username}</div>}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center space-x-4">
-                                            <div className="hidden text-right sm:block">
-                                                <div className="mb-1 flex items-center gap-2">
-                                                    {getRoleBadge(user.role)}
-                                                    {getStatusBadge(user.is_active)}
-                                                </div>
-                                                <div className="space-x-4 text-xs text-muted-foreground">
-                                                    <span>{user.enrollments_count} enrollments</span>
-                                                    <span>{user.created_courses_count} courses</span>
-                                                    <span>{user.submissions_count} submissions</span>
-                                                </div>
-                                            </div>
-                                            <DropdownMenu>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="sm">
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>User options</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={route('admin.users.show', user.id)}>
-                                                            <Eye className="mr-2 h-4 w-4" />
-                                                            View
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={route('admin.users.edit', user.id)}>
-                                                            <Edit className="mr-2 h-4 w-4" />
-                                                            Edit
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() => handleToggleActive(user.id, user.name, user.is_active)}
-                                                        disabled={togglingUserId === user.id}
-                                                    >
-                                                        {togglingUserId === user.id ? (
-                                                            <>
-                                                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-                                                                {user.is_active ? 'Deactivating...' : 'Activating...'}
-                                                            </>
-                                                        ) : user.is_active ? (
-                                                            <>
-                                                                <UserX className="mr-2 h-4 w-4" />
-                                                                Deactivate
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <UserCheck className="mr-2 h-4 w-4" />
-                                                                Activate
-                                                            </>
+                    <CardContent className="p-6">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>User</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Role</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Courses Created</TableHead>
+                                    <TableHead>Enrollments</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {users.data.length > 0 ? (
+                                    users.data.map((user) => (
+                                        <TableRow key={user.id}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-9 w-9">
+                                                        <AvatarImage src={user.photo || ''} alt={user.name} />
+                                                        <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className="font-medium">{user.name}</p>
+                                                        {user.username && (
+                                                            <p className="text-sm text-muted-foreground">@{user.username}</p>
                                                         )}
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() => handleDelete(user.id, user.name)}
-                                                        className="text-red-600"
-                                                        disabled={deletingUserId === user.id}
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        {deletingUserId === user.id ? 'Deleting...' : 'Delete'}
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="py-8 text-center">
-                                <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                                <p className="text-lg font-medium">No users found</p>
-                                <p className="text-muted-foreground">
-                                    {search || roleFilter !== 'all' || statusFilter !== 'all'
-                                        ? 'Try adjusting your filters or search terms.'
-                                        : 'Get started by creating your first user.'}
-                                </p>
-                                {!(search || roleFilter !== 'all' || statusFilter !== 'all') && (
-                                    <Link href={route('admin.users.create')} className="mt-4 inline-block">
-                                        <Button>
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Add First User
-                                        </Button>
-                                    </Link>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>{user.email}</TableCell>
+                                            <TableCell>{getRoleBadge(user.role)}</TableCell>
+                                            <TableCell>{getStatusBadge(user.is_active)}</TableCell>
+                                            <TableCell>{user.created_courses_count}</TableCell>
+                                            <TableCell>{user.enrollments_count}</TableCell>
+                                            <TableCell className="text-right">
+                                                <DropdownMenu>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                    <span className="sr-only">Open menu</span>
+                                                                    <MoreHorizontal className="h-4 w-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>User actions</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={route('admin.users.edit', user.id)}>
+                                                                <Edit className="mr-2 h-4 w-4" /> Edit
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={route('admin.users.show', user.id)}>
+                                                                <Eye className="mr-2 h-4 w-4" /> View
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleToggleActive(user.id, user.name, user.is_active)}
+                                                            className={user.is_active ? 'text-yellow-600 focus:text-yellow-600' : 'text-green-600 focus:text-green-600'}
+                                                            disabled={togglingUserId === user.id}
+                                                        >
+                                                            {user.is_active ? (
+                                                                <>
+                                                                    <UserX className="mr-2 h-4 w-4" /> Deactivate
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <UserCheck className="mr-2 h-4 w-4" /> Activate
+                                                                </>
+                                                            )}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleDelete(user.id, user.name)}
+                                                            className="text-destructive focus:text-destructive"
+                                                            disabled={deletingUserId === user.id}
+                                                        >
+                                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="h-24 text-center">
+                                            No users found.
+                                        </TableCell>
+                                    </TableRow>
                                 )}
-                            </div>
-                        )}
-
-                        {/* Pagination */}
-                        {users.last_page > 1 && (
-                            <div className="mt-6 flex justify-center">
-                                <nav className="flex items-center space-x-2">
-                                    {users.links.map((link, index) =>
-                                        link.url ? (
-                                            <Link
-                                                key={index}
-                                                href={link.url}
-                                                className={`rounded-md px-3 py-2 text-sm transition-colors ${
-                                                    link.active ? 'bg-primary text-primary-foreground' : 'border bg-background hover:bg-accent'
-                                                }`}
-                                                dangerouslySetInnerHTML={{ __html: link.label }}
-                                            />
-                                        ) : (
-                                            <span
-                                                key={index}
-                                                className="cursor-not-allowed rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground"
-                                                dangerouslySetInnerHTML={{ __html: link.label }}
-                                            />
-                                        ),
-                                    )}
-                                </nav>
-                            </div>
-                        )}
+                            </TableBody>
+                        </Table>
                     </CardContent>
                 </Card>
+
+                {/* Pagination */}
+                {users?.links?.length > 3 && (
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm text-muted-foreground">
+                            Showing {(users.current_page - 1) * users.per_page + 1} to{' '}
+                            {Math.min(users.current_page * users.per_page, users.total)} of {users.total} users
+                        </p>
+
+                        <div className="flex gap-2">
+                            {users.links.map((link, index) => (
+                                <React.Fragment key={index}>
+                                    {link.url === null ? (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled
+                                            dangerouslySetInnerHTML={{ __html: link.label }}
+                                        />
+                                    ) : (
+                                        <Button
+                                            variant={link.active ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => router.get(link.url!)}
+                                            dangerouslySetInnerHTML={{ __html: link.label }}
+                                        />
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
             {confirmDialog}
         </AppLayout>

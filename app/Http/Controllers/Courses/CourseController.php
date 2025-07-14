@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Courses;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Course;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Validation\Rule;
+use App\Enums\CourseLevel;
 
 class CourseController extends Controller
 {
@@ -63,7 +66,11 @@ class CourseController extends Controller
     {
         $this->authorize('create', Course::class);
 
-        return Inertia::render('Courses/Create');
+        $categories = Category::all();
+
+        return Inertia::render('Courses/Create', [
+            'categories' => $categories,
+        ]);
     }
 
     /**
@@ -79,6 +86,9 @@ class CourseController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
             'status' => 'required|in:published,archived',
+            'category_id' => 'nullable|exists:categories,id',
+            'level' => ['nullable', Rule::enum(CourseLevel::class)],
+            'duration' => 'nullable|integer|min:0',
         ]);
 
         try {
@@ -137,39 +147,34 @@ class CourseController extends Controller
                 'enrolled_as' => $userEnrollmentData->pivot->enrolled_as,
                 'created_at' => $userEnrollmentData->pivot->created_at,
                 'updated_at' => $userEnrollmentData->pivot->updated_at,
+                'completed_module_items' => $course->getCompletedModuleItemIds($user->id),
             ];
         }
 
-        // Filter modules based on user role
-        $modulesQuery = $course->modules();
-        if (!$isInstructor) {
-            // Students only see published modules
-            $modulesQuery->where('is_published', true);
-        }
-
-        $course->load([
-            'creator',
-            'enrolledUsers',
+        // Single optimized query with all necessary relationships
+        $course = Course::with([
+            'creator:id,name,email,photo',
+            'enrolledUsers:id,name,email,photo',
             'modules' => function ($query) use ($isInstructor) {
-                $query->ordered()->with(['moduleItems' => function ($q) {
+                $query->when(!$isInstructor, function ($q) {
+                    $q->where('is_published', true);
+                })->ordered()->with(['moduleItems' => function ($q) {
                     $q->ordered();
                 }]);
-                if (!$isInstructor) {
-                    $query->where('is_published', true);
-                }
             },
-            'assignments',
-            'assessments',
+            'assignments:id,title,course_id,expired_at,total_points,status',
+            'assessments:id,title,course_id,expired_at,total_points,status',
             'announcements' => function ($query) {
-                $query->latest()->limit(5);
+                $query->select('id', 'title', 'course_id', 'created_at')
+                    ->latest()
+                    ->limit(5);
             },
             'discussions' => function ($query) {
-                $query->latest()->limit(5);
+                $query->select('id', 'title', 'course_id', 'created_at')
+                    ->latest()
+                    ->limit(5);
             }
-        ]);
-
-        // Add created_by field to course for frontend compatibility
-        $course->created_by = $course->created_by ?? $course->user_id;
+        ])->find($course->id);
 
         return Inertia::render('Courses/Show', [
             'course' => $course,
@@ -185,8 +190,11 @@ class CourseController extends Controller
     {
         $this->authorize('update', $course);
 
+        $categories = Category::all();
+
         return Inertia::render('Courses/Edit', [
             'course' => $course,
+            'categories' => $categories,
         ]);
     }
 
@@ -203,6 +211,9 @@ class CourseController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
             'status' => 'required|in:published,archived',
+            'category_id' => 'nullable|exists:categories,id',
+            'level' => ['nullable', Rule::enum(CourseLevel::class)],
+            'duration' => 'nullable|integer|min:0',
         ]);
 
         try {
@@ -260,12 +271,11 @@ class CourseController extends Controller
 
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
-            'role' => 'required|in:student,instructor',
+            'role' => 'required|in:student,instructor,admin',
         ]);
 
         try {
-            $course->enroll($validated['user_id'], $validated['role']);
-
+            $course->enroll($validated['user_id'], $validated['role'], Auth::user());
             return back()->with('success', 'User enrolled successfully!');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());

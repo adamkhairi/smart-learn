@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { BarChart3, Edit, Eye, Filter, MoreHorizontal, Plus, Search, Trash2, Users } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -10,9 +10,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import useDebounce from '@/hooks/use-debounce';
 
 import AppLayout from '@/layouts/app-layout';
+import { formatDate } from '@/lib/utils';
 import { Course, User as Creator, PaginatedResponse } from '@/types';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 interface Props {
     courses: PaginatedResponse<Course>;
@@ -35,19 +38,46 @@ export default function Index({ courses, creators, filters }: Props) {
     const [sortBy, setSortBy] = useState(filters.sort_by || 'created_at');
     const [sortOrder, setSortOrder] = useState(filters.sort_order || 'desc');
 
-    const handleSearch = () => {
-        router.get(
-            route('admin.courses.index'),
-            {
-                search: searchTerm,
-                status: statusFilter,
-                creator: creatorFilter,
-                sort_by: sortBy,
-                sort_order: sortOrder,
-            },
-            { preserveState: true },
-        );
-    };
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+    const debouncedStatusFilter = useDebounce(statusFilter, 500);
+    const debouncedCreatorFilter = useDebounce(creatorFilter, 500);
+    const debouncedSortBy = useDebounce(sortBy, 500);
+    const debouncedSortOrder = useDebounce(sortOrder, 500);
+
+    useEffect(() => {
+        // Only trigger search if filters have actually changed from their initial values or previous debounced values
+        const currentFilters = {
+            search: filters.search,
+            status: filters.status,
+            creator: filters.creator,
+            sort_by: filters.sort_by,
+            sort_order: filters.sort_order,
+        };
+
+        const debouncedFilters = {
+            search: debouncedSearchTerm,
+            status: debouncedStatusFilter,
+            creator: debouncedCreatorFilter,
+            sort_by: debouncedSortBy,
+            sort_order: debouncedSortOrder,
+        };
+
+        if (JSON.stringify(currentFilters) !== JSON.stringify(debouncedFilters)) {
+            router.get(
+                route('admin.courses.index'),
+                {
+                    search: debouncedSearchTerm,
+                    status: debouncedStatusFilter,
+                    creator: debouncedCreatorFilter,
+                    sort_by: debouncedSortBy,
+                    sort_order: debouncedSortOrder,
+                },
+                { preserveState: true, preserveScroll: true },
+            );
+        }
+    }, [debouncedSearchTerm, debouncedStatusFilter, debouncedCreatorFilter, debouncedSortBy, debouncedSortOrder]);
+
+    // Removed handleSearch as it's now triggered by useEffect for debounced values
 
     const getStatusBadge = (status: 'draft' | 'published' | 'archived') => {
         const variants = {
@@ -103,9 +133,8 @@ export default function Index({ courses, creators, filters }: Props) {
                                         placeholder="Search courses..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                                     />
-                                    <Button onClick={handleSearch} size="sm">
+                                    <Button onClick={() => {}} size="sm"> {/* Removed direct handleSearch click */}
                                         <Search className="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -175,108 +204,116 @@ export default function Index({ courses, creators, filters }: Props) {
 
                 {/* Course List */}
                 <div className="grid gap-6">
-                    {courses.data.map((course: Course) => (
-                        <Card key={course.id}>
-                            <CardContent className="p-6">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-start gap-4">
-                                        <div
-                                            className="flex h-16 w-16 items-center justify-center truncate rounded-lg bg-muted text-xl font-bold text-white select-none"
-                                            style={{ backgroundColor: course.background_color }}
-                                        >
-                                            {course.image ? (
-                                                <img
-                                                    src={course.image.startsWith('http') ? course.image : `/storage/${course.image}`}
-                                                    alt={course.name}
-                                                    className="h-full w-full rounded-lg object-cover"
-                                                />
-                                            ) : (
-                                                getInitials(course.name)
-                                            )}
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="text-xl font-semibold">{course.name}</h3>
-                                                {getStatusBadge(course.status)}
-                                            </div>
-
-                                            <p className="line-clamp-2 text-muted-foreground">{course.description || 'No description available'}</p>
-
-                                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                <div className="flex items-center gap-1">
-                                                    <Avatar className="h-5 w-5">
-                                                        <AvatarImage src="" />
-                                                        <AvatarFallback className="text-xs">
-                                                            {course.creator ? getInitials(course.creator.name) : '?'}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <span>{course.creator?.name || 'Unknown Creator'}</span>
+                    {courses.data.length > 0 ? (
+                        courses.data.map((course: Course) => (
+                            <Card key={course.id}>
+                                <CardContent className="p-6">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-start gap-4">
+                                            <Link href={route('admin.courses.show', course.id)} className="relative block h-16 w-16 flex-shrink-0">
+                                                <div
+                                                    className="flex h-full w-full items-center justify-center truncate rounded-lg bg-muted text-xl font-bold text-white select-none"
+                                                    style={{ backgroundColor: course.background_color }}
+                                                >
+                                                    {course.image ? (
+                                                        <AspectRatio ratio={1 / 1}>
+                                                            <img
+                                                                src={course.image.startsWith('http') ? course.image : `/storage/${course.image}`}
+                                                                alt={course.name}
+                                                                className="h-full w-full rounded-lg object-cover"
+                                                            />
+                                                        </AspectRatio>
+                                                    ) : (
+                                                        getInitials(course.name)
+                                                    )}
                                                 </div>
+                                            </Link>
 
-                                                <div className="flex items-center gap-1">
-                                                    <Users className="h-4 w-4" />
-                                                    <span>{course.enrolled_users?.length || 0} enrolled</span>
+                                            <div className="space-y-2">
+                                                <Link href={route('admin.courses.show', course.id)} className="hover:underline">
+                                                    <h3 className="text-xl font-semibold">{course.name}</h3>
+                                                </Link>
+                                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                                    {course.description}
+                                                </p>
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    {getStatusBadge(course.status)}
+                                                    <span>&bull;</span>
+                                                    <span>{course.category?.name || 'Uncategorized'}</span>
                                                 </div>
-
-                                                <span>Created {new Date(course.created_at).toLocaleDateString()}</span>
                                             </div>
                                         </div>
+
+                                        <DropdownMenu>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                                            <span className="sr-only">Open menu</span>
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Course options</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={route('admin.courses.show', course.id)}>
+                                                        <Eye className="mr-2 h-4 w-4" />
+                                                        View
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={route('admin.courses.edit', course.id)}>
+                                                        <Edit className="mr-2 h-4 w-4" />
+                                                        Edit
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={route('admin.courses.enrollments', course.id)}>
+                                                        <Users className="mr-2 h-4 w-4" />
+                                                        Enrollments
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={route('admin.courses.analytics', course.id)}>
+                                                        <BarChart3 className="mr-2 h-4 w-4" />
+                                                        Analytics
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => {}}
+                                                    className="text-red-600 focus:text-red-600"
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
 
-                                    <DropdownMenu>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="sm">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>Course options</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem asChild>
-                                                <Link href={route('admin.courses.show', course.id)}>
-                                                    <Eye className="mr-2 h-4 w-4" />
-                                                    View Details
-                                                </Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem asChild>
-                                                <Link href={route('admin.courses.edit', course.id)}>
-                                                    <Edit className="mr-2 h-4 w-4" />
-                                                    Edit Course
-                                                </Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem asChild>
-                                                <Link href={route('admin.courses.enrollments', course.id)}>
-                                                    <Users className="mr-2 h-4 w-4" />
-                                                    Manage Enrollments
-                                                </Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem asChild>
-                                                <Link href={route('admin.courses.analytics', course.id)}>
-                                                    <BarChart3 className="mr-2 h-4 w-4" />
-                                                    Analytics
-                                                </Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                className="text-destructive"
-                                                onClick={() => {
-                                                    // Handle delete confirmation
-                                                }}
-                                            >
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Delete Course
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
+                                    <div className="mt-4 flex justify-between gap-4 border-t pt-4">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <Avatar className="h-6 w-6">
+                                                <AvatarImage src={course.creator?.photo} />
+                                                <AvatarFallback>{getInitials(course.creator?.name || 'N/A')}</AvatarFallback>
+                                            </Avatar>
+                                            <span>{course.creator?.name || 'Unknown Creator'}</span>
+                                        </div>
+                                        <span className="text-sm text-muted-foreground">Updated {formatDate(course.updated_at)}</span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))
+                    ) : (
+                        <Card>
+                            <CardContent className="p-6 text-center">
+                                <p className="text-muted-foreground">No courses found.</p>
                             </CardContent>
                         </Card>
-                    ))}
+                    )}
                 </div>
 
                 {/* Pagination */}

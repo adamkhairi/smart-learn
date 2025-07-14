@@ -40,6 +40,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { Course } from '@/types';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 interface Stats {
     total_students: number;
@@ -177,7 +178,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
 
             <div className="space-y-6">
                 {/* Enhanced Header */}
-                <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 p-6 dark:from-blue-950 dark:to-indigo-950">
+                <div className="rounded-lg bg-gradient-to-r from-red-50 to-red-100 p-6 dark:from-red-950 dark:to-red-900">
                     <div className="mb-4 flex items-center justify-between">
                         <Button variant="ghost" size="sm" onClick={() => window.history.back()}>
                             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -203,11 +204,13 @@ export default function Show({ course, stats, recentActivity }: Props) {
                                 style={{ backgroundColor: course.background_color }}
                             >
                                 {course.image ? (
-                                    <img
-                                        src={course.image.startsWith('http') ? course.image : `/storage/${course.image}`}
-                                        alt={course.name}
-                                        className="h-full w-full rounded-lg object-cover"
-                                    />
+                                    <AspectRatio ratio={1 / 1}>
+                                        <img
+                                            src={course.image.startsWith('http') ? course.image : `/storage/${course.image}`}
+                                            alt={course.name}
+                                            className="h-full w-full rounded-lg object-cover"
+                                        />
+                                    </AspectRatio>
                                 ) : (
                                     getInitials(course.name)
                                 )}
@@ -229,7 +232,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-shrink-0">
+                        <div className="flex flex-shrink-0 gap-2">
                             <Link href={route('admin.courses.edit', course.id)}>
                                 <Button>
                                     <Edit className="mr-2 h-4 w-4" />

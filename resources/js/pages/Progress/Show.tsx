@@ -6,13 +6,33 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, CheckCircle, PlayCircle, XCircle } from 'lucide-react';
 import { router } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
 import { Course, ProgressSummary, ProgressRecord } from '@/types/progress';
+import { BreadcrumbItem } from '@/types';
 
 interface CourseProgressPageProps {
     course: Course;
     progress: ProgressSummary;
     progressRecords: ProgressRecord[];
 }
+
+const breadcrumbs = (
+    courseName: string,
+    courseId: number
+): BreadcrumbItem[] => [
+    {
+        title: 'Courses',
+        href: '/courses',
+    },
+    {
+        title: courseName,
+        href: `/courses/${courseId}`,
+    },
+    {
+        title: 'Progress',
+        href: '#',
+    },
+];
 
 export default function Show({ course, progress, progressRecords }: CourseProgressPageProps) {
     const formatTimeSpent = (seconds: number): string => {
@@ -65,7 +85,7 @@ export default function Show({ course, progress, progressRecords }: CourseProgre
     };
 
     return (
-        <>
+        <AppLayout breadcrumbs={breadcrumbs(course.name, course.id)}>
             <Head title={`${course.name} - Progress`} />
 
             <div className="container mx-auto px-4 py-8">
@@ -199,7 +219,7 @@ export default function Show({ course, progress, progressRecords }: CourseProgre
                                         <div className="text-2xl font-bold text-green-600">
                                             {progress.completed_items}
                                         </div>
-                                        <div className="text-sm text-muted-foreground">Completed</div>
+                                        <div className="text-sm text-muted-foreground">Completed Items</div>
                                     </div>
                                 </div>
                             </CardContent>
@@ -207,6 +227,6 @@ export default function Show({ course, progress, progressRecords }: CourseProgre
                     </div>
                 </div>
             </div>
-        </>
+        </AppLayout>
     );
 }

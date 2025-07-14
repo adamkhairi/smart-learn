@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use App\Enums\CourseLevel;
 
 class Course extends Model
 {
@@ -27,6 +28,9 @@ class Course extends Model
         'background_color',
         'status',
         'files',
+        'category_id',
+        'level',
+        'duration',
     ];
 
     /**
@@ -38,8 +42,18 @@ class Course extends Model
     {
         return [
             'files' => 'array',
+            'level' => CourseLevel::class,
         ];
     }
+
+    /**
+     * The relationships that should always be loaded.
+     *
+     * @var array
+     */
+    protected $with = [
+        'category',
+    ];
 
     /**
      * Boot the model.
@@ -53,6 +67,14 @@ class Course extends Model
                 $course->background_color = '#' . str_pad(dechex(mt_rand(0, 0xFFFFFF)), 6, '0', STR_PAD_LEFT);
             }
         });
+    }
+
+    /**
+     * Get the category that owns the course.
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     /**
@@ -126,20 +148,46 @@ class Course extends Model
     /**
      * Enroll a user in this course.
      */
-    public function enroll(int $userId, string $role = 'student'): void
+    public function enroll(int $userId, string $role = 'student', ?User $authorizedBy = null): void
     {
+        // Check if user is already enrolled
         if ($this->enrolledUsers()->where('user_id', $userId)->exists()) {
             throw new \Exception('User is already enrolled in this course');
         }
 
-        $privilege = 'student';
-
-        if ($role === 'admin') {
-            $privilege = 'admin';
+        // Validate role parameter
+        if (!in_array($role, ['student', 'instructor', 'admin'])) {
+            throw new \InvalidArgumentException('Invalid role specified');
         }
 
-        if ($this->created_by === $userId) {
+        // Authorization logic
+        if ($authorizedBy) {
+            // Check if the authorizing user has permission to enroll others
+            if (!$authorizedBy->isAdmin() && $this->created_by !== $authorizedBy->id) {
+                throw new \Exception('You do not have permission to enroll users in this course');
+            }
+
+            // Only admins can assign admin role, only course creators/admins can assign instructor role
+            if ($role === 'admin' && !$authorizedBy->isAdmin()) {
+                throw new \Exception('Only administrators can assign admin role');
+            }
+
+            if ($role === 'instructor' && !$authorizedBy->isAdmin() && $this->created_by !== $authorizedBy->id) {
+                throw new \Exception('Only course creators and administrators can assign instructor role');
+            }
+        }
+
+        // Determine final privilege
+        $privilege = $role;
+
+        // Course creator should always be instructor (unless being made admin)
+        if ($this->created_by === $userId && $role !== 'admin') {
             $privilege = 'instructor';
+        }
+
+        // Prevent self-enrollment as instructor/admin without authorization
+        if (($role === 'instructor' || $role === 'admin') && !$authorizedBy) {
+            throw new \Exception('Instructor and admin roles require authorization');
         }
 
         $this->enrolledUsers()->attach($userId, ['enrolled_as' => $privilege]);
@@ -175,6 +223,18 @@ class Course extends Model
         return $this->enrolledUsers()
                     ->wherePivot('enrolled_as', 'student')
                     ->get();
+    }
+
+    /**
+     * Get IDs of completed module items for a user in this course.
+     */
+    public function getCompletedModuleItemIds(int $userId): array
+    {
+        return UserProgress::where('user_id', $userId)
+            ->where('course_id', $this->id)
+            ->where('status', 'completed')
+            ->pluck('course_module_item_id')
+            ->toArray();
     }
 
     /**

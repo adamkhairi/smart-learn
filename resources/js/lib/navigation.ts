@@ -30,6 +30,11 @@ export const adminNavItems: NavItem[] = [
         href: '/admin/users-stats',
         icon: BarChart3,
     },
+    {
+        title: 'Category Management',
+        href: '/admin/categories',
+        icon: Folder,
+    },
 ];
 
 export const footerNavItems: NavItem[] = [

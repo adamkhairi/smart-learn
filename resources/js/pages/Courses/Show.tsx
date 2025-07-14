@@ -1,17 +1,18 @@
-import { ModuleProgress } from '@/components/module-progress';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ModuleProgress } from '@/components/module-progress';
 import { useAuth } from '@/hooks/use-auth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem, CourseShowPageProps } from '@/types';
 import { Head, Link } from '@inertiajs/react';
+import { useState } from 'react';
 import {
     ArrowLeft,
-    ArrowRight,
     Award,
     Bell,
     BookOpen,
@@ -47,6 +48,16 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
     const isInstructor = canManageCourse(course.created_by);
     const isStudent = userEnrollment?.enrolled_as === 'student';
 
+    const [expandedAssignments, setExpandedAssignments] = useState<number[]>([]);
+
+    const toggleAssignmentExpansion = (assignmentId: number) => {
+        setExpandedAssignments((prev) =>
+            prev.includes(assignmentId) ? prev.filter((id) => id !== assignmentId) : [...prev, assignmentId]
+        );
+    };
+
+    const isAssignmentExpanded = (assignmentId: number) => expandedAssignments.includes(assignmentId);
+
     // Filter content based on user role
     const publishedModules = course.modules?.filter((module) => module.is_published) || [];
 
@@ -73,10 +84,9 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={course.name} />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4 lg:gap-6 lg:p-6">
-                {/* Enhanced Header - Mobile Optimized */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 flex-1">
-                        <div className="mb-4 flex items-center gap-2">
+                {/* Top Header Row: Back Button and Action Buttons */}
+                <div className="flex items-center justify-between">
+                    {/* Back Button */}
                             <Button variant="ghost" size={isMobile ? 'sm' : 'default'} asChild>
                                 <Link href="/courses">
                                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -84,23 +94,10 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                     <span className="sm:hidden">Back</span>
                                 </Link>
                             </Button>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">{course.name}</h1>
-                                {getStatusBadge(course.status)}
-                            </div>
-                            <p className="text-sm text-muted-foreground sm:text-base lg:text-lg">
-                                Created by {course.creator?.name} • {new Date(course.created_at).toLocaleDateString()}
-                            </p>
-                        </div>
-                    </div>
 
-                    {/* Action Buttons - Responsive */}
+                    {/* Action Buttons (Edit Course, Add Module) */}
+                    {isInstructor && (
                     <div className="flex shrink-0 items-center gap-2">
-                        {isInstructor && (
-                            <>
-                                {/* Mobile: Dropdown Menu */}
                                 {isMobile ? (
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
@@ -124,7 +121,6 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 ) : (
-                                    /* Desktop: Individual Buttons */
                                     <>
                                         <Button variant="outline" asChild>
                                             <Link href={`/courses/${course.id}/edit`}>
@@ -140,23 +136,38 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                         </Button>
                                     </>
                                 )}
-                            </>
+                        </div>
                         )}
-                    </div>
                 </div>
 
-                  {/* Course Image Banner - Mobile Only */}
-                  {course.image && isMobile && (
-                    <Card className="overflow-hidden p-0">
-                        <CardContent className="p-0">
-                            <img src={`/storage/${course.image}`} alt={course.name} className="h-48 w-full object-cover" />
-                            <div className="p-3">
-                                <p className="text-xs text-muted-foreground">Course Banner</p>
+                {/* Main Course Info Card (Image, Title, Status, Creator, Description) */}
+                <Card className="flex flex-col overflow-hidden">
+                    {/* Course Image Banner */}
+                    {course.image && (
+                        <div className="w-full">
+                            <AspectRatio ratio={16 / 9}>
+                                <img
+                                    src={`/storage/${course.image}`}
+                                    alt={course.name}
+                                    className="h-full w-full object-cover"
+                                />
+                            </AspectRatio>
+                        </div>
+                    )}
+                    <CardHeader className="flex-1">
+                        <div className="space-y-2">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                                <CardTitle className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+                                    {course.name}
+                                </CardTitle>
+                                {getStatusBadge(course.status)}
                             </div>
-                        </CardContent>
+                            <CardDescription className="text-sm text-muted-foreground sm:text-base lg:text-lg">
+                                Created by {course.creator?.name} • {new Date(course.created_at).toLocaleDateString()}
+                            </CardDescription>
+                        </div>
+                    </CardHeader>
                     </Card>
-                )}
-
 
                 {/* Course Stats Overview - Responsive Grid */}
                 {!isStudent && (
@@ -169,7 +180,9 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-xs font-medium text-muted-foreground sm:text-sm">Students</p>
-                                        <p className="text-lg font-bold sm:text-2xl">{course.enrolled_users?.length || 0}</p>
+                                        <p className="text-lg font-bold sm:text-2xl">
+                                            {course.enrolled_users?.length || 0}
+                                        </p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -195,7 +208,9 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-xs font-medium text-muted-foreground sm:text-sm">Assignments</p>
-                                        <p className="text-lg font-bold sm:text-2xl">{course.assignments?.length || 0}</p>
+                                        <p className="text-lg font-bold sm:text-2xl">
+                                            {course.assignments?.length || 0}
+                                        </p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -208,7 +223,9 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-xs font-medium text-muted-foreground sm:text-sm">Discussions</p>
-                                        <p className="text-lg font-bold sm:text-2xl">{course.discussions?.length || 0}</p>
+                                        <p className="text-lg font-bold sm:text-2xl">
+                                            {course.discussions?.length || 0}
+                                        </p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -230,9 +247,11 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                             </CardHeader>
                             <CardContent>
                                 {course.description ? (
-                                    <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">{course.description}</p>
+                                    <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+                                        {course.description}
+                                    </p>
                                 ) : (
-                                    <p className="text-sm text-muted-foreground italic sm:text-base">No description provided.</p>
+                                    <p className="text-sm italic text-muted-foreground sm:text-base">No description provided.</p>
                                 )}
                             </CardContent>
                         </Card>
@@ -241,317 +260,289 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                         {visibleModules.length > 0 && (
                             <Card>
                                 <CardHeader className="pb-3 sm:pb-4">
-                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                         <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                                             <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-                                            Course Modules
+                                        Modules
                                         </CardTitle>
-                                        <Button variant="outline" size={isMobile ? 'sm' : 'default'} asChild>
-                                            <Link href={`/courses/${course.id}/modules`}>
-                                                <span className="hidden sm:inline">{isInstructor ? 'Manage Modules' : 'View All Modules'}</span>
-                                                <span className="sm:hidden">{isInstructor ? 'Manage' : 'View All'}</span>
-                                                <ArrowRight className="ml-2 h-4 w-4" />
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                    <CardDescription className="text-xs sm:text-sm">
-                                        {isStudent ? 'Continue your learning journey' : 'Quick overview of your course content'}
-                                    </CardDescription>
                                 </CardHeader>
-                                <CardContent>
-                                    <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
-                                        {visibleModules.slice(0, 4).map((module) => (
-                                            <Card key={module.id} className="border-l-4 border-l-blue-500 transition-shadow hover:shadow-md">
-                                                <CardHeader className="pb-2 sm:pb-3">
-                                                    <div className="mb-2 flex items-center justify-between">
-                                                        <Badge variant="outline" className="text-xs">
-                                                            Module {module.order}
-                                                        </Badge>
-                                                        {!isStudent &&
-                                                            (module.is_published ? (
-                                                                <Badge variant="default" className="text-xs">
-                                                                    <CheckCircle className="mr-1 h-3 w-3" />
-                                                                    Published
-                                                                </Badge>
-                                                            ) : (
-                                                                <Badge variant="secondary" className="text-xs">
-                                                                    Draft
-                                                                </Badge>
-                                                            ))}
-                                                    </div>
-                                                    <CardTitle className="text-sm sm:text-base">{module.title}</CardTitle>
-                                                </CardHeader>
-                                                <CardContent className="space-y-2 sm:space-y-3">
-                                                    {module.description && (
-                                                        <p className="line-clamp-2 text-xs text-muted-foreground sm:text-sm">{module.description}</p>
-                                                    )}
-
-                                                    <div className="flex items-center gap-3 text-xs text-muted-foreground sm:gap-4 sm:text-sm">
-                                                        <span className="flex items-center gap-1">
-                                                            <FileText className="h-3 w-3" />
-                                                            {module.itemsCount || 0} items
-                                                        </span>
-                                                        <span className="flex items-center gap-1">
-                                                            <Clock className="h-3 w-3" />~
-                                                            {Math.max(1, Math.ceil(((module.itemsCount || 0) * 15) / 60))}h
-                                                        </span>
-                                                    </div>
-
-                                                    {!isInstructor && (
-                                                        <ModuleProgress
-                                                            module={module}
-                                                            completedItems={[]} // This would come from backend
-                                                            showDetails={false}
-                                                        />
-                                                    )}
-
-                                                    <div className="flex gap-2">
-                                                        <Button size="sm" asChild className="flex-1">
-                                                            <Link href={`/courses/${course.id}/modules/${module.id}`}>
-                                                                <Eye className="mr-2 h-4 w-4" />
-                                                                {isInstructor ? 'Manage' : 'View'}
-                                                            </Link>
-                                                        </Button>
-                                                        {isInstructor && (
-                                                            <Button variant="outline" size="sm" asChild>
-                                                                <Link href={`/courses/${course.id}/modules/${module.id}/edit`}>
-                                                                    <Edit className="h-4 w-4" />
+                                <CardContent className="grid gap-4">
+                                    {visibleModules.map((module) => (
+                                        <Link
+                                            key={module.id}
+                                            href={route('courses.modules.show', [
+                                                course.id,
+                                                module.id,
+                                            ])}
+                                            className="block rounded-md p-3 transition-colors hover:bg-muted"
+                                        >
+                                            <h3 className="font-semibold">{module.title}</h3>
+                                            <p className="text-sm text-muted-foreground line-clamp-2">
+                                                {module.description || 'No description provided.'}
+                                            </p>
                                                                 </Link>
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </div>
-
-                                    {visibleModules.length > 4 && (
-                                        <div className="mt-4 text-center sm:mt-6">
-                                            <Button variant="outline" asChild>
-                                                <Link href={`/courses/${course.id}/modules`}>View All {visibleModules.length} Modules</Link>
-                                            </Button>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        )}
-
-                        {/* Course Content Tabs */}
-                        <Card>
-                            <CardHeader className="pb-3 sm:pb-4">
-                                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                                    <Award className="h-4 w-4 sm:h-5 sm:w-5" />
-                                    Course Content
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Tabs defaultValue="assignments" className="w-full">
-                                    <TabsList className="grid w-full grid-cols-2">
-                                        <TabsTrigger value="assignments" className="text-xs sm:text-sm">
-                                            Assignments
-                                        </TabsTrigger>
-                                        <TabsTrigger value="discussions" className="text-xs sm:text-sm">
-                                            Discussions
-                                        </TabsTrigger>
-                                    </TabsList>
-
-                                    <TabsContent value="assignments" className="mt-4 space-y-3 sm:space-y-4">
-                                        {visibleAssignments.length > 0 ? (
-                                            <div className="space-y-3 sm:space-y-4">
-                                                {visibleAssignments.map((assignment) => (
-                                                    <Card key={assignment.id} className="transition-shadow hover:shadow-sm">
-                                                        <CardHeader className="pb-2 sm:pb-3">
-                                                            <CardTitle className="flex flex-col gap-2 text-base sm:flex-row sm:items-center sm:justify-between sm:text-lg">
-                                                                <span className="min-w-0">{assignment.title}</span>
-                                                                <Badge variant="outline" className="self-start sm:self-center">
-                                                                    {assignment.points || 0} points
-                                                                </Badge>
-                                                            </CardTitle>
-                                                            {assignment.description && (
-                                                                <CardDescription className="text-xs sm:text-sm">
-                                                                    {assignment.description}
-                                                                </CardDescription>
-                                                            )}
-                                                        </CardHeader>
-                                                        <CardContent>
-                                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                                                <div className="flex items-center gap-4 text-xs text-muted-foreground sm:text-sm">
-                                                                    {assignment.due_date && (
-                                                                        <div className="flex items-center gap-1">
-                                                                            <Calendar className="h-4 w-4" />
-                                                                            <span>Due: {new Date(assignment.due_date).toLocaleDateString()}</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <Button variant="outline" size="sm" className="self-start sm:self-center">
-                                                                    {isStudent ? 'Submit Assignment' : 'View Submissions'}
-                                                                </Button>
-                                                            </div>
-                                                        </CardContent>
-                                                    </Card>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="py-6 text-center sm:py-8">
-                                                <FileText className="mx-auto mb-3 h-10 w-10 text-muted-foreground sm:mb-4 sm:h-12 sm:w-12" />
-                                                <h3 className="mb-2 text-base font-semibold sm:text-lg">No assignments yet</h3>
-                                                <p className="mb-3 text-sm text-muted-foreground sm:mb-4 sm:text-base">
-                                                    {isInstructor
-                                                        ? 'Create assignments to assess student learning'
-                                                        : "This course doesn't have any assignments yet."}
-                                                </p>
-                                                {isInstructor && (
-                                                    <Button size={isMobile ? 'sm' : 'default'} asChild>
-                                                        <Link href={`/courses/${course.id}/assignments/create`}>
-                                                            <Plus className="mr-2 h-4 w-4" />
-                                                            Create Assignment
-                                                        </Link>
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        )}
-                                    </TabsContent>
-
-                                    <TabsContent value="discussions" className="mt-4 space-y-3 sm:space-y-4">
-                                        {visibleDiscussions.length > 0 ? (
-                                            <div className="space-y-3 sm:space-y-4">
-                                                {visibleDiscussions.map((discussion) => (
-                                                    <Card key={discussion.id} className="transition-shadow hover:shadow-sm">
-                                                        <CardHeader className="pb-2 sm:pb-3">
-                                                            <CardTitle className="text-base sm:text-lg">{discussion.title}</CardTitle>
-                                                            <CardDescription className="text-xs sm:text-sm">
-                                                                {new Date(discussion.created_at).toLocaleDateString()}
-                                                            </CardDescription>
-                                                        </CardHeader>
-                                                        <CardContent>
-                                                            <p className="mb-3 line-clamp-3 text-sm text-muted-foreground sm:mb-4 sm:text-base">
-                                                                {discussion.content}
-                                                            </p>
-                                                            <Button variant="outline" size="sm">
-                                                                <MessageSquare className="mr-2 h-4 w-4" />
-                                                                Join Discussion
-                                                            </Button>
-                                                        </CardContent>
-                                                    </Card>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="py-6 text-center sm:py-8">
-                                                <MessageSquare className="mx-auto mb-3 h-10 w-10 text-muted-foreground sm:mb-4 sm:h-12 sm:w-12" />
-                                                <h3 className="mb-2 text-base font-semibold sm:text-lg">No discussions yet</h3>
-                                                <p className="mb-3 text-sm text-muted-foreground sm:mb-4 sm:text-base">
-                                                    Start a discussion to engage with your classmates
-                                                </p>
-                                                <Button size={isMobile ? 'sm' : 'default'} asChild>
-                                                    <Link href={`/courses/${course.id}/discussions/create`}>
-                                                        <Plus className="mr-2 h-4 w-4" />
-                                                        Start Discussion
-                                                    </Link>
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </TabsContent>
-                                </Tabs>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Sidebar - Full width on mobile, 1/3 on desktop */}
-                    <div className="space-y-4 lg:space-y-6">
-                        {/* Course Image - Desktop Only */}
-                        {course.image && !isMobile && (
-                            <Card className="overflow-hidden p-0">
-                                <CardContent className="p-0">
-                                    <img src={`/storage/${course.image}`} alt={course.name} className="h-48 w-full object-cover" />
-                                    <div className="p-3 sm:p-4">
-                                        <p className="text-xs text-muted-foreground sm:text-sm">Course Banner</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-
-                        {/* Quick Actions */}
-                        <Card>
-                            <CardHeader className="pb-3 sm:pb-4">
-                                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                                    <Star className="h-4 w-4 sm:h-5 sm:w-5" />
-                                    Quick Actions
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-2 sm:space-y-3">
-                                <Button variant="outline" className="h-9 w-full justify-start text-sm sm:h-10" asChild>
-                                    <Link href={`/courses/${course.id}/announcements`}>
-                                        <Bell className="mr-2 h-4 w-4" />
-                                        View Announcements
-                                    </Link>
-                                </Button>
-                                {isInstructor && (
-                                    <>
-                                        <Button variant="outline" className="h-9 w-full justify-start text-sm sm:h-10" asChild>
-                                            <Link href={`/courses/${course.id}/students`}>
-                                                <Users className="mr-2 h-4 w-4" />
-                                                Manage Students
-                                            </Link>
-                                        </Button>
-                                        <Button variant="outline" className="h-9 w-full justify-start text-sm sm:h-10" asChild>
-                                            <Link href={`/courses/${course.id}/grades`}>
-                                                <FileText className="mr-2 h-4 w-4" />
-                                                View Grades
-                                            </Link>
-                                        </Button>
-                                    </>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Recent Announcements */}
-                        {course.announcements && course.announcements.length > 0 && (
-                            <Card>
-                                <CardHeader className="pb-3 sm:pb-4">
-                                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                                        <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-                                        Recent Announcements
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-3 sm:space-y-4">
-                                    {course.announcements.slice(0, 3).map((announcement) => (
-                                        <div key={announcement.id} className="border-l-2 border-primary py-1 pl-3">
-                                            <p className="mb-1 text-xs font-medium sm:text-sm">{announcement.title}</p>
-                                            <p className="text-xs text-muted-foreground">{new Date(announcement.created_at).toLocaleDateString()}</p>
-                                        </div>
                                     ))}
                                 </CardContent>
                             </Card>
                         )}
 
-                        {/* Course Progress (for students) */}
-                        {isStudent && (
-                            <Card>
-                                <CardHeader className="pb-3 sm:pb-4">
-                                    <div className="flex items-center justify-between">
-                                        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                                            <Target className="h-4 w-4 sm:h-5 sm:w-5" />
-                                            Your Progress
+                        {/* Tabs for Course Content (Modules, Assignments, Discussions, Assessments) */}
+                        <Tabs defaultValue="modules" className="w-full">
+                            <TabsList className="grid w-full grid-cols-4">
+                                <TabsTrigger value="modules">Modules</TabsTrigger>
+                                <TabsTrigger value="assignments">Assignments</TabsTrigger>
+                                <TabsTrigger value="discussions">Discussions</TabsTrigger>
+                                <TabsTrigger value="assessments">Assessments</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="modules" className="mt-4">
+                        <Card>
+                                    <CardContent className="grid gap-4">
+                                        {visibleModules.length > 0 ? (
+                                            <ModuleProgress
+                                                course={course}
+                                                userEnrollment={userEnrollment}
+                                                modules={visibleModules}
+                                            />
+                                        ) : (
+                                            <p className="text-sm italic text-muted-foreground sm:text-base">
+                                                No modules available.
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
+
+                            <TabsContent value="assignments" className="mt-4">
+                                <Card>
+                                    <CardContent className="grid gap-4">
+                                        {visibleAssignments.length > 0 ? (
+                                            <div>
+                                                {visibleAssignments.map((assignment) => (
+                                                    <Card key={assignment.id} className="mb-4">
+                                                        <CardHeader className="pb-3 sm:pb-4">
+                                                            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                                                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+                                                                {assignment.title}
+                                                            </CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <p className={isAssignmentExpanded(assignment.id) ? 'text-sm text-muted-foreground' : 'text-sm text-muted-foreground line-clamp-3'}>
+                                                                {assignment.description || 'No description provided.'}
+                                                            </p>
+                                                            {assignment.description && assignment.description.length > 150 && (
+                                                                <Button variant="link" onClick={() => toggleAssignmentExpansion(assignment.id)} className="px-0">
+                                                                    {isAssignmentExpanded(assignment.id) ? 'Show Less' : 'Read More'}
+                                                                </Button>
+                                                            )}
+                                                            <p className="mt-2 text-xs text-muted-foreground">
+                                                                <span className="flex items-center gap-1">
+                                                                    <Calendar className="h-3 w-3" /> Due:{' '}
+                                                                    {assignment.due_date
+                                                                        ? new Date(assignment.due_date).toLocaleDateString()
+                                                                        : 'N/A'}
+                                                                </span>
+                                                            </p>
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm italic text-muted-foreground sm:text-base">
+                                                No assignments available.
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                                    </TabsContent>
+
+                            {/* Discussions Tab */}
+                            <TabsContent value="discussions" className="mt-4">
+                                <Card>
+                                    <CardHeader className="pb-3 sm:pb-4">
+                                        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                            <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
+                                            Discussions
                                         </CardTitle>
-                                        <Button variant="outline" size="sm" asChild>
-                                            <Link href={`/courses/${course.id}/progress`}>
-                                                <BarChart3 className="mr-2 h-4 w-4" />
-                                                View Details
-                                            </Link>
-                                        </Button>
-                                    </div>
+                                    </CardHeader>
+                                    <CardContent className="grid gap-4">
+                                        {visibleDiscussions.length > 0 ? (
+                                            <ul className="grid gap-3">
+                                                {visibleDiscussions.map((discussion) => (
+                                                    <li key={discussion.id}>
+                                                        <Link
+                                                            href={`/courses/${course.id}/discussions/${discussion.id}`}
+                                                            className="block rounded-md p-3 transition-colors hover:bg-muted"
+                                                        >
+                                                            <h3 className="font-semibold">{discussion.title}</h3>
+                                                            <p className="text-sm text-muted-foreground line-clamp-2">
+                                                                {discussion.content || 'No description provided.'}
+                                                            </p>
+                                                        </Link>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="text-sm italic text-muted-foreground sm:text-base">
+                                                No discussions available for this course.
+                                            </p>
+                                        )}
+                                                        </CardContent>
+                                                    </Card>
+                            </TabsContent>
+
+                            {/* Assessments Tab */}
+                            <TabsContent value="assessments" className="mt-4">
+                                <Card>
+                                    <CardHeader className="pb-3 sm:pb-4">
+                                        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                            <Award className="h-4 w-4 sm:h-5 sm:w-5" />
+                                            Assessments
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="grid gap-4">
+                                        {course.assessments && course.assessments.length > 0 ? (
+                                            <ul className="grid gap-3">
+                                                {course.assessments.map((assessment) => (
+                                                    <li key={assessment.id}>
+                                                        <Link
+                                                            href={`/courses/${course.id}/assessments/${assessment.id}/take`}
+                                                            className="block rounded-md p-3 transition-colors hover:bg-muted"
+                                                        >
+                                                            <h3 className="font-semibold">{assessment.title}</h3>
+                                                            <p className="text-sm text-muted-foreground line-clamp-2">
+                                                                {(assessment.content_html || assessment.instructions_html) ?
+                                                                    <div dangerouslySetInnerHTML={{ __html: (assessment.content_html || assessment.instructions_html) as string }} /> :
+                                                                    'No description provided.'}
+                                                            </p>
+                                                            <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+                                                                <span className="flex items-center gap-1">
+                                                                    <Clock className="h-3 w-3" /> Duration:{' '}
+                                                                    {assessment.duration || 'N/A'} mins
+                                                                </span>
+                                                                <span className="flex items-center gap-1">
+                                                                    <Star className="h-3 w-3" /> Max Score:{' '}
+                                                                    {assessment.max_score || 'N/A'}
+                                                                </span>
+                                                            </div>
+                                                        </Link>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="text-sm italic text-muted-foreground sm:text-base">
+                                                No assessments available for this course.
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                                    </TabsContent>
+                                </Tabs>
+
+                        {/* Enrollment Section for Students */}
+                        {!isInstructor && !userEnrollment && (
+                            <Card className="border-l-4 border-l-blue-500">
+                                <CardHeader className="pb-3 sm:pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                        <CheckCircle className="h-5 w-5 text-blue-600" />
+                                        Enroll in this Course
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="space-y-2 sm:space-y-3">
-                                        <div className="flex justify-between text-sm">
-                                            <span>Modules Completed</span>
-                                            <span className="font-medium">0 / {visibleModules.length}</span>
-                                        </div>
-                                        <div className="h-2 w-full rounded-full bg-gray-200">
-                                            <div className="h-2 rounded-full bg-blue-600" style={{ width: '0%' }}></div>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground">Keep going! You're making great progress.</p>
+                                    <p className="mb-4 text-sm text-muted-foreground">
+                                        Unlock all course content, track your progress, and participate in discussions.
+                                    </p>
+                                    <Button asChild>
+                                        <Link href={`/courses/${course.id}/enroll`}>Enroll Now</Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
+                        {/* Instructor Info Card */}
+                                {isInstructor && (
+                            <Card>
+                                <CardHeader className="pb-3 sm:pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                        <Bell className="h-5 w-5" />
+                                        Course Management
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-3 text-sm">
+                                    <p className="text-muted-foreground">
+                                        As an instructor, you can manage course details, modules, assignments, and track
+                                        student progress.
+                                    </p>
+                                    <Button variant="outline" asChild>
+                                        <Link href={route('admin.courses.analytics', { course: course.id })}>
+                                            <BarChart3 className="mr-2 h-4 w-4" />
+                                            View Course Analytics
+                                        </Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+
+                    {/* Sidebar/Right Column - Takes 1/3 on desktop, full width on mobile */}
+                    <div className="space-y-4 lg:col-span-1 lg:space-y-6">
+                        {/* Course Overview/Details */}
+                            <Card>
+                            <CardHeader className="pb-3 sm:pb-4">
+                                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                    <Eye className="h-4 w-4 sm:h-5 sm:w-5" />
+                                    Course Overview
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-3 text-sm">
+                                <div className="flex items-center">
+                                    <Users className="mr-3 h-4 w-4 text-muted-foreground" />
+                                    <div>
+                                        <p className="font-medium">Category:</p>
+                                        <p className="text-muted-foreground">{course.category?.name || 'N/A'}</p>
                                     </div>
+                                </div>
+                                <div className="flex items-center">
+                                    <Star className="mr-3 h-4 w-4 text-muted-foreground" />
+                                    <div>
+                                        <p className="font-medium">Level:</p>
+                                        <p className="text-muted-foreground">{course.level || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center">
+                                    <Clock className="mr-3 h-4 w-4 text-muted-foreground" />
+                                    <div>
+                                        <p className="font-medium">Estimated Duration:</p>
+                                        <p className="text-muted-foreground">{course.duration || 'N/A'} hours</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center">
+                                    <Calendar className="mr-3 h-4 w-4 text-muted-foreground" />
+                                    <div>
+                                        <p className="font-medium">Last Updated:</p>
+                                        <p className="text-muted-foreground">
+                                            {new Date(course.updated_at).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Enrollment/Progress Card */}
+                        {isStudent && userEnrollment && (
+                            <Card className="border-l-4 border-l-green-500">
+                                <CardHeader className="pb-3 sm:pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                        <CheckCircle className="h-5 w-5 text-green-600" />
+                                            Your Progress
+                                        </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ModuleProgress
+                                        course={course}
+                                        userEnrollment={userEnrollment}
+                                        modules={publishedModules}
+                                    />
+                                    <Button variant="outline" className="mt-4 w-full" asChild>
+                                        <Link href={route('progress.show', { course: course.id })}>View Detailed Progress</Link>
+                                    </Button>
                                 </CardContent>
                             </Card>
                         )}

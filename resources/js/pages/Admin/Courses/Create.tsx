@@ -1,73 +1,61 @@
-import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, Upload, X } from 'lucide-react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { ArrowLeft } from 'lucide-react';
 import React, { useState } from 'react';
 
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ColorPicker } from '@/components/ui/color-picker';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/hooks/use-auth';
 
 import AppLayout from '@/layouts/app-layout';
+import { CourseForm, CourseFormData } from '@/components/course-form';
 
-interface Instructor {
+interface Category {
     id: number;
     name: string;
-    email: string;
 }
 
 interface Props {
-    instructors: Instructor[];
-    errors?: Record<string, string>;
+    categories: Category[];
 }
 
-export default function Create({ instructors, errors }: Props) {
-    const [formData, setFormData] = useState({
+export default function Create({ categories }: Props) {
+    const { user } = useAuth();
+    const { data, setData, post, processing, errors: formErrors } = useForm<CourseFormData>({
         name: '',
         description: '',
-        created_by: '',
+        created_by: user?.id?.toString() || '',
         status: 'draft',
         background_color: '#3B82F6',
         image: null as File | null,
+        category_id: '',
+        level: 'All Levels',
+        duration: '',
     });
 
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-    const handleInputChange = (field: string, value: string) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
-    };
-
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setFormData((prev) => ({ ...prev, image: file }));
+            setData('image', file);
             setImagePreview(URL.createObjectURL(file));
         }
     };
 
     const removeImage = () => {
-        setFormData((prev) => ({ ...prev, image: null }));
+        setData('image', null);
         setImagePreview(null);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('handleSubmit triggered');
 
-        const data = new FormData();
-        data.append('name', formData.name);
-        data.append('description', formData.description);
-        data.append('created_by', formData.created_by);
-        data.append('status', formData.status);
-        data.append('background_color', formData.background_color);
-
-        if (formData.image) {
-            data.append('image', formData.image);
-        }
-
-        router.post(route('admin.courses.store'), data);
+        post(route('admin.courses.store'), {
+            forceFormData: true,
+            onSuccess: () => {
+                router.visit(route('admin.courses.index'));
+            },
+        });
     };
 
     return (
@@ -88,139 +76,21 @@ export default function Create({ instructors, errors }: Props) {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                        {/* Main Form */}
-                        <div className="space-y-6 lg:col-span-2">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Course Information</CardTitle>
-                                    <CardDescription>Basic information about the course</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="name">Course Name *</Label>
-                                        <Input
-                                            id="name"
-                                            value={formData.name}
-                                            onChange={(e) => handleInputChange('name', e.target.value)}
-                                            placeholder="Enter course name"
-                                        />
-                                        {errors?.name && <InputError message={errors.name} />}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="description">Description</Label>
-                                        <Textarea
-                                            id="description"
-                                            value={formData.description}
-                                            onChange={(e) => handleInputChange('description', e.target.value)}
-                                            placeholder="Enter course description"
-                                            rows={4}
-                                        />
-                                        {errors?.description && <InputError message={errors.description} />}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="created_by">Course Creator *</Label>
-                                        <Select value={formData.created_by} onValueChange={(value) => handleInputChange('created_by', value)}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select course creator" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {instructors.map((instructor) => (
-                                                    <SelectItem key={instructor.id} value={instructor.id.toString()}>
-                                                        {instructor.name} ({instructor.email})
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {errors?.created_by && <InputError message={errors.created_by} />}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="status">Status *</Label>
-                                        <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="draft">Draft</SelectItem>
-                                                <SelectItem value="published">Published</SelectItem>
-                                                <SelectItem value="archived">Archived</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        {errors?.status && <InputError message={errors.status} />}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        {/* Sidebar */}
-                        <div className="space-y-6">
-                            {/* Course Image */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Course Image</CardTitle>
-                                    <CardDescription>Upload a course cover image</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    {imagePreview ? (
-                                        <div className="relative">
-                                            <img src={imagePreview} alt="Course preview" className="h-32 w-full rounded-lg object-cover" />
-                                            <Button
-                                                type="button"
-                                                variant="destructive"
-                                                size="sm"
-                                                className="absolute top-2 right-2"
-                                                onClick={removeImage}
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 text-center">
-                                            <Upload className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-                                            <p className="mb-2 text-sm text-muted-foreground">Click to upload course image</p>
-                                            <Input type="file" accept="image/*" onChange={handleImageChange} className="hidden" id="image-upload" />
-                                            <Label htmlFor="image-upload" className="cursor-pointer">
-                                                <Button variant="outline" size="sm" type="button">
-                                                    Choose Image
-                                                </Button>
-                                            </Label>
-                                        </div>
-                                    )}
-                                    {errors?.image && <InputError message={errors.image} />}
-                                </CardContent>
-                            </Card>
-
-                            {/* Background Color */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Background Color</CardTitle>
-                                    <CardDescription>Choose a color for the course</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <ColorPicker
-                                        value={formData.background_color}
-                                        onChange={(color: string) => handleInputChange('background_color', color)}
-                                        label="Background Color"
-                                        error={errors?.background_color}
-                                    />
-                                    {errors?.background_color && <InputError message={errors.background_color} />}
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-
-                    {/* Submit Button */}
-                    <div className="flex justify-end gap-4">
-                        <Button type="button" variant="outline" onClick={() => router.get(route('admin.courses.index'))}>
-                            Cancel
-                        </Button>
-                        <Button type="submit">Create Course</Button>
-                    </div>
+                    <CourseForm
+                        data={data}
+                        setData={setData}
+                        errors={formErrors}
+                        categories={categories}
+                        imagePreview={imagePreview}
+                        handleImageChange={handleImageChange}
+                        removeImage={removeImage}
+                    />
+                    <Button type="submit" disabled={processing} className="mt-4">
+                        {processing ? 'Creating...' : 'Create Course'}
+                    </Button>
                 </form>
             </div>
         </AppLayout>
     );
 }
+

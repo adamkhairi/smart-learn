@@ -52,6 +52,8 @@ class Assignment extends Model
             'content_json' => 'json',
             'instructions' => 'json',
             'rubric' => 'json',
+            'cached_status' => 'string',
+            'status_cached_at' => 'datetime',
         ];
     }
 
@@ -141,19 +143,54 @@ class Assignment extends Model
     }
 
     /**
-     * Get the assignment status based on current time.
+     * Get the assignment's status.
      */
     public function getStatusAttribute(): string
     {
-        $now = Carbon::now();
+        // Check if we have a cached status that's still valid (cache for 5 minutes)
+        if ($this->cached_status &&
+            $this->status_cached_at &&
+            $this->status_cached_at->gt(now()->subMinutes(5))) {
+            return $this->cached_status;
+        }
 
-        if ($now->lt($this->started_at)) {
+        $status = $this->calculateStatus();
+
+        // Cache the status
+        $this->updateQuietly([
+            'cached_status' => $status,
+            'status_cached_at' => now(),
+        ]);
+
+        return $status;
+    }
+
+    protected function calculateStatus(): string
+    {
+        // Use UTC for consistent calculations
+        $now = now()->utc();
+        $startTime = $this->started_at ? $this->started_at->utc() : null;
+        $endTime = $this->expired_at ? $this->expired_at->utc() : null;
+
+        if (!$startTime || !$endTime) {
+            return 'draft';
+        }
+
+        if ($now->lt($startTime)) {
             return 'coming-soon';
-        } elseif ($now->gt($this->expired_at)) {
+        } elseif ($now->gt($endTime)) {
             return 'ended';
         } else {
             return 'open';
         }
+    }
+
+    /**
+     * Check if the assignment can accept submissions.
+     */
+    public function canAcceptSubmissions(): bool
+    {
+        return $this->calculateStatus() === 'open' && $this->visibility;
     }
 
     /**
@@ -189,29 +226,30 @@ class Assignment extends Model
     }
 
     /**
-     * Scope to get open assignments.
+     * Scope a query to only include open assignments.
      */
     public function scopeOpen($query)
     {
-        $now = Carbon::now();
+        $now = now()->utc();
         return $query->where('started_at', '<=', $now)
-                    ->where('expired_at', '>', $now);
+                    ->where('expired_at', '>', $now)
+                    ->where('visibility', true);
     }
 
     /**
-     * Scope to get ended assignments.
+     * Scope a query to only include ended assignments.
      */
     public function scopeEnded($query)
     {
-        return $query->where('expired_at', '<', Carbon::now());
+        return $query->where('expired_at', '<', now()->utc());
     }
 
     /**
-     * Scope to get coming soon assignments.
+     * Scope a query to only include coming soon assignments.
      */
     public function scopeComingSoon($query)
     {
-        return $query->where('started_at', '>', Carbon::now());
+        return $query->where('started_at', '>', now()->utc());
     }
 
     /**

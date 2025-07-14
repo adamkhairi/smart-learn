@@ -5,6 +5,8 @@ export interface Auth {
     user: User;
 }
 
+export type Level = 'Beginner' | 'Intermediate' | 'Advanced' | 'All Levels';
+
 export interface BreadcrumbItem {
     title: string;
     href: string;
@@ -63,9 +65,13 @@ export interface Course {
     background_color?: string;
     status: 'draft' | 'published' | 'archived';
     files?: string[];
+    category_id?: number;
+    level?: string;
+    duration?: number; // Duration in hours
     created_at: string;
     updated_at: string;
     creator?: User;
+    category?: { id: number; name: string; slug: string };
     enrolled_users?: User[];
     modules?: CourseModule[];
     assignments?: Assignment[];
@@ -368,6 +374,7 @@ export interface UserEnrollment {
     enrolled_as: 'student' | 'instructor' | 'admin';
     created_at: string;
     updated_at: string;
+    completed_module_items?: number[];
 }
 
 export interface PageProps<T extends Record<string, unknown> = Record<string, unknown>> extends T {

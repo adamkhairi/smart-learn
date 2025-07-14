@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Course;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Validation\Rule;
+use App\Enums\CourseLevel;
+use Illuminate\Support\Facades\Auth;
 
 class CourseController extends Controller
 {
@@ -64,10 +68,10 @@ class CourseController extends Controller
      */
     public function create(): Response
     {
-        $instructors = User::where('role', 'instructor')->get();
+        $categories = Category::all();
 
         return Inertia::render('Admin/Courses/Create', [
-            'instructors' => $instructors,
+            'categories' => $categories,
         ]);
     }
 
@@ -84,6 +88,9 @@ class CourseController extends Controller
             'background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
             'status' => 'required|in:draft,published,archived',
             'files' => 'nullable|array',
+            'category_id' => 'nullable|exists:categories,id',
+            'level' => ['nullable', Rule::enum(CourseLevel::class)],
+            'duration' => 'nullable|integer|min:0',
         ]);
 
         try {
@@ -98,7 +105,7 @@ class CourseController extends Controller
             $course->save();
 
             // Auto-enroll the creator as instructor
-            $course->enroll($validated['created_by'], 'instructor');
+            $course->enroll($validated['created_by'], 'instructor', Auth::user());
 
             return redirect()->route('admin.courses.index')
                 ->with('success', 'Course created successfully!');
@@ -148,11 +155,11 @@ class CourseController extends Controller
     public function edit(Course $course): Response
     {
         $course->load(['creator', 'enrolledUsers']);
-        $instructors = User::where('role', 'instructor')->get();
+        $categories = Category::all();
 
         return Inertia::render('Admin/Courses/Edit', [
             'course' => $course,
-            'instructors' => $instructors,
+            'categories' => $categories,
         ]);
     }
 
@@ -169,6 +176,9 @@ class CourseController extends Controller
             'background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
             'status' => 'required|in:draft,published,archived',
             'files' => 'nullable|array',
+            'category_id' => 'nullable|exists:categories,id',
+            'level' => ['nullable', Rule::enum(CourseLevel::class)],
+            'duration' => 'nullable|integer|min:0',
         ]);
 
         try {
@@ -181,6 +191,15 @@ class CourseController extends Controller
 
                 $path = $request->file('image')->store('courses/images', 'public');
                 $validated['image'] = $path;
+            } else if ($request->input('image_removed')) {
+                // If image was explicitly removed from the frontend
+                if ($course->image) {
+                    Storage::disk('public')->delete($course->image);
+                }
+                $validated['image'] = null;
+            } else {
+                // No new image uploaded, preserve existing one unless explicitly removed
+                unset($validated['image']);
             }
 
             $course->update($validated);

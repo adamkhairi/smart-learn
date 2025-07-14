@@ -12,7 +12,9 @@ import { BreadcrumbItem, Course, CoursesPageProps, User } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { formatDistanceToNow } from 'date-fns';
 import { BookOpen, Calendar, Edit, Eye, Filter, MoreVertical, Plus, Search, Trash2, Users } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
+import useDebounce from '@/hooks/use-debounce';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -35,6 +37,22 @@ function Index({ courses, userRole }: CoursesPageProps) {
     // State for search and filtering
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'archived'>('all');
+
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
+    const debouncedStatusFilter = useDebounce(statusFilter, 500);
+
+    useEffect(() => {
+        // This effect will run when debouncedSearchQuery or debouncedStatusFilter changes
+        // and will trigger the Inertia.js visit with the updated filters.
+        router.get(
+            route('courses.index'),
+            {
+                search: debouncedSearchQuery,
+                status: debouncedStatusFilter,
+            },
+            { preserveState: true, preserveScroll: true },
+        );
+    }, [debouncedSearchQuery, debouncedStatusFilter]);
 
     // Filter and search courses
     const filteredCourses = useMemo(() => {
@@ -169,11 +187,11 @@ function Index({ courses, userRole }: CoursesPageProps) {
                 {courses.length > 0 && searchQuery && (
                     <div className="text-sm text-muted-foreground">
                         {filteredCourses.length === 0 ? (
-                            <span>No courses found matching "${searchQuery}"</span>
+                            <span>No courses found matching "{searchQuery}"</span>
                         ) : (
                             <span>
                                 {filteredCourses.length} of {courses.length} courses
-                                {searchQuery && ` matching "${searchQuery}"`}
+                                {searchQuery && ` matching "{searchQuery}"`}
                             </span>
                         )}
                     </div>
@@ -207,11 +225,13 @@ function Index({ courses, userRole }: CoursesPageProps) {
                             <Card key={course.id} className="group flex flex-col overflow-hidden">
                                 <Link href={`/courses/${course.id}`} className="relative block h-40 overflow-hidden" tabIndex={-1}>
                                     {course.image ? (
-                                        <img
-                                            src={course.image.startsWith('http') ? course.image : `/storage/${course.image}`}
-                                            alt={course.name}
-                                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                        />
+                                        <AspectRatio ratio={16 / 9}>
+                                            <img
+                                                src={course.image.startsWith('http') ? course.image : `/storage/${course.image}`}
+                                                alt={course.name}
+                                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                            />
+                                        </AspectRatio>
                                     ) : (
                                         <div
                                             className="flex h-full w-full items-center justify-center"

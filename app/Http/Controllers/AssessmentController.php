@@ -204,13 +204,13 @@ class AssessmentController extends Controller
 
                 switch ($question->type) {
                     case 'MCQ':
-                        if ($userAnswer === $question->answer) {
+                        if (strtolower(trim($userAnswer)) === strtolower(trim($question->answer))) {
                             $totalScore += $question->points;
                         }
                         break;
 
                     case 'TrueFalse':
-                        if ($userAnswer === $question->answer) {
+                        if (strtolower(trim($userAnswer)) === strtolower(trim($question->answer))) {
                             $totalScore += $question->points;
                         }
                         break;

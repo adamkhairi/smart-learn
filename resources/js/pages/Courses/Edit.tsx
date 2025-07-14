@@ -1,16 +1,16 @@
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ColorPicker } from '@/components/ui/color-picker';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Course, type PageProps } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Upload } from 'lucide-react';
-import InputError from '@/components/input-error';
+import { ArrowLeft } from 'lucide-react';
+import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { CourseForm, CourseFormData } from '@/components/course-form';
+
+interface Category {
+    id: number;
+    name: string;
+}
 
 const breadcrumbs = (courseName: string): BreadcrumbItem[] => [
     {
@@ -25,23 +25,48 @@ const breadcrumbs = (courseName: string): BreadcrumbItem[] => [
 
 interface CourseEditPageProps extends PageProps {
     course: Course;
+    categories: Category[];
 }
 
-export default function Edit({ course }: CourseEditPageProps) {
+export default function Edit({ course, categories }: CourseEditPageProps) {
     const { success, error } = useToast();
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, put, processing, errors } = useForm<CourseFormData>({
         _method: 'put',
         name: course.name,
         description: course.description || '',
         image: null as File | null,
         background_color: course.background_color || '',
         status: course.status,
+        category_id: (course.category_id || '').toString(),
+        level: course.level || '',
+        duration: (course.duration || '').toString(),
+        created_by: (course.created_by || '').toString(),
     });
+
+    const [imagePreview, setImagePreview] = useState<string | null>(
+        course.image ? (course.image.startsWith('http') ? course.image : `/storage/${course.image}`) : null,
+    );
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        setData('image', file);
+        if (file) {
+            setImagePreview(URL.createObjectURL(file));
+        } else {
+            setImagePreview(null);
+        }
+    };
+
+    const removeImage = () => {
+        setData('image', null);
+        setImagePreview(null);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('courses.update', course.id), {
+        put(route('courses.update', course.id), {
+            forceFormData: true,
             onSuccess: () => {
                 success('Course updated successfully!');
             },
@@ -49,11 +74,6 @@ export default function Edit({ course }: CourseEditPageProps) {
                 error('Failed to update course. Please check the form for errors.');
             },
         });
-    };
-
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] || null;
-        setData('image', file);
     };
 
     return (
@@ -73,95 +93,20 @@ export default function Edit({ course }: CourseEditPageProps) {
                     </div>
                 </div>
 
-                <Card className="max-w-2xl">
-                    <CardHeader>
-                        <CardTitle>Course Information</CardTitle>
-                        <CardDescription>Update the details of your course</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* Course Name */}
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Course Name *</Label>
-                                <Input
-                                    id="name"
-                                    type="text"
-                                    value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
-                                    placeholder="Enter course name"
-                                    className={errors.name ? 'border-red-500' : ''}
-                                />
-                                {errors.name && <InputError message={errors.name} />}
-                            </div>
-
-                            {/* Course Description */}
-                            <div className="space-y-2">
-                                <Label htmlFor="description">Description</Label>
-                                <Textarea
-                                    id="description"
-                                    value={data.description}
-                                    onChange={(e) => setData('description', e.target.value)}
-                                    placeholder="Describe your course..."
-                                    rows={4}
-                                    className={errors.description ? 'border-red-500' : ''}
-                                />
-                                {errors.description && <InputError message={errors.description} />}
-                            </div>
-
-                            {/* Course Image */}
-                            <div className="space-y-2">
-                                <Label htmlFor="image">Course Image</Label>
-                                <div className="flex items-center gap-4">
-                                    <Input
-                                        id="image"
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageChange}
-                                        className="file:mr-4 file:rounded-full file:border-0 file:bg-violet-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-violet-700 hover:file:bg-violet-100"
-                                    />
-                                    <Upload className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                                {errors.image && <InputError message={errors.image} />}
-                                <p className="text-xs text-muted-foreground">Recommended size: 1200x630px. Max file size: 2MB.</p>
-                            </div>
-
-                            {/* Background Color */}
-                            <div className="space-y-2">
-                                <ColorPicker
-                                    value={data.background_color}
-                                    onChange={(color) => setData('background_color', color)}
-                                    label="Background Color"
-                                    error={errors.background_color}
-                                />
-                            </div>
-
-                            {/* Course Status */}
-                            <div className="space-y-2">
-                                <Label htmlFor="status">Status *</Label>
-                                <Select value={data.status} onValueChange={(value) => setData('status', value as 'published' | 'archived')}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="published">Published</SelectItem>
-                                        <SelectItem value="archived">Archived</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {errors.status && <InputError message={errors.status} />}
-                            </div>
-
-                            {/* Submit Button */}
-                            <div className="flex items-center gap-4 pt-4">
-                                <Button type="submit" disabled={processing}>
-                                    {processing ? 'Updating...' : 'Update Course'}
-                                </Button>
-                                <Button type="button" variant="outline" asChild>
-                                    <Link href="/courses">Cancel</Link>
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <CourseForm
+                        data={data}
+                        setData={setData}
+                        errors={errors}
+                        categories={categories}
+                        imagePreview={imagePreview}
+                        handleImageChange={handleImageChange}
+                        removeImage={removeImage}
+                    />
+                    <Button type="submit" disabled={processing} className="mt-4">
+                        {processing ? 'Saving...' : 'Save Course'}
+                    </Button>
+                </form>
             </div>
         </AppLayout>
     );
