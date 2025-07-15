@@ -33,4 +33,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 return \Inertia\Inertia::render('404');
             }
         });
+
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, $request) {
+            if ($e->getStatusCode() === 403) {
+                return redirect()->route('unauthorized');
+            }
+        });
     })->create();

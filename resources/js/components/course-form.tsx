@@ -25,6 +25,7 @@ export interface CourseFormData extends Record<string, FormDataConvertible> {
     description: string;
     created_by: string;
     status: 'draft' | 'published' | 'archived';
+    is_private: boolean; // Add this line
     background_color: string;
     image: File | null;
     category_id: string;
@@ -153,6 +154,28 @@ export function CourseForm({
                                 </SelectContent>
                             </Select>
                             {errors?.status && <InputError message={errors.status} />}
+                        </div>
+
+                        {/* Private Course Toggle */}
+                        <div className="space-y-2">
+                            <Label>Visibility</Label>
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="is_private"
+                                    checked={data.is_private}
+                                    onChange={(e) => setData('is_private', e.target.checked)}
+                                    className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                                />
+                                <Label htmlFor="is_private" className="cursor-pointer">
+                                    Private Course
+                                </Label>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                If checked, this course will only be visible to you (the creator) and administrators.
+                                It will not appear in public listings.
+                            </p>
+                            {errors?.is_private && <InputError message={errors.is_private} />}
                         </div>
                     </CardContent>
                 </Card>

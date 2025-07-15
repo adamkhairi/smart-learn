@@ -12,51 +12,89 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Validation\Rule;
 use App\Enums\CourseLevel;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use App\Models\EnrollmentRequest;
 
 class CourseController extends Controller
 {
     /**
      * Display a listing of courses.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = Auth::user();
-        $courses = [];
 
-                if (!$user) {
-            // Guest users see only published courses
-            $courses = Course::with(['creator', 'enrolledUsers'])
-                ->where('status', 'published')
-                ->latest()
-                ->get();
-        } elseif ($user->isAdmin()) {
-            // Admin sees all courses
-            $courses = Course::with(['creator', 'enrolledUsers'])
-                ->latest()
-                ->get();
-        } elseif ($user->isInstructor()) {
-            // Instructor sees courses they created and are enrolled in
-            $courses = Course::with(['creator', 'enrolledUsers'])
-                ->where('created_by', $user->id)
-                ->orWhereHas('enrolledUsers', function ($query) use ($user) {
-                    $query->where('user_id', $user->id);
-                })
-                ->latest()
-                ->get();
-        } else {
-            // Students see courses they're enrolled in
-            $courses = Course::with(['creator', 'enrolledUsers'])
-                ->whereHas('enrolledUsers', function ($query) use ($user) {
-                    $query->where('user_id', $user->id);
-                })
-                ->where('status', 'published')
-                ->latest()
-                ->get();
+        $query = Course::with(['creator:id,name,email,photo', 'category:id,name,slug']);
+
+        // Apply search filter
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('description', 'like', '%' . $search . '%');
+            });
         }
+
+        // Apply status filter
+        if ($status = $request->query('status')) {
+            if (in_array($status, ['published', 'archived', 'draft'])) {
+                $query->where('status', $status);
+            }
+        }
+
+        // Apply creator filter for admin
+        if ($creator = $request->query('creator')) {
+            if ($user->isAdmin() && $creator !== 'all') {
+                $query->where('created_by', $creator);
+            }
+        }
+
+        // Apply sorting
+        $sortBy = $request->query('sort_by', 'created_at');
+        $sortOrder = $request->query('sort_order', 'desc');
+
+        $query->orderBy($sortBy, $sortOrder);
+
+        if (!$user) {
+            // Guest users see only published and non-private courses
+            $courses = $query->where('status', 'published')
+                             ->where('is_private', false)
+                             ->paginate(10);
+        } elseif ($user->isAdmin()) {
+            // Admin sees all courses (no change needed for private/public filtering)
+            $courses = $query->paginate(10);
+        } elseif ($user->isInstructor()) {
+            // Instructor sees courses they created, and other published non-private courses they are enrolled in
+            $courses = $query->where(function ($q) use ($user) {
+                $q->where('created_by', $user->id) // Courses created by the instructor
+                  ->orWhere(function ($q2) use ($user) {
+                      $q2->where('is_private', false) // Non-private courses
+                         ->where('status', 'published') // and published
+                         ->whereHas('enrolledUsers', function ($q3) use ($user) { // and they are enrolled in
+                            $q3->where('user_id', $user->id);
+                         });
+                  });
+            })
+            ->paginate(10);
+        } else {
+            // Students logic
+            // Students see only published and non-private courses, or any course they are enrolled in
+            $courses = $query->where(function ($q) use ($user) {
+                $q->where('is_private', false)
+                  ->where('status', 'published')
+                  ->orWhereHas('enrolledUsers', function ($q2) use ($user) {
+                      $q2->where('user_id', $user->id);
+                  });
+            })
+            ->paginate(10);
+        }
+
+        Log::info('Courses data sent to frontend:', ['courses' => $courses->toArray()]);
+
         return Inertia::render('Courses/Index', [
             'courses' => $courses,
             'userRole' => $user?->role ?? 'guest',
+            'filters' => $request->only('search', 'status', 'creator', 'sort_by', 'sort_order'),
         ]);
     }
 
@@ -87,6 +125,7 @@ class CourseController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
             'status' => 'required|in:published,archived,draft',
+            'is_private' => 'boolean', // Add validation for is_private
             'category_id' => 'nullable|exists:categories,id',
             'level' => ['nullable', Rule::enum(CourseLevel::class)],
             'duration' => 'nullable|integer|min:0',
@@ -121,22 +160,29 @@ class CourseController extends Controller
      */
      public function show(Course $course): Response
     {
+        $this->authorize('view', $course); // Apply the policy check here
+
         $user = Auth::user();
 
-        // Check if user has access to this course
-        if (!$user->isAdmin() &&
-            $course->created_by !== $user->id &&
-            !$course->enrolledUsers()->where('user_id', $user->id)->exists()) {
-            abort(403, 'You do not have access to this course.');
+        // If the user is authenticated, and NOT an admin or the course creator,
+        // and the course is public and published, and they are NOT enrolled,
+        // then redirect to the public show page.
+        // This covers the case where a student is authorized by policy (because it's public/published)
+        // but should still be directed to the public show if not enrolled or admin/creator.
+        if ($user && !$user->isAdmin() && $course->created_by !== $user->id && !$course->enrolledUsers()->where('user_id', $user->id)->exists() && !$course->is_private && $course->status === 'published') {
+            return redirect()->route('courses.public_show', $course->id);
         }
 
         // Determine if user is instructor for this course
         $isInstructor = $user->isAdmin() || $course->created_by === $user->id;
 
         // Get user enrollment data
-        $userEnrollmentData = $course->enrolledUsers()
-            ->where('user_id', $user->id)
-            ->first();
+        $userEnrollmentData = null;
+        if ($user) {
+            $userEnrollmentData = $course->enrolledUsers()
+                ->where('user_id', $user->id)
+                ->first();
+        }
 
         // Format userEnrollment as expected by frontend
         $userEnrollment = null;
@@ -185,6 +231,93 @@ class CourseController extends Controller
     }
 
     /**
+     * Display the specified course for public/unenrolled users.
+     */
+    public function publicShow(Course $course): Response
+    {
+        $user = Auth::user();
+
+        // If the course is private, or not published, and the user is not an admin or the creator, deny access.
+        if ($course->is_private || $course->status !== 'published') {
+            if (!$user || (!$user->isAdmin() && $course->created_by !== $user->id)) {
+                abort(403, 'You do not have access to this course.');
+            }
+        }
+
+        // If the user is already enrolled, or is the creator/admin, directly render the full course show page.
+        if ($user && ($user->isAdmin() || $course->created_by === $user->id || $course->enrolledUsers()->where('user_id', $user->id)->exists())) {
+            // Re-use the logic from the 'show' method to render the full course page.
+            // This avoids a redirect and ensures the return type is Inertia\Response.
+            $isInstructor = $user->isAdmin() || $course->created_by === $user->id;
+
+            $userEnrollmentData = $course->enrolledUsers()
+                ->where('user_id', $user->id)
+                ->first();
+
+            $userEnrollment = null;
+            if ($userEnrollmentData) {
+                $userEnrollment = [
+                    'id' => $userEnrollmentData->pivot->id ?? null,
+                    'user_id' => $user->id,
+                    'course_id' => $course->id,
+                    'enrolled_as' => $userEnrollmentData->pivot->enrolled_as,
+                    'created_at' => $userEnrollmentData->pivot->created_at,
+                    'updated_at' => $userEnrollmentData->pivot->updated_at,
+                    'completed_module_items' => $course->getCompletedModuleItemIds($user->id),
+                ];
+            }
+
+            $course->load([ // Load all necessary relationships for the full show page
+                'creator:id,name,email,photo',
+                'enrolledUsers:id,name,email,photo',
+                'modules' => function ($query) use ($isInstructor) {
+                    $query->when(!$isInstructor, function ($q) {
+                        $q->where('is_published', true);
+                    })->ordered()->with(['moduleItems' => function ($q) {
+                        $q->ordered();
+                    }]);
+                },
+                'assignments:id,title,course_id,expired_at,total_points,status',
+                'assessments:id,title,course_id,expired_at,total_points,status',
+                'announcements' => function ($query) {
+                    $query->select('id', 'title', 'course_id', 'created_at')
+                        ->latest()
+                        ->limit(5);
+                },
+                'discussions' => function ($query) {
+                    $query->select('id', 'title', 'course_id', 'created_at')
+                        ->latest()
+                        ->limit(5);
+                }
+            ]);
+
+            return Inertia::render('Courses/Show', [
+                'course' => $course,
+                'userEnrollment' => $userEnrollment,
+                'userRole' => $user->role,
+            ]);
+        }
+
+        // Fetch limited details for the public view
+        $course->load(['creator:id,name,email,photo', 'category:id,name,slug']);
+
+        // Placeholder for pending enrollment request check
+        $hasPendingEnrollmentRequest = false;
+        if ($user) {
+            $hasPendingEnrollmentRequest = EnrollmentRequest::where('user_id', $user->id)
+                                            ->where('course_id', $course->id)
+                                            ->where('status', 'pending')
+                                            ->exists();
+        }
+
+        return Inertia::render('Courses/PublicShow', [
+            'course' => $course,
+            'user' => $user, // Pass user info if logged in (for login/register links)
+            'hasPendingEnrollmentRequest' => $hasPendingEnrollmentRequest,
+        ]);
+    }
+
+    /**
      * Show the form for editing the specified course.
      */
     public function edit(Course $course): Response
@@ -215,6 +348,7 @@ class CourseController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
             'status' => 'required|in:published,archived,draft',
+            'is_private' => 'boolean', // Add validation for is_private
             'category_id' => 'nullable|exists:categories,id',
             'level' => ['nullable', Rule::enum(CourseLevel::class)],
             'duration' => 'nullable|integer|min:0',
@@ -337,5 +471,55 @@ class CourseController extends Controller
         ];
 
         return response()->json($stats);
+    }
+
+    /**
+     * Handle a user's request to enroll in a course.
+     */
+    public function enrollmentRequest(Request $request, Course $course)
+    {
+        $user = Auth::user();
+
+        // Ensure user is authenticated
+        if (!$user) {
+            return response()->json(['message' => 'Authentication required.'], 401);
+        }
+
+        // Check if the user is already enrolled in the course
+        if ($course->enrolledUsers->contains($user->id)) {
+            return back()->with('error', 'You are already enrolled in this course.');
+        }
+
+        // Check if a pending request already exists for this user and course
+        $existingRequest = EnrollmentRequest::where('user_id', $user->id)
+                                            ->where('course_id', $course->id)
+                                            ->where('status', 'pending')
+                                            ->first();
+
+        if ($existingRequest) {
+            return back()->with('error', 'You already have a pending enrollment request for this course.');
+        }
+
+        // Validate request data (e.g., for an optional message from the user)
+        $validated = $request->validate([
+            'message' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            EnrollmentRequest::create([
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+                'status' => 'pending',
+                'message' => $validated['message'] ?? null,
+            ]);
+
+            // Optionally, notify admin/instructor about the new request
+            // Notification::send(User::where('role', 'admin')->get(), new NewEnrollmentRequest($request));
+
+            return back()->with('success', 'Enrollment request sent successfully! You will be notified once it\'s reviewed.');
+        } catch (\Exception $e) {
+            Log::error('Error sending enrollment request:', ['error' => $e->getMessage(), 'user_id' => $user->id, 'course_id' => $course->id]);
+            return back()->with('error', 'Failed to send enrollment request. Please try again.');
+        }
     }
 }

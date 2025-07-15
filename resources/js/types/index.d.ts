@@ -70,6 +70,7 @@ export interface Course {
     image?: string;
     background_color?: string;
     status: 'draft' | 'published' | 'archived';
+    is_private?: boolean; // Add this line
     files?: string[];
     category_id?: number;
     level?: string;
@@ -388,8 +389,15 @@ export interface PageProps<T extends Record<string, unknown> = Record<string, un
 }
 
 export interface CoursesPageProps extends PageProps {
-    courses: Course[];
+    courses: PaginatedResponse<Course>;
     userRole: string;
+    filters: {
+        search?: string;
+        status?: string;
+        creator?: string;
+        sort_by?: string;
+        sort_order?: string;
+    };
 }
 
 export interface CourseShowPageProps extends PageProps {

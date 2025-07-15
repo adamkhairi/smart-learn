@@ -8,6 +8,7 @@ use App\Models\UserProgress;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use App\Models\EnrollmentRequest; // Add this import
 
 class DashboardController extends Controller
 {
@@ -93,6 +94,11 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        $pendingEnrollmentRequestsCount = 0;
+        if ($user && $user->isAdmin()) {
+            $pendingEnrollmentRequestsCount = EnrollmentRequest::where('status', 'pending')->count();
+        }
+
         return Inertia::render('Dashboard/dashboard', [
             'userStats' => [
                 'total_users' => $totalUsers,
@@ -110,6 +116,7 @@ class DashboardController extends Controller
                 'level_distribution' => $courseLevelDistribution,
                 'latest_courses' => $latestCourses,
             ],
+            'pendingEnrollmentRequestsCount' => $pendingEnrollmentRequestsCount,
         ]);
     }
 }

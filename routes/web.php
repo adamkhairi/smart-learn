@@ -31,12 +31,20 @@ Route::get('/terms', function () {
     return Inertia::render('Terms');
 })->name('terms');
 
+Route::get('/unauthorized', function () {
+    return Inertia::render('Unauthorized');
+})->name('unauthorized');
+
+// Public course detail page (for unenrolled/guest users)
+Route::get('courses/{course}/public', [CourseController::class, 'publicShow'])->name('courses.public_show');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Course routes
     Route::resource('courses', CourseController::class);
     Route::post('courses/{course}/enroll', [CourseController::class, 'enroll'])->name('courses.enroll');
+    Route::post('courses/{course}/enrollment-request', [CourseController::class, 'enrollmentRequest'])->name('courses.enrollment_request'); // New enrollment request route
     Route::delete('courses/{course}/unenroll', [CourseController::class, 'unenroll'])->name('courses.unenroll');
     Route::get('courses/{course}/stats', [CourseController::class, 'stats'])->name('courses.stats');
 

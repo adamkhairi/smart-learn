@@ -37,6 +37,7 @@ export default function Edit({ course, categories }: CourseEditPageProps) {
         description: course.description || '',
         image: null as File | null,
         status: course.status,
+        is_private: course.is_private ?? false, // Initialize is_private
         background_color: course.background_color || '',
         category_id: (course.category_id || '').toString(),
         level: course.level as Level,

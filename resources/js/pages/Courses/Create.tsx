@@ -39,6 +39,7 @@ function Create({ categories }: Props) {
         image: null as File | null,
         background_color: '#3B82F6',
         status: 'published',
+        is_private: false, // Initialize is_private
         category_id: '',
         level: 'All Levels',
         duration: '',
@@ -101,6 +102,7 @@ function Create({ categories }: Props) {
                         imagePreview={imagePreview}
                         handleImageChange={handleImageChange}
                         removeImage={removeImage}
+                        processing={processing}
                     />
                     <Button type="submit" disabled={processing} className="mt-4">
                         {processing ? 'Creating...' : 'Create Course'}

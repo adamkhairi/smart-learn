@@ -25,4 +25,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Category management routes
     Route::resource('categories', CategoryController::class)->names('categories');
+
+    // Enrollment Request management routes
+    Route::get('enrollment-requests', [App\Http\Controllers\Admin\EnrollmentRequestController::class, 'index'])->name('enrollment-requests.index');
+    Route::post('enrollment-requests/{enrollmentRequest}/approve', [App\Http\Controllers\Admin\EnrollmentRequestController::class, 'approve'])->name('enrollment-requests.approve');
+    Route::post('enrollment-requests/{enrollmentRequest}/reject', [App\Http\Controllers\Admin\EnrollmentRequestController::class, 'reject'])->name('enrollment-requests.reject');
 });

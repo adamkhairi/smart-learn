@@ -1,5 +1,5 @@
 import { type NavItem } from '@/types';
-import { BarChart3, BookOpen, Folder, GraduationCap, LayoutGrid, Users } from 'lucide-react';
+import { BarChart3, BookOpen, Folder, GraduationCap, LayoutGrid, Users, ClipboardList } from 'lucide-react';
 
 export const mainNavItems: NavItem[] = [
     {
@@ -24,6 +24,11 @@ export const adminNavItems: NavItem[] = [
         title: 'Course Management',
         href: '/admin/courses',
         icon: GraduationCap,
+    },
+    {
+        title: 'Enrollment Requests',
+        href: '/admin/enrollment-requests',
+        icon: ClipboardList,
     },
     {
         title: 'User Statistics',

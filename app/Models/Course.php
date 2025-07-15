@@ -27,6 +27,7 @@ class Course extends Model
         'image',
         'background_color',
         'status',
+        'is_private',
         'files',
         'category_id',
         'level',
