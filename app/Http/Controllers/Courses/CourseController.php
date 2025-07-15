@@ -144,7 +144,7 @@ class CourseController extends Controller
             $course->save();
 
             // Auto-enroll the creator as instructor
-            $course->enroll(Auth::id(), 'instructor');
+            $course->enroll(Auth::id(), 'instructor', Auth::user());
 
             return redirect()->route('courses.show', $course)
                 ->with('success', 'Course created successfully!');

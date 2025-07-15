@@ -4,7 +4,6 @@ import { BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import React, { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import { CourseForm, CourseFormData } from '@/components/course-form';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -29,8 +28,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function Create({ categories }: Props) {
-    // Initialize flash toast notifications
-    const { success, error } = useToast();
     const { user } = useAuth();
 
     const { data, setData, post, processing, errors } = useForm<CourseFormData>({
@@ -66,13 +63,7 @@ function Create({ categories }: Props) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('courses.store'), {
-            forceFormData: true,
-            onSuccess: () => {
-                success('Course created successfully!');
-            },
-            onError: () => {
-                error('Failed to create course. Please check the form for errors.');
-            },
+            forceFormData: true
         });
     };
 
