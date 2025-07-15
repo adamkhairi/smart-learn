@@ -1,6 +1,6 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { Plus, Search } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { Plus, Search, Edit, Trash2, Save } from 'lucide-react';
+import { useState, useEffect, FormEventHandler } from 'react';
 import useDebounce from '@/hooks/use-debounce';
 
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PaginatedResponse } from '@/types';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import InputError from '@/components/input-error';
 
 interface Category {
     id: number;
@@ -25,14 +28,47 @@ interface Props {
 }
 
 export default function Index({ categories, filters }: Props) {
+
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
     const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms debounce delay
+
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+
+    const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
+    const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+    const { data, setData, post, put, processing, errors, reset } = useForm({
+        name: '',
+        slug: '',
+    });
 
     useEffect(() => {
         if (debouncedSearchTerm !== filters?.search) {
             handleSearch();
         }
     }, [debouncedSearchTerm]);
+
+    useEffect(() => {
+        if (editingCategory) {
+            setData({
+                name: editingCategory.name,
+                slug: editingCategory.slug,
+            });
+        } else {
+            reset();
+        }
+    }, [editingCategory]);
+
+    // New useEffect to generate slug from name
+    useEffect(() => {
+        if (data.name) {
+            const generatedSlug = data.name.toLowerCase().replace(/\s+/g, '-');
+            setData('slug', generatedSlug);
+        } else {
+            setData('slug', '');
+        }
+    }, [data.name]); // Depend on data.name to re-run when name changes
 
     const handleSearch = () => {
         router.get(
@@ -44,8 +80,49 @@ export default function Index({ categories, filters }: Props) {
         );
     };
 
-    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-    const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+    const openCreateDialog = () => {
+        setEditingCategory(null);
+        setIsFormDialogOpen(true);
+        reset(); // Ensure form is reset for new entry
+    };
+
+    const openEditDialog = (category: Category) => {
+        setEditingCategory(category);
+        setIsFormDialogOpen(true);
+        setData({
+            name: category.name,
+            slug: category.slug, // Use existing slug, will be regenerated if name changes
+        });
+    };
+
+    const handleFormSubmit: FormEventHandler = (e) => {
+        e.preventDefault();
+
+        if (editingCategory) {
+            // Update existing category
+            put(route('admin.categories.update', editingCategory.id), {
+                onSuccess: () => {
+                    setIsFormDialogOpen(false);
+                    setEditingCategory(null);
+                    reset();
+                },
+                onError: (err) => {
+                    console.error(err);
+                },
+            });
+        } else {
+            // Create new category
+            post(route('admin.categories.store'), {
+                onSuccess: () => {
+                    setIsFormDialogOpen(false);
+                    reset();
+                },
+                onError: (err) => {
+                    console.error(err);
+                },
+            });
+        }
+    };
 
     const handleDelete = (id: number) => {
         setSelectedCategoryId(id);
@@ -78,12 +155,10 @@ export default function Index({ categories, filters }: Props) {
                         <h1 className="text-3xl font-bold tracking-tight">Category Management</h1>
                         <p className="text-muted-foreground">Manage all categories for courses</p>
                     </div>
-                    <Link href={route('admin.categories.create')}>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Create Category
-                        </Button>
-                    </Link>
+                    <Button onClick={openCreateDialog}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Category
+                    </Button>
                 </div>
 
                 {/* Filters */}
@@ -126,13 +201,11 @@ export default function Index({ categories, filters }: Props) {
                                             <TableCell className="font-medium">{category.name}</TableCell>
                                             <TableCell>{category.slug}</TableCell>
                                             <TableCell className="text-right">
-                                                <Link href={route('admin.categories.edit', category.id)} className="mr-2">
-                                                    <Button variant="outline" size="sm">
-                                                        Edit
-                                                    </Button>
-                                                </Link>
+                                                <Button onClick={() => openEditDialog(category)} variant="outline" size="sm" className="mr-2">
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
                                                 <Button onClick={() => handleDelete(category.id)} variant="destructive" size="sm">
-                                                    Delete
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
@@ -156,6 +229,53 @@ export default function Index({ categories, filters }: Props) {
                     title="Delete Category"
                     description="Are you sure you want to delete this category? This action cannot be undone."
                 />
+
+                {/* Category Create/Edit Dialog */}
+                <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>{editingCategory ? 'Edit Category' : 'Create Category'}</DialogTitle>
+                            <DialogDescription>
+                                {editingCategory ? 'Make changes to the category here. Click save when you\'re done.' : 'Add a new category to organize your courses.'}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleFormSubmit} className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="name" className="text-right">
+                                    Name
+                                </Label>
+                                <Input
+                                    id="name"
+                                    value={data.name}
+                                    onChange={(e) => setData('name', e.target.value)}
+                                    className="col-span-3"
+                                    autoFocus
+                                />
+                                <InputError message={errors.name} className="col-span-4 col-start-2" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="slug" className="text-right">
+                                    Slug
+                                </Label>
+                                <Input
+                                    id="slug"
+                                    value={data.slug}
+                                    onChange={(e) => setData('slug', e.target.value)} // Keep onChange for internal state updates
+                                    placeholder="Auto-generated if left blank"
+                                    className="col-span-3"
+                                    disabled // Disable the input field
+                                />
+                                <InputError message={errors.slug} className="col-span-4 col-start-2" />
+                            </div>
+                            <DialogFooter>
+                                <Button type="submit" disabled={processing}>
+                                    <Save className="mr-2 h-4 w-4" />
+                                    {processing ? 'Saving...' : 'Save changes'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AppLayout>
     );

@@ -1,5 +1,5 @@
 import { type NavItem } from '@/types';
-import { BarChart3, BookOpen, Folder, GraduationCap, LayoutGrid, Users, ClipboardList } from 'lucide-react';
+import { BookOpen, Folder, GraduationCap, LayoutGrid, Users, ClipboardList } from 'lucide-react';
 
 export const mainNavItems: NavItem[] = [
     {
@@ -16,12 +16,12 @@ export const mainNavItems: NavItem[] = [
 
 export const adminNavItems: NavItem[] = [
     {
-        title: 'User Management',
+        title: 'Users',
         href: '/admin/users',
         icon: Users,
     },
     {
-        title: 'Course Management',
+        title: 'Courses',
         href: '/admin/courses',
         icon: GraduationCap,
     },
@@ -31,12 +31,7 @@ export const adminNavItems: NavItem[] = [
         icon: ClipboardList,
     },
     {
-        title: 'User Statistics',
-        href: '/admin/users-stats',
-        icon: BarChart3,
-    },
-    {
-        title: 'Category Management',
+        title: 'Categories',
         href: '/admin/categories',
         icon: Folder,
     },

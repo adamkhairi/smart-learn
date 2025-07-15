@@ -24,7 +24,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('courses/{course}/analytics', [CourseController::class, 'analytics'])->name('courses.analytics');
 
     // Category management routes
-    Route::resource('categories', CategoryController::class)->names('categories');
+    Route::resource('categories', CategoryController::class)->except(['create', 'edit'])->names('categories');
 
     // Enrollment Request management routes
     Route::get('enrollment-requests', [App\Http\Controllers\Admin\EnrollmentRequestController::class, 'index'])->name('enrollment-requests.index');

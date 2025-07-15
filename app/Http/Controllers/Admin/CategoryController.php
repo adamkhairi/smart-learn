@@ -42,11 +42,6 @@ class CategoryController extends Controller
         }
     }
 
-    public function create()
-    {
-        return Inertia::render('Admin/Categories/Create');
-    }
-
     public function store(CategoryRequest $request)
     {
         try {
@@ -57,11 +52,6 @@ class CategoryController extends Controller
 ::error('Error creating category: ' . $e->getMessage());
             return Redirect::back()->with('error', 'Failed to create category.');
         }
-    }
-
-    public function edit(Category $category)
-    {
-        return Inertia::render('Admin/Categories/Edit', ['category' => $category]);
     }
 
     public function update(CategoryRequest $request, Category $category)

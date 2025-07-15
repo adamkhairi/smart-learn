@@ -12,43 +12,8 @@ import { Eye, Settings, Target } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 
-interface EditFormDataType {
-    title: string;
-    description: string | null;
-    item_type: 'lecture' | 'assessment' | 'assignment';
-    order: number;
-    is_required: boolean;
-    status: 'draft' | 'published';
-    video_url: string | null;
-    duration: number | null;
-    content: string | null; // Old content field
-    content_json: string | null;
-    content_html: string | null;
-    assessment_title: string | null;
-    max_score: number | null;
-    assessment_type: 'Quiz' | 'Exam' | 'Project';
-    questions_type: 'online' | 'file';
-    submission_type: 'online' | 'written';
-    assignment_title: string | null;
-    total_points: number | null;
-    assignment_type: string | null;
-    started_at: string | null;
-    expired_at: string | null;
-    assignment_content_json: string | null;
-    assignment_content_html: string | null;
-    assignment_instructions_json: string | null;
-    assignment_instructions_html: string | null;
-    assignment_rubric_json: string | null;
-    assignment_rubric_html: string | null;
-    assessment_content_json: string | null;
-    assessment_content_html: string | null;
-    assessment_instructions_json: string | null;
-    assessment_instructions_html: string | null;
-    questions: string; // JSON string of questions array
-    [key: string]: string | number | boolean | File | Blob | null | undefined;
-}
-
 function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
+    // Helper function to get item type from polymorphic relationship
     const getItemType = (): 'lecture' | 'assessment' | 'assignment' => {
         if (item.itemable_type?.includes('Lecture')) return 'lecture';
         if (item.itemable_type?.includes('Assessment')) return 'assessment';
@@ -58,6 +23,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
 
     const itemType = getItemType();
 
+    // Initialize questions state for assessments
     const [questions, setQuestions] = useState<QuestionFormData[]>(() => {
         if (itemType === 'assessment' && item.itemable) {
             const assessment = item.itemable as Assessment;
@@ -76,97 +42,168 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
         return [];
     });
 
-    const getInitialFormState = (): EditFormDataType => {
-        const baseState = {
+    // Extract data from polymorphic itemable for form initialization
+    const getInitialData = () => {
+        const baseData = {
             title: item.title,
-            description: item.description || null,
+            description: item.description || '',
             item_type: itemType,
             order: item.order,
             is_required: item.is_required || false,
             status: (item.status as 'draft' | 'published') || 'published',
-            video_url: null,
-            duration: null,
-            content: null,
-            content_json: null,
-            content_html: null,
-            assessment_title: null,
-            max_score: null,
-            assessment_type: 'Quiz' as 'Quiz' | 'Exam' | 'Project',
-            questions_type: 'online' as 'online' | 'file',
-            submission_type: 'online' as 'online' | 'written',
-            assignment_title: null,
-            total_points: null,
-            assignment_type: null,
-            started_at: null,
-            expired_at: null,
-            assignment_content_json: null,
-            assignment_content_html: null,
-            assignment_instructions_json: null,
-            assignment_instructions_html: null,
-            assignment_rubric_json: null,
-            assignment_rubric_html: null,
-            assessment_content_json: null,
-            assessment_content_html: null,
-            assessment_instructions_json: null,
-            assessment_instructions_html: null,
-            questions: '[]',
         };
 
-        if (item.itemable) {
-            if (itemType === 'lecture') {
-                const lecture = item.itemable as Lecture;
-                return {
-                    ...baseState,
-                    video_url: lecture.video_url || null,
-                    duration: lecture.duration || null,
-                    content: lecture.content || null,
-                    content_json: lecture.content_json ? JSON.stringify(lecture.content_json) : null,
-                    content_html: lecture.content_html || null,
-                };
-            } else if (itemType === 'assessment') {
-                const assessment = item.itemable as Assessment;
-                const validAssessmentTypes = ['Quiz', 'Exam', 'Project'];
-                const initialAssessmentType = validAssessmentTypes.includes(assessment.type)
-                    ? (assessment.type as 'Quiz' | 'Exam' | 'Project')
-                    : 'Quiz';
-
-                return {
-                    ...baseState,
-                    assessment_title: assessment.title || null,
-                    max_score: assessment.max_score || null,
-                    assessment_type: initialAssessmentType,
-                    questions_type: (assessment.questions_type as 'online' | 'file') || 'online',
-                    submission_type: (assessment.submission_type as 'online' | 'written') || 'online',
-                    assessment_content_json: assessment.content_json ? JSON.stringify(assessment.content_json) : null,
-                    assessment_content_html: assessment.content_html || null,
-                    assessment_instructions_json: assessment.instructions ? JSON.stringify(assessment.instructions) : null,
-                    assessment_instructions_html: assessment.instructions_html || null,
-                    questions: questions.length > 0 ? JSON.stringify(questions) : '[]',
-                };
-            } else if (itemType === 'assignment') {
-                const assignment = item.itemable as Assignment;
-                return {
-                    ...baseState,
-                    assignment_title: assignment.title || null,
-                    total_points: assignment.total_points || null,
-                    assignment_type: assignment.assignment_type || null,
-                    started_at: assignment.started_at ? assignment.started_at.slice(0, 16) : null,
-                    expired_at: assignment.expired_at ? assignment.expired_at.slice(0, 16) : null,
-                    assignment_content_json: assignment.content_json ? JSON.stringify(assignment.content_json) : null,
-                    assignment_content_html: assignment.content_html || null,
-                    assignment_instructions_json: assignment.instructions ? JSON.stringify(assignment.instructions) : null,
-                    assignment_instructions_html: assignment.instructions_html || null,
-                    assignment_rubric_json: assignment.rubric ? JSON.stringify(assignment.rubric) : null,
-                    assignment_rubric_html: assignment.rubric_html || null,
-                };
-            }
+        if (itemType === 'lecture' && item.itemable) {
+            const lecture = item.itemable as Lecture;
+            return {
+                ...baseData,
+                video_url: lecture.video_url || '',
+                duration: lecture.duration?.toString() || '',
+                content: lecture.content || '',
+                content_json: lecture.content_json ? JSON.stringify(lecture.content_json) : '',
+                content_html: lecture.content_html || '',
+                assessment_title: '',
+                max_score: '',
+                assessment_type: 'Quiz' as 'Quiz' | 'Exam' | 'Project',
+                questions_type: 'online' as 'online' | 'file',
+                submission_type: 'online' as 'online' | 'written',
+                assignment_title: '',
+                total_points: '',
+                assignment_type: '',
+                started_at: '',
+                expired_at: '',
+                // Assignment content fields
+                assignment_content_json: '',
+                assignment_content_html: '',
+                assignment_instructions_json: '',
+                assignment_instructions_html: '',
+                assignment_rubric_json: '',
+                assignment_rubric_html: '',
+                // Assessment content fields
+                assessment_content_json: '',
+                assessment_content_html: '',
+                assessment_instructions_json: '',
+                assessment_instructions_html: '',
+                // Questions field for assessments
+                questions: '[]',
+            };
+        } else if (itemType === 'assessment' && item.itemable) {
+            const assessment = item.itemable as Assessment;
+            console.log('Assessment data:', assessment);
+            console.log('Assessment type from data:', assessment.type);
+            const validAssessmentTypes = ['Quiz', 'Exam', 'Project'];
+            const initialAssessmentType = validAssessmentTypes.includes(assessment.type)
+                ? (assessment.type as 'Quiz' | 'Exam' | 'Project')
+                : 'Quiz'; // Default to 'Quiz' if invalid
+            console.log('Initial assessment type:', initialAssessmentType);
+            return {
+                ...baseData,
+                video_url: '',
+                duration: '',
+                content: '',
+                content_json: '',
+                content_html: '',
+                assessment_title: assessment.title || '',
+                max_score: assessment.max_score?.toString() || '',
+                assessment_type: initialAssessmentType,
+                questions_type: (assessment.questions_type as 'online' | 'file') || 'online',
+                submission_type: (assessment.submission_type as 'online' | 'written') || 'online',
+                assignment_title: '',
+                total_points: '',
+                assignment_type: '',
+                started_at: '',
+                expired_at: '',
+                // Assignment content fields
+                assignment_content_json: '',
+                assignment_content_html: '',
+                assignment_instructions_json: '',
+                assignment_instructions_html: '',
+                assignment_rubric_json: '',
+                assignment_rubric_html: '',
+                // Assessment content fields
+                assessment_content_json: assessment.content_json ? JSON.stringify(assessment.content_json) : '',
+                assessment_content_html: assessment.content_html || '',
+                assessment_instructions_json: assessment.instructions ? JSON.stringify(assessment.instructions) : '',
+                assessment_instructions_html: '',
+                // Questions field for assessments
+                questions: '[]',
+            };
+        } else if (itemType === 'assignment' && item.itemable) {
+            const assignment = item.itemable as Assignment;
+            return {
+                ...baseData,
+                video_url: '',
+                duration: '',
+                content: '',
+                content_json: '',
+                content_html: '',
+                assessment_title: '',
+                max_score: '',
+                assessment_type: 'Quiz' as 'Quiz' | 'Exam' | 'Project',
+                questions_type: 'online' as 'online' | 'file',
+                submission_type: 'online' as 'online' | 'written',
+                assignment_title: assignment.title || '',
+                total_points: assignment.total_points?.toString() || '',
+                assignment_type: assignment.assignment_type || '',
+                started_at: assignment.started_at ? assignment.started_at.slice(0, 16) : '',
+                expired_at: assignment.expired_at ? assignment.expired_at.slice(0, 16) : '',
+                // Assignment content fields
+                assignment_content_json: assignment.content_json ? JSON.stringify(assignment.content_json) : '',
+                assignment_content_html: assignment.content_html || '',
+                assignment_instructions_json: assignment.instructions ? JSON.stringify(assignment.instructions) : '',
+                assignment_instructions_html: '',
+                assignment_rubric_json: assignment.rubric ? JSON.stringify(assignment.rubric) : '',
+                assignment_rubric_html: '',
+                // Assessment content fields
+                assessment_content_json: '',
+                assessment_content_html: '',
+                assessment_instructions_json: '',
+                assessment_instructions_html: '',
+                // Questions field for assessments
+                questions: '[]',
+            };
         }
-        return baseState;
+
+        // Fallback
+        return {
+            ...baseData,
+            video_url: '',
+            duration: '',
+            content: '',
+            content_json: '',
+            content_html: '',
+            assessment_title: '',
+            max_score: '',
+                            assessment_type: 'Quiz' as 'Quiz' | 'Exam' | 'Project',
+            questions_type: 'online' as 'online' | 'file',
+            submission_type: 'online' as 'online' | 'written',
+            assignment_title: '',
+            total_points: '',
+            assignment_type: '',
+            started_at: '',
+            expired_at: '',
+            // Assignment content fields
+            assignment_content_json: '',
+            assignment_content_html: '',
+            assignment_instructions_json: '',
+            assignment_instructions_html: '',
+            assignment_rubric_json: '',
+            assignment_rubric_html: '',
+            // Assessment content fields
+            assessment_content_json: '',
+            assessment_content_html: '',
+            assessment_instructions_json: '',
+            assessment_instructions_html: '',
+            // Questions field for assessments
+            questions: '[]',
+        };
     };
 
-    const initialData = getInitialFormState();
+    const initialData = getInitialData();
+    console.log('Initial form data:', initialData);
+    console.log('Assessment type in initial data:', initialData.assessment_type);
 
-    const { data, setData, put, processing } = useForm<EditFormDataType>(initialData);
+    const { data, setData, put, processing } = useForm(initialData);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Courses', href: '/courses' },
@@ -180,8 +217,10 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        const hasRichTextContent = (jsonContent: string | null): boolean => {
+        // Helper function to check if rich text editor has actual content
+        const hasRichTextContent = (jsonContent: string): boolean => {
             if (!jsonContent) return false;
+
             try {
                 const parsed = JSON.parse(jsonContent);
                 if (parsed && parsed.root && parsed.root.children) {
@@ -196,6 +235,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             }
         };
 
+        // Basic validation
         if (!data.title.trim()) {
             console.error('Title required');
             return;
@@ -221,10 +261,12 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             return;
         }
 
+        // Add questions for assessments
         if (itemType === 'assessment') {
             setData('questions', JSON.stringify(questions));
         }
 
+        // Debug: Log the data being sent
         console.log('Submitting form data:', data);
         console.log('Assessment type being sent:', data.assessment_type);
 
@@ -263,20 +305,21 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                     <CardDescription>This item is a <span className="capitalize font-semibold">{itemType}</span></CardDescription>
                                 </CardHeader>
                                 <CardContent>
+                                    {/* Dynamic Form Fields */}
                                     {itemType === 'lecture' && (
                                         <div className="space-y-4 animate-fade-in">
                                             <div>
                                                 <label className="block text-sm font-medium mb-1">Lecture Title</label>
                                                 <Input value={data.title} onChange={e => setData('title', e.target.value)} placeholder="Enter lecture title" required />
                                             </div>
-                                            <RichTextEditor label="Lecture Description" value={data.content_json} onChange={(json, html) => { setData('content_json', json); setData('content_html', html); }} />
+                                            <RichTextEditor label="Lecture Description" value={data.description} onChange={(json, html) => { setData('content_json', json); setData('content_html', html); }} />
                                             <div>
                                                 <label className="block text-sm font-medium mb-1">Video URL</label>
-                                                <Input value={data.video_url || ''} onChange={e => setData('video_url', e.target.value)} placeholder="YouTube/Vimeo URL" />
+                                                <Input value={data.video_url} onChange={e => setData('video_url', e.target.value)} placeholder="YouTube/Vimeo URL" />
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
-                                                <Input type="number" value={data.duration || ''} onChange={e => setData('duration', parseInt(e.target.value, 10))} min={0} />
+                                                <Input type="number" value={data.duration} onChange={e => setData('duration', e.target.value)} min={0} />
                                             </div>
                                         </div>
                                     )}
@@ -284,21 +327,16 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                         <div className="space-y-6 animate-fade-in">
                                             <div>
                                                 <label className="block text-sm font-medium mb-1">Assessment Title</label>
-                                                <Input value={data.assessment_title || ''} onChange={e => setData('assessment_title', e.target.value)} placeholder="Quiz/Exam title" required />
+                                                <Input value={data.assessment_title} onChange={e => setData('assessment_title', e.target.value)} placeholder="Quiz/Exam title" required />
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <label className="block text-sm font-medium mb-1">Max Score</label>
-                                                    <Input type="number" value={data.max_score || ''} onChange={e => setData('max_score', parseInt(e.target.value, 10))} min={1} />
+                                                    <Input type="number" value={data.max_score} onChange={e => setData('max_score', e.target.value)} min={1} />
                                                 </div>
                                                 <div>
                                                     <label className="block text-sm font-medium mb-1">Assessment Type</label>
-                                                    <select
-                                                        id="assessment_type"
-                                                        value={data.assessment_type}
-                                                        onChange={e => setData('assessment_type', e.target.value as 'Quiz' | 'Exam' | 'Project')}
-                                                        className="mt-2 flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background"
-                                                    >
+                                                    <select className="border rounded-md px-3 py-2 w-full" value={data.assessment_type} onChange={e => setData('assessment_type', e.target.value as 'Quiz' | 'Exam' | 'Project')}>
                                                         <option value="Quiz">Quiz</option>
                                                         <option value="Exam">Exam</option>
                                                         <option value="Project">Project</option>
@@ -307,6 +345,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                             </div>
                                             <RichTextEditor label="Instructions" value={data.assessment_instructions_json} onChange={(json, html) => { setData('assessment_instructions_json', json); setData('assessment_instructions_html', html); }} />
 
+                                            {/* Questions Builder */}
                                             <div className="space-y-4">
                                                 <div className="flex items-center gap-3">
                                                     <Target className="h-6 w-6 text-red-500" />
@@ -323,16 +362,17 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                         <div className="space-y-4 animate-fade-in">
                                             <div>
                                                 <label className="block text-sm font-medium mb-1">Assignment Title</label>
-                                                <Input value={data.assignment_title || ''} onChange={e => setData('assignment_title', e.target.value)} placeholder="Assignment title" required />
+                                                <Input value={data.assignment_title} onChange={e => setData('assignment_title', e.target.value)} placeholder="Assignment title" required />
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium mb-1">Total Points</label>
-                                                <Input type="number" value={data.total_points || ''} onChange={e => setData('total_points', parseInt(e.target.value, 10))} min={1} />
+                                                <Input type="number" value={data.total_points} onChange={e => setData('total_points', e.target.value)} min={1} />
                                             </div>
                                             <RichTextEditor label="Instructions" value={data.assignment_instructions_json} onChange={(json, html) => { setData('assignment_instructions_json', json); setData('assignment_instructions_html', html); }} />
                                             <RichTextEditor label="Rubric (optional)" value={data.assignment_rubric_json} onChange={(json, html) => { setData('assignment_rubric_json', json); setData('assignment_rubric_html', html); }} />
                                         </div>
                                     )}
+                                    {/* Save Button */}
                                     <div className="flex justify-end mt-8">
                                         <Button type="submit" disabled={processing} className="px-8 py-2 text-base font-semibold">
                                             {processing ? 'Saving...' : 'Update Item'}
@@ -343,7 +383,9 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                         </form>
                     </div>
 
+                    {/* Sidebar - Enhanced with Configuration and Tips */}
                     <div className="space-y-6">
+                        {/* Configuration Panel */}
                         <Card>
                             <CardHeader className="pb-3">
                                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -386,6 +428,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                             </CardContent>
                         </Card>
 
+                        {/* Item Summary */}
                         <Card>
                             <CardHeader className="pb-3">
                                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -419,6 +462,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                             </CardContent>
                         </Card>
 
+                        {/* Tips for Great Items */}
                         <Card>
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-lg">Tips for Great Items</CardTitle>
@@ -445,6 +489,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                             </CardContent>
                         </Card>
 
+                        {/* Item Preview */}
                         <Card>
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-lg">Item Preview</CardTitle>
