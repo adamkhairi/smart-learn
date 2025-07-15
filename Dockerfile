@@ -48,7 +48,8 @@ COPY docker/supervisor/supervisord.conf /etc/supervisord.conf
 # Copy PHP-FPM from the previous stage
 COPY --from=laravel_php /usr/local/bin/php /usr/local/bin/php
 COPY --from=laravel_php /usr/local/sbin/php-fpm /usr/local/sbin/php-fpm
-COPY --from=laravel_php /etc/php82 /etc/php82 # Adjust PHP version directory if different
+# Adjust PHP version directory if different
+COPY --from=laravel_php /etc/php82 /etc/php82
 
 # Copy the application code from the PHP stage
 COPY --from=laravel_php /var/www/html /var/www/html
