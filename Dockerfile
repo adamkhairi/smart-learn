@@ -6,10 +6,7 @@ RUN apk add --no-cache \
     build-base \
     curl \
     libzip-dev \
-    postgresql-dev \
-    onboard-keyring \
-    nginx \
-    supervisor
+    postgresql-dev
 
 # Install PHP extensions
 RUN docker-php-ext-install pdo_mysql pdo_pgsql zip pcntl bcmath opcache
