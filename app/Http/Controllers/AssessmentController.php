@@ -189,7 +189,7 @@ class AssessmentController extends Controller
     /**
      * Auto-grade a submission.
      */
-    private function autoGradeSubmission(Submission $submission): void
+    private function autoGradeSubmission(Submission $submission)
     {
         $assessment = $submission->assessment;
         $answers = $submission->answers ?? [];
@@ -204,13 +204,11 @@ class AssessmentController extends Controller
 
                 switch ($question->type) {
                     case 'MCQ':
-                        if (strtolower(trim($userAnswer)) === strtolower(trim($question->answer))) {
-                            $totalScore += $question->points;
-                        }
-                        break;
-
                     case 'TrueFalse':
-                        if (strtolower(trim($userAnswer)) === strtolower(trim($question->answer))) {
+                        // Normalize strings: trim, lowercase, remove punctuation
+                        $normalizedUserAnswer = preg_replace('/[^a-z0-9\s]/i', '', strtolower(trim($userAnswer)));
+                        $normalizedCorrectAnswer = preg_replace('/[^a-z0-9\s]/i', '', strtolower(trim($question->answer)));
+                        if ($normalizedUserAnswer === $normalizedCorrectAnswer) {
                             $totalScore += $question->points;
                         }
                         break;
