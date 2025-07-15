@@ -8,9 +8,9 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import AppLayout from '@/layouts/app-layout';
 import { Assessment, Assignment, BreadcrumbItem, CourseModuleItemEditPageProps, Lecture, QuestionFormData } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
-import { Eye, Settings, Target } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
+import { Eye, Settings, Target, BookOpen, FileQuestion, Clipboard } from 'lucide-react';
 
 function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
     // Helper function to get item type from polymorphic relationship
@@ -278,6 +278,19 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
         });
     };
 
+    const getItemTypeIcon = () => {
+        switch (itemType) {
+            case 'lecture':
+                return <BookOpen className="h-5 w-5" />;
+            case 'assessment':
+                return <FileQuestion className="h-5 w-5" />;
+            case 'assignment':
+                return <Clipboard className="h-5 w-5" />;
+            default:
+                return <BookOpen className="h-5 w-5" />; // Default icon for unknown types
+            }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Edit Item - ${module.title}`} />
@@ -301,8 +314,12 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                         <form onSubmit={handleSubmit}>
                             <Card className="w-full">
                                 <CardHeader>
-                                    <CardTitle>Item Type</CardTitle>
-                                    <CardDescription>This item is a <span className="capitalize font-semibold">{itemType}</span></CardDescription>
+                                    <CardTitle className="flex items-center gap-2 text-lg">
+                                        {getItemTypeIcon()} Item Type
+                                    </CardTitle>
+                                    <CardDescription>
+                                        This item is a <Badge variant="secondary" className="capitalize">{itemType}</Badge>
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     {/* Dynamic Form Fields */}
@@ -312,7 +329,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                 <label className="block text-sm font-medium mb-1">Lecture Title</label>
                                                 <Input value={data.title} onChange={e => setData('title', e.target.value)} placeholder="Enter lecture title" required />
                                             </div>
-                                            <RichTextEditor label="Lecture Description" value={data.description} onChange={(json, html) => { setData('content_json', json); setData('content_html', html); }} />
+                                            <RichTextEditor label="Lecture Description" value={data.content_json ? JSON.parse(data.content_json) : ''} onChange={(json, html) => { setData('content_json', json); setData('content_html', html); }} />
                                             <div>
                                                 <label className="block text-sm font-medium mb-1">Video URL</label>
                                                 <Input value={data.video_url} onChange={e => setData('video_url', e.target.value)} placeholder="YouTube/Vimeo URL" />
@@ -343,7 +360,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                     </select>
                                                 </div>
                                             </div>
-                                            <RichTextEditor label="Instructions" value={data.assessment_instructions_json} onChange={(json, html) => { setData('assessment_instructions_json', json); setData('assessment_instructions_html', html); }} />
+                                            <RichTextEditor label="Instructions" value={data.assessment_instructions_json ? JSON.parse(data.assessment_instructions_json) : ''} onChange={(json, html) => { setData('assessment_instructions_json', json); setData('assessment_instructions_html', html); }} />
 
                                             {/* Questions Builder */}
                                             <div className="space-y-4">
@@ -368,8 +385,8 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                 <label className="block text-sm font-medium mb-1">Total Points</label>
                                                 <Input type="number" value={data.total_points} onChange={e => setData('total_points', e.target.value)} min={1} />
                                             </div>
-                                            <RichTextEditor label="Instructions" value={data.assignment_instructions_json} onChange={(json, html) => { setData('assignment_instructions_json', json); setData('assignment_instructions_html', html); }} />
-                                            <RichTextEditor label="Rubric (optional)" value={data.assignment_rubric_json} onChange={(json, html) => { setData('assignment_rubric_json', json); setData('assignment_rubric_html', html); }} />
+                                            <RichTextEditor label="Instructions" value={data.assignment_instructions_json ? JSON.parse(data.assignment_instructions_json) : ''} onChange={(json, html) => { setData('assignment_instructions_json', json); setData('assignment_instructions_html', html); }} />
+                                            <RichTextEditor label="Rubric (optional)" value={data.assignment_rubric_json ? JSON.parse(data.assignment_rubric_json) : ''} onChange={(json, html) => { setData('assignment_rubric_json', json); setData('assignment_rubric_html', html); }} />
                                         </div>
                                     )}
                                     {/* Save Button */}
