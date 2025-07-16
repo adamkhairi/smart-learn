@@ -8,18 +8,21 @@ import { Course, Assessment, Submission } from '@/types';
 import { CheckCircle, XCircle, Award } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 
+interface Question {
+    id: number;
+    question_number: number;
+    type: 'MCQ' | 'Essay' | 'TrueFalse';
+    question_text: string;
+    points: number;
+    choices?: Record<string, string>;
+    keywords?: string[];
+    answer?: string; // Add answer field here as well
+}
+
 interface AssessmentResultsProps {
     course: Course;
     assessment: Assessment & {
-        questions: Array<{
-            id: number;
-            question_number: number;
-            type: 'MCQ' | 'Essay' | 'TrueFalse';
-            question_text: string;
-            points: number;
-            choices?: Record<string, string>;
-            keywords?: string[];
-        }>;
+        questions: Question[];
     };
     submission: Submission;
 }
@@ -103,8 +106,25 @@ export default function AssessmentResults({ course, assessment, submission }: As
                 <CardContent className="space-y-6">
                     {assessment.questions.map((question) => {
                         const userAnswer = answers[question.id] || '';
+
+                        const getUserAnswerText = (q: Question, ans: string) => {
+                            if (q.type === 'MCQ' && q.choices) {
+                                return q.choices[ans];
+                            } else if (q.type === 'TrueFalse') {
+                                return ans === 'true' ? 'True' : ans === 'false' ? 'False' : null;
+                            }
+                            return ans;
+                        };
+
+                        const userSelectedText = getUserAnswerText(question, userAnswer);
+                        const correctText = question.answer;
+
+                        // Normalize for comparison (similar to backend for consistency)
+                        const normalizedUserText = userSelectedText ? userSelectedText.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim() : '';
+                        const normalizedCorrectText = correctText ? correctText.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim() : '';
+
                         const isCorrect = question.type === 'MCQ' || question.type === 'TrueFalse'
-                            ? userAnswer === question.answer
+                            ? normalizedUserText === normalizedCorrectText
                             : null; // Essay questions can't be auto-graded for correctness
 
                         return (
@@ -126,27 +146,11 @@ export default function AssessmentResults({ course, assessment, submission }: As
 
                                 <div className="space-y-2">
                                     <div className="font-medium text-sm text-gray-600">Your Answer:</div>
-                                    {question.type === 'MCQ' && question.choices && (
-                                        <div className="pl-4">
-                                            <span className="text-gray-700">
-                                                {question.choices?.[userAnswer] || 'No answer provided'}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {question.type === 'TrueFalse' && (
-                                        <div className="pl-4">
-                                            <span className="text-gray-700">
-                                                {userAnswer === 'true' ? 'True' : userAnswer === 'false' ? 'False' : 'No answer provided'}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {question.type === 'Essay' && (
-                                        <div className="pl-4">
-                                            <p className="text-gray-700 whitespace-pre-wrap">
-                                                {userAnswer || 'No answer provided'}
-                                            </p>
-                                        </div>
-                                    )}
+                                    <div className="pl-4">
+                                        <span className="text-gray-700">
+                                            {userSelectedText || 'No answer provided'}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {question.type === 'MCQ' && question.choices && (
@@ -154,7 +158,7 @@ export default function AssessmentResults({ course, assessment, submission }: As
                                         <div className="font-medium text-sm text-gray-600">Correct Answer:</div>
                                         <div className="pl-4">
                                             <span className="text-green-700 font-medium">
-                                                {question.choices?.[question.answer || ''] || question.answer || ''}
+                                                {question.answer || ''}
                                             </span>
                                         </div>
                                     </div>

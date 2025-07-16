@@ -300,10 +300,12 @@ export default function Dashboard({ userStats, courseStats, studentDashboardData
                                                     <div className="text-sm font-bold">{userStats?.role_distribution.instructor || 0}</div>
                                                 </div>
                                                 <div className="flex items-center justify-between">
-                                                    <div className="h-3 w-3 rounded-full bg-gray-500"></div>
-                                                    <span className="text-sm font-medium">Students</span>
+                                                    <div className="flex items-center space-x-2">
+                                                        <div className="h-3 w-3 rounded-full bg-gray-500"></div>
+                                                        <span className="text-sm font-medium">Students</span>
+                                                    </div>
+                                                    <div className="text-sm font-bold">{userStats?.role_distribution.student || 0}</div>
                                                 </div>
-                                                <div className="text-sm font-bold">{userStats?.role_distribution.student || 0}</div>
                                             </div>
                                         </CardContent>
                                     </Card>

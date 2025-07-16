@@ -70,10 +70,10 @@ function Create({ categories }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Create Course" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl mt-4">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" asChild>
-                        <Link href="/courses">
+                        <Link href={route('courses.index')}>
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Back to Courses
                         </Link>
@@ -95,7 +95,7 @@ function Create({ categories }: Props) {
                         removeImage={removeImage}
                         processing={processing}
                     />
-                    <Button type="submit" disabled={processing} className="mt-4">
+                    <Button className="mt-4" type="submit" disabled={processing}>
                         {processing ? 'Creating...' : 'Create Course'}
                     </Button>
                 </form>

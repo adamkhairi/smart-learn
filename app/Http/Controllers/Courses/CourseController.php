@@ -235,6 +235,11 @@ class CourseController extends Controller
      */
     public function publicShow(Course $course): Response
     {
+        // If the course is private or not published, guests should not see it
+        if (($course->is_private || $course->status !== 'published') && !Auth::check()) {
+            return redirect()->route('courses.index')->with('error', 'This course is not publicly available or does not exist.');
+        }
+
         $user = Auth::user();
 
         // If the course is private, or not published, and the user is not an admin or the creator, deny access.
@@ -310,9 +315,10 @@ class CourseController extends Controller
                                             ->exists();
         }
 
+        Log::info('Public course data for frontend:', ['course' => $course->toArray()]);
+
         return Inertia::render('Courses/PublicShow', [
-            'course' => $course,
-            'user' => $user, // Pass user info if logged in (for login/register links)
+            'course' => $course->load(['category:id,name', 'creator:id,name,photo']),
             'hasPendingEnrollmentRequest' => $hasPendingEnrollmentRequest,
         ]);
     }

@@ -9,6 +9,7 @@ import { ColorPicker } from '@/components/ui/color-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Level } from '@/types';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
@@ -160,15 +161,13 @@ export function CourseForm({
                         <div className="space-y-2">
                             <Label>Visibility</Label>
                             <div className="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
+                                <Switch
                                     id="is_private"
                                     checked={data.is_private}
-                                    onChange={(e) => setData('is_private', e.target.checked)}
-                                    className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                                    onCheckedChange={(checked) => setData('is_private', !!checked)}
                                 />
                                 <Label htmlFor="is_private" className="cursor-pointer">
-                                    Private Course
+                                    Private Course {data.is_private ? '(On)' : '(Off)'}
                                 </Label>
                             </div>
                             <p className="text-xs text-muted-foreground">

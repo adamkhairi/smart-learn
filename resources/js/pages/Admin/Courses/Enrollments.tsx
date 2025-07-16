@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { Course, User } from '@/types';
-import { useToast } from '@/hooks/use-toast';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { CourseEnrollmentRoleBadge } from '@/components/course-enrollment-role-badge';
 
@@ -29,8 +28,6 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
     const [enrollRole, setEnrollRole] = useState('student');
     const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false);
 
-    // Initialize toast and confirmation dialog
-    const { success, error } = useToast();
     const { confirm } = useConfirmDialog();
 
     const getInitials = (name: string) => {
@@ -78,12 +75,11 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
             },
             {
                 onSuccess: () => {
-                    success(`Successfully enrolled ${selectedUsers.length} user(s).`);
                     setSelectedUsers([]);
                     setIsEnrollDialogOpen(false);
                 },
                 onError: () => {
-                    error('Failed to enroll users. Please try again.');
+                    //
                 },
             },
         );
@@ -101,11 +97,10 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
                 router.delete(route('admin.courses.unenroll-users', course.id), {
                     data: { user_ids: selectedUsers },
                     onSuccess: () => {
-                        success(`Successfully unenrolled ${selectedUsers.length} user(s).`);
                         setSelectedUsers([]);
                     },
                     onError: () => {
-                        error('Failed to unenroll users. Please try again.');
+                        //
                     },
                 });
             },
@@ -118,15 +113,7 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
             {
                 course_id: course.id,
                 role: newRole,
-            },
-            {
-                onSuccess: () => {
-                    success('User role updated successfully.');
-                },
-                onError: () => {
-                    error('Failed to update user role. Please try again.');
-                },
-            },
+            }
         );
     };
 
@@ -224,9 +211,9 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                                 <Label>Search Users</Label>
-                                <div className="flex gap-2">
-                                    <Input placeholder="Search by name or email..." value={search} onChange={(e) => setSearch(e.target.value)} />
-                                    <Search className="h-4 w-4 text-muted-foreground" />
+                                <div className="relative">
+                                    <Input placeholder="Search by name or email..." value={search} onChange={(e) => setSearch(e.target.value)} className="pr-10" />
+                                    <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                 </div>
                             </div>
 

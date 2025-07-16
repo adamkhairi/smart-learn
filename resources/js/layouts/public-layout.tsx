@@ -79,7 +79,9 @@ export default function PublicLayout({ children, title = 'SmartLearn' }: PublicL
 
             {/* Main content */}
             <main className="mt-20 bg-[#FDFDFC] text-[#1b1b18] dark:bg-[#0a0a0a] dark:text-[#EDEDEC] scroll-container">
-                {children}
+                <div className="mx-auto max-w-7xl px-4 md:px-8">
+                    {children}
+                </div>
             </main>
 
             {/* Scroll to Top */}

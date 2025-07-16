@@ -205,10 +205,26 @@ class AssessmentController extends Controller
                 switch ($question->type) {
                     case 'MCQ':
                     case 'TrueFalse':
-                        // Normalize strings: trim, lowercase, remove punctuation
-                        $normalizedUserAnswer = preg_replace('/[^a-z0-9\s]/i', '', strtolower(trim($userAnswer)));
-                        $normalizedCorrectAnswer = preg_replace('/[^a-z0-9\s]/i', '', strtolower(trim($question->answer)));
-                        if ($normalizedUserAnswer === $normalizedCorrectAnswer) {
+                        $userSelectedAnswerText = $question->choices[$userAnswer] ?? null;
+                        $correctAnswerText = $question->answer;
+
+                        // Normalize both texts for robust comparison
+                        $normalizedUserAnswerText = preg_replace('/[^a-z0-9\s]/i', '', strtolower(trim($userSelectedAnswerText)));
+                        $normalizedCorrectAnswerText = preg_replace('/[^a-z0-9\s]/i', '', strtolower(trim($correctAnswerText)));
+
+                        // Log for debugging
+                        \Log::debug('Grading MCQ/TrueFalse question - Detailed', [
+                            'question_id' => $question->id,
+                            'submitted_key_or_index' => $userAnswer,
+                            'user_selected_text' => $userSelectedAnswerText,
+                            'correct_answer_from_db' => $correctAnswerText,
+                            'normalized_user_text' => $normalizedUserAnswerText,
+                            'normalized_correct_text' => $normalizedCorrectAnswerText,
+                            'match' => ($normalizedUserAnswerText === $normalizedCorrectAnswerText),
+                            'question_points' => $question->points, // Add this line
+                        ]);
+
+                        if ($normalizedUserAnswerText === $normalizedCorrectAnswerText) {
                             $totalScore += $question->points;
                         }
                         break;
@@ -233,6 +249,12 @@ class AssessmentController extends Controller
                 }
             }
         }
+
+        \Log::debug('Final auto-grade score before update', [
+            'submission_id' => $submission->id,
+            'calculated_score' => $totalScore,
+            'max_score' => $maxScore,
+        ]);
 
         $submission->update([
             'score' => $totalScore,
