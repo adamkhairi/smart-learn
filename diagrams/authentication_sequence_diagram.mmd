@@ -1,0 +1,14 @@
+sequenceDiagram
+    actor U as Utilisateur
+    participant F as Frontend (Inertia)
+    participant LC as Laravel (Auth Controller)
+    participant LS as Laravel (Sanctum)
+
+    U->>F: Accède à la page de connexion
+    U->>F: Soumet identifiants (email, mot de passe)
+    F->>LC: Requête POST /login (via Inertia)
+    LC->>LC: Valide les données (LoginRequest)
+    LC->>LS: Tente d'authentifier l'utilisateur
+    LS-->>LC: Authentification réussie
+    LC-->>F: Redirection Inertia vers /dashboard
+    F->>U: Affiche le tableau de bord

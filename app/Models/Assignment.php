@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
+use App\Enums\AssignmentType;
 
 class Assignment extends Model
 {
@@ -54,6 +55,7 @@ class Assignment extends Model
             'rubric' => 'json',
             'cached_status' => 'string',
             'status_cached_at' => 'datetime',
+            'assignment_type' => AssignmentType::class,
         ];
     }
 

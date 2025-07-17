@@ -1,0 +1,24 @@
+sequenceDiagram
+    actor IA as Instructeur/Admin
+    participant F as Frontend (Inertia)
+    participant LCC as Laravel (Course Controllers)
+    participant LR as Laravel (Requests)
+    participant LA as Laravel (Actions)
+    participant LM as Laravel (Models)
+
+    IA->>F: Accède à la gestion des cours (/courses)
+    F->>LCC: Requête GET /courses
+    LCC-->>F: Affiche la liste des cours gérables
+    IA->>F: Sélectionne un cours ou crée un nouveau
+    alt Gérer Modules/Items
+        IA->>F: Accède à /courses/{c}/modules ou /modules/{m}/items
+        F->>LCC: Requête CRUD (POST/PUT/DELETE)
+        LCC->>LR: Valide les données (CourseModuleRequest/CourseModuleItemRequest)
+        LR-->>LCC: Validation OK
+        LCC->>LA: Exécute l'Action (ex: CreateCourseModuleItemAction)
+        LA->>LM: Manipule les modèles (Course/CourseModule/CourseModuleItem)
+        LM-->>LA: Données mises à jour
+        LA-->>LCC: Succès/Échec
+        LCC-->>F: Réponse Inertia (succès/échec)
+        F->>IA: Met à jour l'interface
+    end

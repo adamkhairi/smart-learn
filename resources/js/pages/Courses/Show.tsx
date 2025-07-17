@@ -116,6 +116,12 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                                 Edit Course
                                             </Link>
                                         </Button>
+                                        <Button asChild variant="outline">
+                                            <Link href={`/admin/courses/${course.id}/enrollments`}>
+                                                <Users className="mr-2 h-4 w-4" />
+                                                Manage Enrollments
+                                            </Link>
+                                        </Button>
                                         <Button asChild>
                                             <Link href={`/courses/${course.id}/modules/create`}>
                                                 <Plus className="mr-2 h-4 w-4" />

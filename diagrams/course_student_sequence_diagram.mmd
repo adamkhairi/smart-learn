@@ -1,0 +1,18 @@
+sequenceDiagram
+    actor S as Étudiant
+    participant F as Frontend (Inertia)
+    participant LCC as Laravel (Courses\CourseController)
+    participant LCM as Laravel (Course Model)
+
+    S->>F: Accède à /courses
+    F->>LCC: Requête GET /courses
+    LCC->>LCM: Récupère la liste des cours
+    LCM-->>LCC: Liste des cours
+    LCC-->>F: Affiche la liste des cours
+    F->>S: Affiche la liste des cours disponibles
+    S->>F: Sélectionne un cours (ex: /courses/{id})
+    F->>LCC: Requête GET /courses/{id}
+    LCC->>LCM: Récupère les détails du cours (avec modules.moduleItems)
+    LCM-->>LCC: Détails du cours
+    LCC-->>F: Réponse Inertia (détails du cours)
+    F->>S: Affiche la page de détail du cours

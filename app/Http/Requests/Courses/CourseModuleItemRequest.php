@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Courses;
 
+use App\Enums\AssignmentType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -44,7 +45,7 @@ class CourseModuleItemRequest extends FormRequest
             case 'assessment':
                 $rules['assessment_title'] = 'required|string|min:3|max:255';
                 $rules['max_score'] = 'nullable|integer|min:1|max:1000';
-                $rules['assessment_type'] = ['nullable', Rule::in(['Quiz', 'Exam', 'Project'])];
+                $rules['assessment_type'] = ['nullable', Rule::in(['Quiz', 'Exam'])];
                 $rules['questions_type'] = ['nullable', Rule::in(['online', 'file'])];
                 $rules['submission_type'] = ['nullable', Rule::in(['online', 'written'])];
                 $rules['assessment_content_json'] = 'nullable|string|max:200000';
@@ -65,7 +66,7 @@ class CourseModuleItemRequest extends FormRequest
             case 'assignment':
                 $rules['assignment_title'] = 'required|string|min:3|max:255';
                 $rules['total_points'] = 'nullable|integer|min:1|max:1000';
-                $rules['assignment_type'] = 'nullable|string|max:255';
+                $rules['assignment_type'] = ['nullable', Rule::in(array_column(AssignmentType::cases(), 'value'))];
                 $rules['started_at'] = 'nullable|date';
                 $rules['expired_at'] = 'nullable|date|after:started_at';
                 $rules['assignment_content_json'] = 'nullable|string|max:200000';

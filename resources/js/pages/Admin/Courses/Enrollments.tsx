@@ -1,6 +1,6 @@
-import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, Filter, Plus, Search, Users, X } from 'lucide-react';
-import { useState } from 'react';
+import { Head, router, Link } from '@inertiajs/react';
+import { ArrowLeft, Filter, Plus, Search, Users, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -14,19 +14,42 @@ import AppLayout from '@/layouts/app-layout';
 import { Course, User } from '@/types';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { CourseEnrollmentRoleBadge } from '@/components/course-enrollment-role-badge';
+import useDebounce from '@/hooks/use-debounce'; // Assuming this hook exists
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'; // Import Collapsible components
+
+interface PaginationLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+interface PaginatedUsers {
+    data: User[];
+    links: PaginationLink[];
+    current_page: number;
+    last_page: number;
+    from: number;
+    to: number;
+    total: number;
+}
 
 interface Props {
     course: Course;
-    enrolledUsers: User[];
-    availableUsers: User[];
+    enrolledUsers: PaginatedUsers;
+    availableUsers: PaginatedUsers;
+    filters: {
+        search: string;
+        role_filter: string;
+    };
 }
 
-export default function Enrollments({ course, enrolledUsers, availableUsers }: Props) {
-    const [search, setSearch] = useState('');
-    const [roleFilter, setRoleFilter] = useState('all');
+export default function Enrollments({ course, enrolledUsers, availableUsers, filters }: Props) {
+    const [search, setSearch] = useState(filters.search || '');
+    const [roleFilter, setRoleFilter] = useState(filters.role_filter || 'all');
     const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
     const [enrollRole, setEnrollRole] = useState('student');
     const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false);
+    const [isEnrolledUsersOpen, setIsEnrolledUsersOpen] = useState(false); // State for enrolled users collapsible
 
     const { confirm } = useConfirmDialog();
 
@@ -38,15 +61,23 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
             .toUpperCase();
     };
 
-    const filteredEnrolledUsers = enrolledUsers.filter((user) => {
-        const matchesSearch = user.name.toLowerCase().includes(search.toLowerCase()) || user.email.toLowerCase().includes(search.toLowerCase());
-        const matchesRole = roleFilter === 'all' || user.pivot?.enrolled_as === roleFilter;
-        return matchesSearch && matchesRole;
-    });
+    const debouncedSearch = useDebounce(search, 300);
+    const debouncedRoleFilter = useDebounce(roleFilter, 300);
 
-    const filteredAvailableUsers = availableUsers.filter((user) => {
-        return user.name.toLowerCase().includes(search.toLowerCase()) || user.email.toLowerCase().includes(search.toLowerCase());
-    });
+    useEffect(() => {
+        router.get(
+            route('admin.courses.enrollments', course.id),
+            {
+                search: debouncedSearch,
+                role_filter: debouncedRoleFilter,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    }, [debouncedSearch, debouncedRoleFilter]);
 
     const handleSelectUser = (userId: number, checked: boolean) => {
         if (checked) {
@@ -58,7 +89,7 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedUsers(filteredEnrolledUsers.map((user) => user.id));
+            setSelectedUsers(enrolledUsers.data.map((user) => user.id));
         } else {
             setSelectedUsers([]);
         }
@@ -79,7 +110,7 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
                     setIsEnrollDialogOpen(false);
                 },
                 onError: () => {
-                    //
+                    // Handle error
                 },
             },
         );
@@ -100,7 +131,7 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
                         setSelectedUsers([]);
                     },
                     onError: () => {
-                        //
+                        // Handle error
                     },
                 });
             },
@@ -165,24 +196,46 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
                                     <div className="space-y-2">
                                         <Label>Available Users</Label>
                                         <div className="max-h-60 space-y-2 overflow-y-auto">
-                                            {filteredAvailableUsers.map((user) => (
-                                                <div key={user.id} className="flex items-center space-x-2">
-                                                    <Checkbox
-                                                        id={`enroll-${user.id}`}
-                                                        checked={selectedUsers.includes(user.id)}
-                                                        onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
-                                                    />
-                                                    <Label htmlFor={`enroll-${user.id}`} className="flex cursor-pointer items-center gap-2">
-                                                        <Avatar className="h-6 w-6">
-                                                            <AvatarImage src="" />
-                                                            <AvatarFallback className="text-xs">{getInitials(user.name)}</AvatarFallback>
-                                                        </Avatar>
-                                                        <span className="text-sm">{user.name}</span>
-                                                        <span className="text-xs text-muted-foreground">({user.email})</span>
-                                                    </Label>
-                                                </div>
-                                            ))}
+                                            {availableUsers.data.length > 0 ? (
+                                                availableUsers.data.map((user) => (
+                                                    <div key={user.id} className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`enroll-${user.id}`}
+                                                            checked={selectedUsers.includes(user.id)}
+                                                            onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
+                                                        />
+                                                        <Label htmlFor={`enroll-${user.id}`} className="flex cursor-pointer items-center gap-2">
+                                                            <Avatar className="h-6 w-6">
+                                                                <AvatarImage src="" />
+                                                                <AvatarFallback className="text-xs">{getInitials(user.name)}</AvatarFallback>
+                                                            </Avatar>
+                                                            <span className="text-sm">{user.name}</span>
+                                                            <span className="text-xs text-muted-foreground">({user.email})</span>
+                                                        </Label>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground">No available users to enroll.</p>
+                                            )}
                                         </div>
+                                        {availableUsers.links.length > 3 && (
+                                            <div className="flex items-center justify-center gap-2 mt-4">
+                                                {availableUsers.links.map((link, index) => (
+                                                    <Link
+                                                        key={index}
+                                                        href={link.url ? `${link.url}&enrolled_page=${enrolledUsers.current_page}` : '#'}
+                                                        className={`px-3 py-1 rounded-md text-sm ${
+                                                            link.active
+                                                                ? 'bg-primary text-primary-foreground'
+                                                                : 'text-muted-foreground hover:bg-muted'
+                                                        } ${!link.url ? 'pointer-events-none opacity-50' : ''}`}
+                                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                                        preserveScroll
+                                                        preserveState
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex justify-end gap-2">
@@ -236,96 +289,122 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
                 </Card>
 
                 {/* Enrolled Users */}
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle>Enrolled Users ({filteredEnrolledUsers.length})</CardTitle>
-                                <CardDescription>Users currently enrolled in this course</CardDescription>
-                            </div>
-                            {selectedUsers.length > 0 && (
-                                <Button variant="destructive" onClick={handleUnenrollUsers}>
-                                    <X className="mr-2 h-4 w-4" />
-                                    Unenroll {selectedUsers.length} Users
-                                </Button>
-                            )}
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        {filteredEnrolledUsers.length > 0 ? (
-                            <div className="space-y-4">
-                                {/* Select All */}
-                                <div className="flex items-center space-x-2 rounded border p-2">
-                                    <Checkbox
-                                        id="select-all"
-                                        checked={selectedUsers.length === filteredEnrolledUsers.length && filteredEnrolledUsers.length > 0}
-                                        onCheckedChange={handleSelectAll}
-                                    />
-                                    <Label htmlFor="select-all" className="text-sm font-medium">
-                                        Select All ({filteredEnrolledUsers.length})
-                                    </Label>
+                <Collapsible open={isEnrolledUsersOpen} onOpenChange={setIsEnrolledUsersOpen}>
+                    <Card>
+                        <CollapsibleTrigger asChild>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <div className="flex-1">
+                                    <CardTitle>Enrolled Users ({enrolledUsers.total})</CardTitle>
+                                    <CardDescription>Users currently enrolled in this course</CardDescription>
                                 </div>
-
-                                {/* Users List */}
-                                <div className="grid gap-3">
-                                    {filteredEnrolledUsers.map((user) => (
-                                        <div key={user.id} className="flex items-center justify-between rounded border p-3">
-                                            <div className="flex items-center gap-3">
-                                                <Checkbox
-                                                    checked={selectedUsers.includes(user.id)}
-                                                    onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
-                                                />
-                                                <Avatar className="h-8 w-8">
-                                                    <AvatarImage src="" />
-                                                    <AvatarFallback className="text-xs">{getInitials(user.name)}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <div className="font-medium">{user.name}</div>
-                                                    <div className="text-sm text-muted-foreground">{user.email}</div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2">
-                                                <Select
-                                                    value={user.pivot?.enrolled_as || 'student'}
-                                                    onValueChange={(value) => handleUpdateRole(user.id, value)}
-                                                >
-                                                    <SelectTrigger className="w-32">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="student">Student</SelectItem>
-                                                        <SelectItem value="instructor">Instructor</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-
-                                                <div className="text-xs text-muted-foreground">
-                                                    Enrolled {new Date(user.pivot?.created_at || '').toLocaleDateString()}
-                                                </div>
-                                            </div>
+                                <div className="flex items-center gap-2">
+                                    {selectedUsers.length > 0 && (
+                                        <Button variant="destructive" onClick={handleUnenrollUsers}>
+                                            <X className="mr-2 h-4 w-4" />
+                                            Unenroll {selectedUsers.length} Users
+                                        </Button>
+                                    )}
+                                    {isEnrolledUsersOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                                </div>
+                            </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <CardContent>
+                                {enrolledUsers.data.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {/* Select All */}
+                                        <div className="flex items-center space-x-2 rounded border p-2">
+                                            <Checkbox
+                                                id="select-all"
+                                                checked={selectedUsers.length === enrolledUsers.data.length && enrolledUsers.data.length > 0}
+                                                onCheckedChange={handleSelectAll}
+                                            />
+                                            <Label htmlFor="select-all" className="text-sm font-medium">
+                                                Select All ({enrolledUsers.data.length})
+                                            </Label>
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="py-8 text-center">
-                                <Users className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-                                <p className="text-muted-foreground">No enrolled users found</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+
+                                        {/* Users List */}
+                                        <div className="grid gap-3">
+                                            {enrolledUsers.data.map((user) => (
+                                                <div key={user.id} className="flex items-center justify-between rounded border p-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <Checkbox
+                                                            checked={selectedUsers.includes(user.id)}
+                                                            onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
+                                                        />
+                                                        <Avatar className="h-8 w-8">
+                                                            <AvatarImage src="" />
+                                                            <AvatarFallback className="text-xs">{getInitials(user.name)}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <div className="font-medium">{user.name}</div>
+                                                            <div className="text-sm text-muted-foreground">{user.email}</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2">
+                                                        <Select
+                                                            value={user.pivot?.enrolled_as || 'student'}
+                                                            onValueChange={(value) => handleUpdateRole(user.id, value)}
+                                                        >
+                                                            <SelectTrigger className="w-32">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="student">Student</SelectItem>
+                                                                <SelectItem value="instructor">Instructor</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+
+                                                        <div className="text-xs text-muted-foreground">
+                                                            Enrolled {new Date(user.pivot?.created_at || '').toLocaleDateString()}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {/* Pagination for Enrolled Users */}
+                                        {enrolledUsers.links.length > 3 && (
+                                            <div className="flex items-center justify-center gap-2 mt-4">
+                                                {enrolledUsers.links.map((link, index) => (
+                                                    <Link
+                                                        key={index}
+                                                        href={link.url ? `${link.url}&available_page=${availableUsers.current_page}` : '#'}
+                                                        className={`px-3 py-1 rounded-md text-sm ${
+                                                            link.active
+                                                                ? 'bg-primary text-primary-foreground'
+                                                                : 'text-muted-foreground hover:bg-muted'
+                                                        } ${!link.url ? 'pointer-events-none opacity-50' : ''}`}
+                                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                                        preserveScroll
+                                                        preserveState
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="py-8 text-center">
+                                        <Users className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+                                        <p className="text-muted-foreground">No enrolled users found</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </CollapsibleContent>
+                    </Card>
+                </Collapsible>
 
                 {/* Available Users */}
-                {filteredAvailableUsers.length > 0 && (
+                {availableUsers.total > 0 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Available Users ({filteredAvailableUsers.length})</CardTitle>
+                            <CardTitle>Available Users ({availableUsers.total})</CardTitle>
                             <CardDescription>Users not yet enrolled in this course</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="grid gap-3">
-                                {filteredAvailableUsers.map((user) => (
+                                {availableUsers.data.map((user) => (
                                     <div key={user.id} className="flex items-center justify-between rounded border p-3">
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-8 w-8">
@@ -356,6 +435,25 @@ export default function Enrollments({ course, enrolledUsers, availableUsers }: P
                                     </div>
                                 ))}
                             </div>
+                            {/* Pagination for Available Users */}
+                            {availableUsers.links.length > 3 && (
+                                <div className="flex items-center justify-center gap-2 mt-4">
+                                    {availableUsers.links.map((link, index) => (
+                                        <Link
+                                            key={index}
+                                            href={link.url ? `${link.url}&enrolled_page=${enrolledUsers.current_page}` : '#'}
+                                            className={`px-3 py-1 rounded-md text-sm ${
+                                                link.active
+                                                    ? 'bg-primary text-primary-foreground'
+                                                    : 'text-muted-foreground hover:bg-muted'
+                                            } ${!link.url ? 'pointer-events-none opacity-50' : ''}`}
+                                            dangerouslySetInnerHTML={{ __html: link.label }}
+                                            preserveScroll
+                                            preserveState
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 )}

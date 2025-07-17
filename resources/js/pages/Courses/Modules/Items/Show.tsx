@@ -1,5 +1,4 @@
 import { ModuleNavigation } from '@/components/module-navigation';
-import { NavigationBreadcrumb } from '@/components/navigation-breadcrumb';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -686,13 +685,24 @@ function Show({ course, module, item, userSubmission, completedItems = [] }: Sho
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={navigationItems}>
             <Head title={`${item.title} - ${module.title} - ${course.name}`} />
 
-            <div className="container mx-auto px-4 py-6">
-                <NavigationBreadcrumb items={navigationItems} />
+            <div className="px-4 ">
+  {/* Header */}
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="sm" asChild>
+                        <a href={`/courses/${course.id}/modules/${module.id}`}>
+                            <span className="mr-2">←</span> Back to Module
+                        </a>
+                    </Button>
+                    <div>
+                        <h1 className="text-2xl font-bold">Details Module Item {item.title}</h1>
+                        <p className="text-muted-foreground">View the details for this module item</p>
+                    </div>
+                </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mt-4 ">
                     <div className="flex items-center gap-4">
                         <div>
                             <div className="mb-1 flex items-center gap-3">

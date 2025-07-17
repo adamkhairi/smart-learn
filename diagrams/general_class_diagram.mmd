@@ -1,0 +1,376 @@
+classDiagram
+    direction LR
+
+    class User {
+        +id
+        +username
+        +name
+        +email
+        +role (admin, student, instructor)
+        +is_active
+        +softDeletes()
+        +isAdmin()
+        +isInstructor()
+        +isStudent()
+        +enrollments() BelongsToMany Course
+        +assignments() HasMany Assignment
+        +assessments() HasMany Assessment
+        +submissions() HasMany Submission
+        +grades() HasMany Grade
+        +userProgress() HasMany UserProgress
+        +enrollmentRequests() HasMany EnrollmentRequest
+    }
+
+    class Course {
+        +id
+        +category_id
+        +created_by
+        +name
+        +status (draft, published, archived)
+        +level (beginner, intermediate, advanced)
+        +is_private
+        +softDeletes()
+        +enrolledUsers() BelongsToMany User
+        +modules() HasMany CourseModule
+        +assessments() HasMany Assessment
+        +assignments() HasMany Assignment
+        +announcements() HasMany Announcement
+        +discussions() HasMany Discussion
+        +gradesSummaries() HasMany GradesSummary
+        +enroll(userId, role)
+    }
+
+    class Category {
+        +id
+        +name
+        +description
+        +courses() HasMany Course
+    }
+
+    class CourseModule {
+        +id
+        +course_id
+        +title
+        +order
+        +is_published
+        +course() BelongsTo Course
+        +moduleItems() HasMany CourseModuleItem
+    }
+
+    class CourseModuleItem {
+        +id
+        +course_module_id
+        +itemable_type
+        +itemable_id
+        +title
+        +order
+        +is_published
+        +courseModule() BelongsTo CourseModule
+        +itemable() MorphTo (Lecture, Assignment, Assessment)
+    }
+
+    class Lecture {
+        +id
+        +title
+        +video_url
+        +duration_seconds
+        +moduleItem() MorphOne CourseModuleItem
+    }
+
+    class Assignment {
+        +id
+        +course_id
+        +owner_id
+        +title
+        +assignment_type (quiz, essay, project, coding)
+        +max_score
+        +due_at
+        +visibility
+        +status_cache
+        +course() BelongsTo Course
+        +owner() BelongsTo User
+        +submissions() HasMany Submission
+        +moduleItem() MorphOne CourseModuleItem
+    }
+
+    class Assessment {
+        +id
+        +course_id
+        +created_by
+        +title
+        +type (quiz, exam, project)
+        +max_score
+        +time_limit
+        +randomize_questions
+        +course() BelongsTo Course
+        +creator() BelongsTo User
+        +questions() HasMany Question
+        +submissions() HasMany Submission
+        +moduleItem() MorphOne CourseModuleItem
+    }
+
+    class Question {
+        +id
+        +assessment_id
+        +question_text
+        +type (multiple_choice, true_false, short_answer, essay)
+        +options (JSON)
+        +correct_answer
+        +points
+        +assessment() BelongsTo Assessment
+    }
+
+    class Submission {
+        +id
+        +user_id
+        +assignment_id
+        +assessment_id
+        +score
+        +feedback
+        +status (pending, graded, resubmitted)
+        +user() BelongsTo User
+        +assignment() BelongsTo Assignment
+        +assessment() BelongsTo Assessment
+        +grade() HasOne Grade
+    }
+
+    class Grade {
+        +id
+        +user_id
+        +course_id
+        +submission_id
+        +assignment_id
+        +assessment_id
+        +score
+        +max_score
+        +grade_percentage
+        +feedback
+        +graded_at
+        +user() BelongsTo User
+        +course() BelongsTo Course
+        +submission() BelongsTo Submission
+        +assignment() BelongsTo Assignment
+        +assessment() BelongsTo Assessment
+    }
+
+    class GradesSummary {
+        +id
+        +user_id
+        +course_id
+        +total_score
+        +overall_percentage
+        +user() BelongsTo User
+        +course() BelongsTo Course
+    }
+
+    class Announcement {
+        +id
+        +course_id
+        +user_id
+        +title
+        +content
+        +course() BelongsTo Course
+        +user() BelongsTo User
+    }
+
+    class Discussion {
+        +id
+        +course_id
+        +user_id
+        +title
+        +content
+        +course() BelongsTo Course
+        +user() BelongsTo User
+        +comments() HasMany DiscussionComment
+    }
+
+    class DiscussionComment {
+        +id
+        +discussion_id
+        +user_id
+        +parent_id
+        +content
+        +discussion() BelongsTo Discussion
+        +user() BelongsTo User
+        +parent() BelongsTo DiscussionComment
+        +replies() HasMany DiscussionComment
+    }
+
+    class Article {
+        +id
+        +user_id
+        +title
+        +slug
+        +content
+        +status (draft, published)
+        +user() BelongsTo User
+        +comments() MorphMany Comment
+        +likes() MorphMany Like
+        +bookmarks() MorphMany Bookmark
+    }
+
+    class Comment {
+        +id
+        +user_id
+        +commentable_type
+        +commentable_id
+        +content
+        +user() BelongsTo User
+        +commentable() MorphTo
+    }
+
+    class Like {
+        +id
+        +user_id
+        +likeable_type
+        +likeable_id
+        +user() BelongsTo User
+        +likeable() MorphTo
+    }
+
+    class Bookmark {
+        +id
+        +user_id
+        +bookmarkable_type
+        +bookmarkable_id
+        +user() BelongsTo User
+        +bookmarkable() MorphTo
+    }
+
+    class Follow {
+        +id
+        +follower_id
+        +followed_id
+        +follower() BelongsTo User
+        +followed() BelongsTo User
+    }
+
+    class Notification {
+        +id (UUID)
+        +type
+        +notifiable_type
+        +notifiable_id
+        +data
+        +read_at
+        +notifiable() MorphTo
+    }
+
+    class Achievement {
+        +id
+        +user_id
+        +name
+        +description
+        +achieved_at
+        +user() BelongsTo User
+    }
+
+    class UserProgress {
+        +id
+        +user_id
+        +course_id
+        +course_module_item_id
+        +status (not_started, in_progress, completed)
+        +time_spent_seconds
+        +completed_at
+        +user() BelongsTo User
+        +course() BelongsTo Course
+        +courseModuleItem() BelongsTo CourseModuleItem
+    }
+
+    class EnrollmentRequest {
+        +id
+        +user_id
+        +course_id
+        +status (pending, approved, rejected)
+        +message
+        +user() BelongsTo User
+        +course() BelongsTo Course
+    }
+
+    User "1" -- "0..*" Course : created_by
+    User "1" -- "0..*" Assignment : owner_id
+    User "1" -- "0..*" Assessment : created_by
+    User "1" -- "0..*" Submission
+    User "1" -- "0..*" Grade
+    User "1" -- "0..*" GradesSummary
+    User "1" -- "0..*" Announcement
+    User "1" -- "0..*" Discussion
+    User "1" -- "0..*" DiscussionComment
+    User "1" -- "0..*" Article
+    User "1" -- "0..*" UserProgress
+    User "1" -- "0..*" EnrollmentRequest
+    User "1" -- "0..*" Achievement
+
+    Category "1" -- "0..*" Course
+
+    Course "1" -- "0..*" CourseModule
+    Course "1" -- "0..*" Assignment
+    Course "1" -- "0..*" Assessment
+    Course "1" -- "0..*" Announcement
+    Course "1" -- "0..*" Discussion
+    Course "1" -- "0..*" GradesSummary
+    Course "1" -- "0..*" UserProgress
+    Course "1" -- "0..*" EnrollmentRequest
+
+    CourseModule "1" -- "0..*" CourseModuleItem
+
+    CourseModuleItem "1" -- "1" Lecture : itemable
+    CourseModuleItem "1" -- "1" Assignment : itemable
+    CourseModuleItem "1" -- "1" Assessment : itemable
+
+    Assessment "1" -- "0..*" Question
+
+    Submission "1" -- "1" User
+    Submission "1" -- "0..1" Assignment
+    Submission "1" -- "0..1" Assessment
+    Submission "1" -- "0..1" Grade
+
+    Grade "1" -- "1" User
+    Grade "1" -- "1" Course
+    Grade "1" -- "0..1" Submission
+    Grade "1" -- "0..1" Assignment
+    Grade "1" -- "0..1" Assessment
+
+    GradesSummary "1" -- "1" User
+    GradesSummary "1" -- "1" Course
+
+    Discussion "1" -- "0..*" DiscussionComment
+    DiscussionComment "1" -- "0..1" DiscussionComment : parent_id
+
+    Article "1" -- "0..*" Comment : commentable
+    Lecture "1" -- "0..*" Comment : commentable
+    Assignment "1" -- "0..*" Comment : commentable
+    Assessment "1" -- "0..*" Comment : commentable
+    Discussion "1" -- "0..*" Comment : commentable
+    DiscussionComment "1" -- "0..*" Comment : commentable
+
+    Article "1" -- "0..*" Like : likeable
+    Lecture "1" -- "0..*" Like : likeable
+    Assignment "1" -- "0..*" Like : likeable
+    Assessment "1" -- "0..*" Like : likeable
+    Discussion "1" -- "0..*" Like : likeable
+    DiscussionComment "1" -- "0..*" Like : likeable
+    Comment "1" -- "0..*" Like : likeable
+
+    Article "1" -- "0..*" Bookmark : bookmarkable
+    Course "1" -- "0..*" Bookmark : bookmarkable
+    Lecture "1" -- "0..*" Bookmark : bookmarkable
+    Assignment "1" -- "0..*" Bookmark : bookmarkable
+    Assessment "1" -- "0..*" Bookmark : bookmarkable
+    Discussion "1" -- "0..*" Bookmark : bookmarkable
+
+    User "1" -- "0..*" Follow : follower_id
+    User "1" -- "0..*" Follow : followed_id
+
+    User "1" -- "0..*" Notification : notifiable
+
+    User "1" -- "0..*" UserProgress
+    Course "1" -- "0..*" UserProgress
+    CourseModuleItem "1" -- "0..*" UserProgress
+
+    User "1" -- "0..*" EnrollmentRequest
+    Course "1" -- "0..*" EnrollmentRequest
+
+    User "1" -- "0..*" Achievement
+
+    User "0..*" -- "0..*" Course : course_user_enrollments

@@ -151,7 +151,7 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
         <AppLayout>
             <Head title="User Management" />
 
-            <div className="space-y-6 pt-4">
+            <div className="space-y-6 p-6">
                 {/* Flash Messages */}
                 {flash?.success && (
                     <Alert>

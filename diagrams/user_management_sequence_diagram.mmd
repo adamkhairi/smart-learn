@@ -1,0 +1,31 @@
+sequenceDiagram
+    actor A as Administrateur
+    participant F as Frontend (Inertia)
+    participant LUC as Laravel (Admin\UserController)
+    participant UA as Laravel (User Actions)
+    participant UM as Laravel (User Model)
+
+    A->>F: Accède à /admin/users
+    F->>LUC: Requête GET /admin/users
+    LUC-->>F: Affiche la liste des utilisateurs
+    A->>F: Sélectionne action (Créer/Éditer/Supprimer)
+    alt Création/Édition
+        A->>F: Soumet formulaire utilisateur
+        F->>LUC: Requête POST/PUT /admin/users/{id}
+        LUC->>LUC: Valide données (UserRequest)
+        LUC->>UA: Exécute CreateUserAction/UpdateUserAction
+        UA->>UM: Manipule les données utilisateur
+        UM-->>UA: Données mises à jour
+        UA-->>LUC: Succès/Échec
+        LUC-->>F: Réponse Inertia (succès/échec)
+        F->>A: Met à jour la liste des utilisateurs
+    else Suppression
+        A->>F: Confirme suppression
+        F->>LUC: Requête DELETE /admin/users/{id}
+        LUC->>UA: Exécute DeleteUserAction
+        UA->>UM: Supprime l'utilisateur
+        UM-->>UA: Suppression réussie
+        UA-->>LUC: Succès
+        LUC-->>F: Réponse Inertia (succès)
+        F->>A: Met à jour la liste des utilisateurs
+    end

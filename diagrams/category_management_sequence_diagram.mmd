@@ -1,0 +1,26 @@
+sequenceDiagram
+    actor A as Administrateur
+    participant F as Frontend (Inertia)
+    participant LCC as Laravel (Admin\CategoryController)
+    participant LCM as Laravel (Category Model)
+
+    A->>F: Accède à /admin/categories
+    F->>LCC: Requête GET /admin/categories
+    LCC-->>F: Affiche la liste des catégories
+    A->>F: Sélectionne action (Créer/Éditer/Supprimer)
+    alt Création/Édition
+        A->>F: Soumet formulaire catégorie
+        F->>LCC: Requête POST/PUT /admin/categories/{id}
+        LCC->>LCC: Valide données (CategoryRequest)
+        LCC->>LCM: Manipule les données de catégorie
+        LCM-->>LCC: Données mises à jour
+        LCC-->>F: Réponse Inertia (succès/échec)
+        F->>A: Met à jour la liste des catégories
+    else Suppression
+        A->>F: Confirme suppression
+        F->>LCC: Requête DELETE /admin/categories/{id}
+        LCC->>LCM: Supprime la catégorie
+        LCM-->>LCC: Suppression réussie
+        LCC-->>F: Réponse Inertia (succès)
+        F->>A: Met à jour la liste des catégories
+    end

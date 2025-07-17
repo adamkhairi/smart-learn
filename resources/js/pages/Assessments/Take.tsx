@@ -134,6 +134,7 @@ export default function TakeAssessment({ course, assessment, submission, timeRem
     const currentQuestion = assessment.questions[currentQuestionIndex];
     const progressPercentage = ((currentQuestionIndex + 1) / assessment.questions.length) * 100;
     const answeredQuestions = Object.keys(answers).length;
+    const maxScore = assessment.questions.reduce((sum, q) => sum + q.points, 0); // Calculate max score
 
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -142,6 +143,7 @@ export default function TakeAssessment({ course, assessment, submission, timeRem
                 <div>
                     <h1 className="text-2xl font-bold">{assessment.title}</h1>
                     <p className="text-muted-foreground">Course: {course.name}</p>
+                    <p className="text-sm text-muted-foreground">Total Points: {maxScore}</p>{/* Display max score */}
                 </div>
                 <div className="flex items-center gap-4">
                     {timeLeft > 0 && (

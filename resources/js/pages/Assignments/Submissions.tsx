@@ -49,7 +49,7 @@ function Submissions({ assignment, submissions }: SubmissionsPageProps) {
         <AppLayout>
             <Head title={`Submissions for ${assignment.title}`} />
 
-            <div className="container mx-auto px-4 py-6">
+            <div className=" px-4 py-6">
                 <div className="mb-6 flex items-center justify-between">
                     <div>
                         <Button variant="ghost" size="sm" asChild>

@@ -37,7 +37,7 @@ export default function PublicShow({ course, hasPendingEnrollmentRequest }: Publ
         return (
             <AppLayout breadcrumbs={[]}>
                 <Head title="Course Not Found" />
-                <div className="container mx-auto px-4 py-6 text-center text-muted-foreground">
+                <div className=" px-4 py-6 text-center text-muted-foreground">
                     Course not found or inaccessible.
                 </div>
             </AppLayout>
@@ -60,7 +60,7 @@ export default function PublicShow({ course, hasPendingEnrollmentRequest }: Publ
     return (
         <LayoutComponent breadcrumbs={breadcrumbs(course.name)}>
             <Head title={course.name} />
-            <div className="container mx-auto py-6">
+            <div className=" py-6">
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between">
                     <Button variant="ghost" asChild>

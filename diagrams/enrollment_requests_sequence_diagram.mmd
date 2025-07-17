@@ -1,0 +1,15 @@
+sequenceDiagram
+    actor A as Administrateur
+    participant F as Frontend (Inertia)
+    participant LERC as Laravel (Admin\EnrollmentRequestController)
+    participant LCM as Laravel (Course Model)
+
+    A->>F: Accède à /admin/enrollment-requests
+    F->>LERC: Requête GET /admin/enrollment-requests
+    LERC-->>F: Affiche la liste des demandes en attente
+    A->>F: Sélectionne une demande (Approuver/Rejeter)
+    F->>LERC: Requête POST/DELETE /admin/enrollment-requests/{id}
+    LERC->>LCM: Appelle Course->enroll() ou met à jour le statut
+    LCM-->>LERC: Statut mis à jour
+    LERC-->>F: Réponse Inertia (succès)
+    F->>A: Met à jour la liste des demandes

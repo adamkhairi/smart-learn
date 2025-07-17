@@ -88,7 +88,7 @@ export default function Show({ course, progress, progressRecords }: CourseProgre
         <AppLayout breadcrumbs={breadcrumbs(course.name, course.id)}>
             <Head title={`${course.name} - Progress`} />
 
-            <div className="container mx-auto px-4 py-8">
+            <div className=" px-4 py-8">
                 <div className="mb-6">
                     <Button
                         variant="ghost"

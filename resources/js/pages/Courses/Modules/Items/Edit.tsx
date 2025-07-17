@@ -11,6 +11,43 @@ import { Head, useForm } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { Eye, Settings, Target, BookOpen, FileQuestion, Clipboard } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
+import InputError from '@/components/input-error';
+
+interface ModuleItemFormData {
+    title: string;
+    description: string;
+    item_type: 'lecture' | 'assessment' | 'assignment';
+    order: number;
+    is_required: boolean;
+    status: 'draft' | 'published';
+    video_url: string;
+    duration: string;
+    content_json: string;
+    content_html: string;
+    assessment_title: string;
+    max_score: string;
+    assessment_type: 'Quiz' | 'Exam';
+    questions_type: 'online' | 'file';
+    submission_type: 'online' | 'written';
+    assignment_title: string;
+    total_points: string;
+    assignment_type: 'essay' | 'project';
+    started_at: string;
+    expired_at: string;
+    assignment_content_json: string;
+    assignment_content_html: string;
+    assignment_instructions_json: string;
+    assignment_instructions_html: string;
+    assignment_rubric_json: string;
+    assignment_rubric_html: string;
+    assessment_content_json: string;
+    assessment_content_html: string;
+    assessment_instructions_json: string;
+    assessment_instructions_html: string;
+    questions: string; // JSON string
+    [key: string]: unknown; // Add index signature
+}
 
 function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
     // Helper function to get item type from polymorphic relationship
@@ -64,12 +101,12 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 content_html: lecture.content_html || '',
                 assessment_title: '',
                 max_score: '',
-                assessment_type: 'Quiz' as 'Quiz' | 'Exam' | 'Project',
+                assessment_type: 'Quiz' as 'Quiz' | 'Exam',
                 questions_type: 'online' as 'online' | 'file',
                 submission_type: 'online' as 'online' | 'written',
                 assignment_title: '',
                 total_points: '',
-                assignment_type: '',
+                assignment_type: 'essay' as 'essay' | 'project',
                 started_at: '',
                 expired_at: '',
                 // Assignment content fields
@@ -91,15 +128,15 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             const assessment = item.itemable as Assessment;
             console.log('Assessment data:', assessment);
             console.log('Assessment type from data:', assessment.type);
-            const validAssessmentTypes = ['Quiz', 'Exam', 'Project'];
+            const validAssessmentTypes = ['Quiz', 'Exam'];
             const initialAssessmentType = validAssessmentTypes.includes(assessment.type)
-                ? (assessment.type as 'Quiz' | 'Exam' | 'Project')
+                ? (assessment.type as 'Quiz' | 'Exam')
                 : 'Quiz'; // Default to 'Quiz' if invalid
             console.log('Initial assessment type:', initialAssessmentType);
             return {
                 ...baseData,
                 video_url: '',
-                duration: '',
+                duration: assessment.duration?.toString() || '',
                 content: '',
                 content_json: '',
                 content_html: '',
@@ -110,7 +147,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 submission_type: (assessment.submission_type as 'online' | 'written') || 'online',
                 assignment_title: '',
                 total_points: '',
-                assignment_type: '',
+                assignment_type: 'essay' as 'essay' | 'project',
                 started_at: '',
                 expired_at: '',
                 // Assignment content fields
@@ -130,6 +167,10 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             };
         } else if (itemType === 'assignment' && item.itemable) {
             const assignment = item.itemable as Assignment;
+            const validAssignmentTypes = ['essay', 'project'];
+            const initialAssignmentType = validAssignmentTypes.includes(assignment.assignment_type!)
+                ? (assignment.assignment_type as 'essay' | 'project')
+                : 'essay'; // Default to 'essay' if invalid
             return {
                 ...baseData,
                 video_url: '',
@@ -139,12 +180,12 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 content_html: '',
                 assessment_title: '',
                 max_score: '',
-                assessment_type: 'Quiz' as 'Quiz' | 'Exam' | 'Project',
+                assessment_type: 'Quiz' as 'Quiz' | 'Exam',
                 questions_type: 'online' as 'online' | 'file',
                 submission_type: 'online' as 'online' | 'written',
                 assignment_title: assignment.title || '',
                 total_points: assignment.total_points?.toString() || '',
-                assignment_type: assignment.assignment_type || '',
+                assignment_type: initialAssignmentType,
                 started_at: assignment.started_at ? assignment.started_at.slice(0, 16) : '',
                 expired_at: assignment.expired_at ? assignment.expired_at.slice(0, 16) : '',
                 // Assignment content fields
@@ -174,12 +215,12 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             content_html: '',
             assessment_title: '',
             max_score: '',
-                            assessment_type: 'Quiz' as 'Quiz' | 'Exam' | 'Project',
+            assessment_type: 'Quiz' as 'Quiz' | 'Exam',
             questions_type: 'online' as 'online' | 'file',
             submission_type: 'online' as 'online' | 'written',
             assignment_title: '',
             total_points: '',
-            assignment_type: '',
+            assignment_type: 'essay' as 'essay' | 'project',
             started_at: '',
             expired_at: '',
             // Assignment content fields
@@ -199,11 +240,11 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
         };
     };
 
-    const initialData = getInitialData();
+    const initialData: ModuleItemFormData = getInitialData();
     console.log('Initial form data:', initialData);
     console.log('Assessment type in initial data:', initialData.assessment_type);
 
-    const { data, setData, put, processing } = useForm(initialData);
+    const { data, setData, put, processing, errors } = useForm<ModuleItemFormData>(initialData);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Courses', href: '/courses' },
@@ -303,7 +344,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                         </a>
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-bold">Edit Module Item</h1>
+                        <h1 className="text-2xl font-bold">Edit Module Item {item.title}</h1>
                         <p className="text-muted-foreground">Update the details for this module item</p>
                     </div>
                 </div>
@@ -351,13 +392,21 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                     <label className="block text-sm font-medium mb-1">Max Score</label>
                                                     <Input type="number" value={data.max_score} onChange={e => setData('max_score', e.target.value)} min={1} />
                                                 </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium mb-1">Assessment Type</label>
-                                                    <select className="border rounded-md px-3 py-2 w-full" value={data.assessment_type} onChange={e => setData('assessment_type', e.target.value as 'Quiz' | 'Exam' | 'Project')}>
-                                                        <option value="Quiz">Quiz</option>
-                                                        <option value="Exam">Exam</option>
-                                                        <option value="Project">Project</option>
-                                                    </select>
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="assessment_type" className="text-base font-medium">Assessment Type</Label>
+                                                    <Select
+                                                        value={data.assessment_type}
+                                                        onValueChange={(value) => setData('assessment_type', value as 'Quiz' | 'Exam')}
+                                                    >
+                                                        <SelectTrigger id="assessment_type" className="mt-2 h-12 text-base">
+                                                            <SelectValue placeholder="Select assessment type" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Quiz">Quiz</SelectItem>
+                                                            <SelectItem value="Exam">Exam</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <InputError message={errors.assessment_type} />
                                                 </div>
                                             </div>
                                             <RichTextEditor label="Instructions" value={data.assessment_instructions_json ? JSON.parse(data.assessment_instructions_json) : ''} onChange={(json, html) => { setData('assessment_instructions_json', json); setData('assessment_instructions_html', html); }} />
@@ -384,6 +433,22 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                             <div>
                                                 <label className="block text-sm font-medium mb-1">Total Points</label>
                                                 <Input type="number" value={data.total_points} onChange={e => setData('total_points', e.target.value)} min={1} />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="assignment_type" className="text-base font-medium">Assignment Type</Label>
+                                                <Select
+                                                    value={data.assignment_type}
+                                                    onValueChange={(value) => setData('assignment_type', value as 'essay' | 'project')}
+                                                >
+                                                    <SelectTrigger id="assignment_type" className="mt-2 h-12 text-base">
+                                                        <SelectValue placeholder="Select assignment type" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="essay">Essay</SelectItem>
+                                                        <SelectItem value="project">Project</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <InputError message={errors.assignment_type} />
                                             </div>
                                             <RichTextEditor label="Instructions" value={data.assignment_instructions_json ? JSON.parse(data.assignment_instructions_json) : ''} onChange={(json, html) => { setData('assignment_instructions_json', json); setData('assignment_instructions_html', html); }} />
                                             <RichTextEditor label="Rubric (optional)" value={data.assignment_rubric_json ? JSON.parse(data.assignment_rubric_json) : ''} onChange={(json, html) => { setData('assignment_rubric_json', json); setData('assignment_rubric_html', html); }} />
