@@ -35,7 +35,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
 
     // State for search and filtering
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
-    const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'archived'>(filters.status as 'all' | 'published' | 'archived' || 'all');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'archived' | 'my_courses'>(filters.status as 'all' | 'published' | 'archived' || 'all');
 
     const debouncedSearchQuery = useDebounce(searchQuery, 500);
     const debouncedStatusFilter = useDebounce(statusFilter, 500);
@@ -70,7 +70,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
             course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             course.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
-        const matchesStatus = statusFilter === 'all' || course.status === statusFilter;
+        const matchesStatus = statusFilter === 'all' || course.status === statusFilter || (statusFilter === 'my_courses' && course.pivot?.enrolled_as === 'student');
 
         return matchesSearch && matchesStatus;
     });
@@ -146,13 +146,16 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                 <DropdownMenuItem onClick={() => setStatusFilter('all')}>All Status</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setStatusFilter('published')}>Published</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setStatusFilter('archived')}>Archived</DropdownMenuItem>
+                                {isStudent && (
+                                    <DropdownMenuItem onClick={() => setStatusFilter('my_courses')}>My Courses</DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
                 ) : null}
 
                 {/* Results Summary */}
-                {courses.data && (searchQuery || statusFilter !== 'all') && (
+                {(courses.data && courses.meta && (searchQuery || statusFilter !== 'all')) ? (
                     <div className="text-sm text-muted-foreground">
                         {coursesToDisplay.length === 0 ? (
                             <span>No courses found matching your criteria.</span>
@@ -163,7 +166,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                             </span>
                         )}
                     </div>
-                )}
+                ) : null}
 
                 {/* Course Grid - Enhanced Responsive Layout */}
                 {coursesToDisplay.length === 0 ? (
