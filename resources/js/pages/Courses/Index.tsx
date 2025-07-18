@@ -222,7 +222,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                     )}
                                     <div className="absolute top-2 right-2 z-10 flex gap-1">
                                         <CourseStatusBadge status={course.status} />
-                                        {course.is_private && (
+                                        {course.is_private === true && (
                                             <Badge variant="outline" className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
                                                 Private
                                             </Badge>
