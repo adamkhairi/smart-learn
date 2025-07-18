@@ -38,11 +38,7 @@ export const adminNavItems: NavItem[] = [
 ];
 
 export const footerNavItems: NavItem[] = [
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
+
 ];
 
 export const rightNavItems: NavItem[] = [
