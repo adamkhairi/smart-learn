@@ -5,7 +5,7 @@ import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import SmoothAnchor from '@/components/smooth-anchor';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowRight, BookOpen, Users, Award, CheckCircle, Star, Play, Zap, Shield, Globe, Heart } from 'lucide-react';
+import { ArrowRight, BookOpen, Users, Award, Star, Play, Zap, Shield, Globe, Heart } from 'lucide-react';
 
 export default function Landing() {
     const { auth } = usePage<SharedData>().props;
@@ -84,9 +84,9 @@ export default function Landing() {
                     <div className="mx-auto grid max-w-7xl items-center gap-16 px-4 md:px-8 lg:grid-cols-2">
                         {/* Copy */}
                         <div className="text-center lg:text-left">
-                            <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#FFEFEA] px-4 py-2 text-xs font-medium text-[#f53003] dark:bg-[#2A1A17] dark:text-[#FF4433]">
+                            {/* <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#FFEFEA] px-4 py-2 text-xs font-medium text-[#f53003] dark:bg-[#2A1A17] dark:text-[#FF4433]">
                                 🚀 Launch your learning journey
-                            </span>
+                            </span> */}
                             <h1 className="mb-6 text-4xl leading-tight font-extrabold tracking-tight sm:text-5xl md:text-6xl">
                                 Learn&nbsp;
                                 <span className="bg-gradient-to-r from-[#f53003] to-[#FF9C33] bg-clip-text text-transparent dark:from-[#FF4433] dark:to-[#FF9C33]">
@@ -119,7 +119,7 @@ export default function Landing() {
                                     href={route('register')}
                                     className="group inline-flex items-center gap-2 rounded-lg bg-[#f53003] px-8 py-3 font-medium text-white shadow-lg hover:bg-[#d92b02] dark:bg-[#FF4433] dark:hover:bg-[#e83b29] transition-all hover:shadow-xl"
                                 >
-                                    Start Learning – Free
+                                    Start Learning
                                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                                 </Link>
                                 <Link
@@ -256,78 +256,6 @@ export default function Landing() {
                                             <div className="text-sm text-[#706f6c] dark:text-[#A1A09A]">{testimonial.role}</div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-
-                {/* Pricing */}
-                <section id="pricing" className="py-24">
-                    <div className="mx-auto w-full max-w-7xl px-4 md:px-8">
-                        <div className="text-center mb-16">
-                            <h2 className="mb-3 text-3xl font-semibold sm:text-4xl">Simple Pricing</h2>
-                            <p className="mx-auto max-w-2xl text-[#706f6c] dark:text-[#A1A09A]">
-                                Start free. Upgrade whenever you need more power.
-                            </p>
-                        </div>
-
-                        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                            {[
-                                {
-                                    name: 'Starter',
-                                    price: '$0',
-                                    desc: 'Get access to all free courses and community forums.',
-                                    features: ['Unlimited free courses', 'Community support', 'Basic progress tracking', 'Mobile access'],
-                                    highlight: false,
-                                },
-                                {
-                                    name: 'Pro',
-                                    price: '$19/mo',
-                                    desc: 'Unlock advanced courses and personalized analytics.',
-                                    features: ['Everything in Starter', 'Premium courses', 'Detailed analytics', 'Certificates', 'Priority support'],
-                                    highlight: true,
-                                },
-                                {
-                                    name: 'Team',
-                                    price: '$49/mo',
-                                    desc: 'Collaborative learning for teams and classrooms.',
-                                    features: ['Everything in Pro', 'Team analytics', 'Group projects', 'Dedicated support', 'Custom branding'],
-                                    highlight: false,
-                                },
-                            ].map((plan) => (
-                                <div
-                                    key={plan.name}
-                                    className={`relative flex flex-col overflow-hidden rounded-xl border p-6 shadow-sm transition-all hover:shadow-lg dark:border-[#3E3E3A] dark:bg-[#161615] ${
-                                        plan.highlight ? 'border-[#f53003] ring-2 ring-[#f53003]/40 dark:border-[#FF4433] scale-105' : 'border-[#e3e3e0]'
-                                    }`}
-                                >
-                                    {plan.highlight && (
-                                        <span className="absolute top-4 right-4 rounded-full bg-[#f53003] px-3 py-1 text-xs font-medium text-white dark:bg-[#FF4433]">
-                                            Popular
-                                        </span>
-                                    )}
-                                    <h3 className="mb-4 text-xl font-semibold">{plan.name}</h3>
-                                    <p className="mb-6 text-3xl font-bold">{plan.price}</p>
-                                    <p className="mb-6 text-sm leading-relaxed text-[#706f6c] dark:text-[#A1A09A]">{plan.desc}</p>
-                                    <ul className="mb-8 flex flex-col gap-3 text-sm">
-                                        {plan.features.map((f) => (
-                                            <li key={f} className="flex items-center gap-2">
-                                                <CheckCircle className="h-4 w-4 text-[#f53003] dark:text-[#FF4433]" />
-                                                {f}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                    <Link
-                                        href={route('register')}
-                                        className={`mt-auto inline-block rounded-lg px-6 py-3 text-center text-sm font-medium text-white shadow transition-all hover:shadow-lg ${
-                                            plan.highlight
-                                                ? 'bg-[#f53003] hover:bg-[#d92b02] dark:bg-[#FF4433] dark:hover:bg-[#e83b29]'
-                                                : 'bg-[#1b1b18] hover:bg-black dark:bg-[#EDEDEC] dark:text-[#1b1b18]'
-                                        }`}
-                                    >
-                                        {plan.highlight ? 'Get Pro' : 'Get Started'}
-                                    </Link>
                                 </div>
                             ))}
                         </div>

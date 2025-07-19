@@ -9,7 +9,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Assessment, Assignment, BreadcrumbItem, CourseModuleItemEditPageProps, Lecture, QuestionFormData } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, Settings, Target, BookOpen, FileQuestion, Clipboard } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
 import InputError from '@/components/input-error';
@@ -45,8 +45,8 @@ interface ModuleItemFormData {
     assessment_content_html: string;
     assessment_instructions_json: string;
     assessment_instructions_html: string;
-    questions: string; // JSON string
-    [key: string]: unknown; // Add index signature
+    questions: string; // JSON string, now always present
+    [key: string]: FormDataConvertible; // Re-added with precise type
 }
 
 function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
@@ -121,8 +121,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 assessment_content_html: '',
                 assessment_instructions_json: '',
                 assessment_instructions_html: '',
-                // Questions field for assessments
-                questions: '[]',
+                questions: '[]', // Always initialize as empty array
             };
         } else if (itemType === 'assessment' && item.itemable) {
             const assessment = item.itemable as Assessment;
@@ -162,8 +161,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 assessment_content_html: assessment.content_html || '',
                 assessment_instructions_json: assessment.instructions ? JSON.stringify(assessment.instructions) : '',
                 assessment_instructions_html: '',
-                // Questions field for assessments
-                questions: '[]',
+                questions: questions.length > 0 ? JSON.stringify(questions) : '[]', // Use existing questions if available, else empty array
             };
         } else if (itemType === 'assignment' && item.itemable) {
             const assignment = item.itemable as Assignment;
@@ -200,8 +198,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                 assessment_content_html: '',
                 assessment_instructions_json: '',
                 assessment_instructions_html: '',
-                // Questions field for assessments
-                questions: '[]',
+                questions: '[]', // Always initialize as empty array
             };
         }
 
@@ -235,8 +232,7 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             assessment_content_html: '',
             assessment_instructions_json: '',
             assessment_instructions_html: '',
-            // Questions field for assessments
-            questions: '[]',
+            questions: '[]', // Always initialize as empty array
         };
     };
 
@@ -245,6 +241,14 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
     console.log('Assessment type in initial data:', initialData.assessment_type);
 
     const { data, setData, put, processing, errors } = useForm<ModuleItemFormData>(initialData);
+
+    // Effect to keep questions data in sync with form data
+    // This ensures `data.questions` always reflects the latest `questions` state
+    useEffect(() => {
+        if (itemType === 'assessment') {
+            setData('questions', JSON.stringify(questions));
+        }
+    }, [questions, itemType, setData]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Courses', href: '/courses' },

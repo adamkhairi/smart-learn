@@ -94,8 +94,8 @@ class UpdateCourseModuleItemAction
 
     private function updateAssessmentQuestions(Assessment $assessment, $questionsData): void
     {
-        // Delete existing questions
-        $assessment->questions()->delete();
+        $existingQuestionIds = $assessment->questions()->pluck('id')->toArray();
+        $updatedQuestionIds = [];
 
         // Handle both string and array inputs
         $questions = [];
@@ -109,20 +109,44 @@ class UpdateCourseModuleItemAction
             return;
         }
 
-        // Create new questions
         foreach ($questions as $index => $questionData) {
-            Question::create([
-                'assessment_id' => $assessment->id,
-                'type' => $questionData['type'],
-                'question_number' => $index + 1,
-                'points' => $questionData['points'],
-                'question_text' => $questionData['question_text'],
-                'auto_graded' => $questionData['type'] === 'MCQ',
-                'choices' => $questionData['choices'] ?? null,
-                'answer' => $questionData['answer'] ?? null,
-                'keywords' => $questionData['keywords'] ?? null,
-                'text_match' => false,
-            ]);
+            $questionId = $questionData['id'] ?? null;
+
+            if ($questionId && in_array($questionId, $existingQuestionIds)) {
+                // Update existing question
+                Question::where('id', $questionId)->update([
+                    'type' => $questionData['type'],
+                    'question_number' => $index + 1,
+                    'points' => $questionData['points'],
+                    'question_text' => $questionData['question_text'],
+                    'auto_graded' => $questionData['type'] === 'MCQ',
+                    'choices' => $questionData['choices'] ?? null,
+                    'answer' => $questionData['answer'] ?? null,
+                    'keywords' => $questionData['keywords'] ?? null,
+                    'text_match' => false,
+                ]);
+                $updatedQuestionIds[] = $questionId;
+            } else {
+                // Create new question
+                Question::create([
+                    'assessment_id' => $assessment->id,
+                    'type' => $questionData['type'],
+                    'question_number' => $index + 1,
+                    'points' => $questionData['points'],
+                    'question_text' => $questionData['question_text'],
+                    'auto_graded' => $questionData['type'] === 'MCQ',
+                    'choices' => $questionData['choices'] ?? null,
+                    'answer' => $questionData['answer'] ?? null,
+                    'keywords' => $questionData['keywords'] ?? null,
+                    'text_match' => false,
+                ]);
+            }
+        }
+
+        // Delete questions that were not included in the updated data
+        $questionsToDelete = array_diff($existingQuestionIds, $updatedQuestionIds);
+        if (!empty($questionsToDelete)) {
+            Question::whereIn('id', $questionsToDelete)->delete();
         }
     }
 }
