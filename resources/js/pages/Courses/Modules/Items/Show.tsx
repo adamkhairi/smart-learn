@@ -144,7 +144,7 @@ function Show({ course, module, item, userSubmission, completedItems = [] }: Sho
         <AppLayout breadcrumbs={navigationItems}>
             <Head title={`${item.title} - ${module.title} - ${course.name}`} />
 
-            <div className="container mx-auto max-w-7xl px-4 py-6">
+            <div className="px-4 py-6">
                 {/* Page Header */}
                 <ItemHeader
                     course={course}

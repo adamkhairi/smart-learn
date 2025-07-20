@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
+import { ActionMenu, commonActions } from '@/components/ui/action-button';
+import { PageHeader, commonActions as pageActions } from '@/components/ui/page-header';
+import { SearchFilterBar } from '@/components/ui/search-filter-bar';
 import { useAuth } from '@/hooks/use-auth';
 import useDebounce from '@/hooks/use-debounce';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -14,8 +15,8 @@ import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem, Course, CoursesPageProps } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { formatDistanceToNow } from 'date-fns';
-import { BookOpen, Calendar, Edit, Eye, Filter, MoreVertical, Plus, Search, Trash2, Users } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { BookOpen, Calendar, Plus, Users } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -29,7 +30,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
     const isMobile = useIsMobile();
     const canCreateCourse = userRole === 'admin' || userRole === 'instructor';
 
-    // Initialize confirmation dialog and toast
+    // Initialize confirmation dialog
     const { confirm, confirmDialog } = useConfirmDialog();
 
     // State for search and filtering
@@ -68,14 +69,6 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
     // Filter enrolled courses for students
     const enrolledCourses = isStudent ? courses.data.filter((course) => course.pivot?.enrolled_as === 'student') : [];
 
-    // Debug logging
-    console.log('Debug - User:', user);
-    console.log('Debug - Is Student:', isStudent);
-    console.log('Debug - All Courses:', courses.data);
-    console.log('Debug - Enrolled Courses:', enrolledCourses);
-    console.log('Debug - Status Filter:', statusFilter);
-    console.log('Debug - Search Query:', searchQuery);
-
     // Filter and search courses directly in render
     const coursesToDisplay = courses.data.filter((course) => {
         const matchesSearch =
@@ -107,80 +100,62 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
         return canManageCourse(course.created_by);
     };
 
-    console.log('courses', courses);
+    // Memoize search filter options
+    const searchFilterOptions = useMemo(() => [
+        { value: 'all', label: 'All Status' },
+        { value: 'published', label: 'Published' },
+        { value: 'archived', label: 'Archived' },
+        ...(isStudent ? [{ value: 'my_courses', label: 'My Courses' }] : []),
+    ], [isStudent]);
 
-    // Additional course data debugging
-    courses.data.forEach((course, index) => {
-        if (course.pivot) {
-            console.log(`Course ${index} (${course.name}) pivot data:`, course.pivot);
-        }
-    });
+    // Memoize page header actions
+    const pageHeaderActions = useMemo(() => {
+        if (!canCreateCourse) return null;
+        return pageActions.create('/courses/create', 'Create Course', <Plus className="mr-2 h-4 w-4" />);
+    }, [canCreateCourse]);
+
+    // Handle status filter change with proper typing
+    const handleStatusFilterChange = (value: string) => {
+        setStatusFilter(value as 'all' | 'published' | 'archived' | 'my_courses');
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Courses" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4 lg:gap-6 lg:p-6">
-                {/* Enhanced Header with Search and Filters */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0 flex-1">
-                        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">Courses</h1>
-                        <p className="text-sm text-muted-foreground sm:text-base">Manage your learning journey</p>
-                    </div>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                        {canCreateCourse && (
-                            <Button asChild size={isMobile ? 'sm' : 'default'}>
-                                <Link href="/courses/create">
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    <span className="hidden sm:inline">Create Course</span>
-                                    <span className="sm:hidden">Create</span>
-                                </Link>
-                            </Button>
-                        )}
-                    </div>
-                </div>
+                {/* Page Header */}
+                <PageHeader
+                    title="Courses"
+                    description="Manage your learning journey"
+                    actions={pageHeaderActions}
+                />
 
-                {/* Search and Filter Bar - Enhanced for Mobile */}
+                {/* Search and Filter Bar */}
                 {(courses.data && courses.data.length > 0) || searchQuery || statusFilter !== 'all' ? (
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                        {/* Search Input */}
-                        <div className="relative w-full flex-1">
-                            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Search courses..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="h-9 pl-9 sm:h-10"
-                            />
-                        </div>
-
-                        {/* Status Filter */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size={isMobile ? 'sm' : 'default'} className="min-w-[120px] justify-start">
-                                    <Filter className="mr-2 h-4 w-4" />
-                                    <span className="capitalize">{statusFilter === 'all' ? 'All Status' : statusFilter}</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40">
-                                <DropdownMenuItem onClick={() => setStatusFilter('all')}>All Status</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setStatusFilter('published')}>Published</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setStatusFilter('archived')}>Archived</DropdownMenuItem>
-                                {isStudent && <DropdownMenuItem onClick={() => setStatusFilter('my_courses')}>My Courses</DropdownMenuItem>}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
+                    <SearchFilterBar
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        searchPlaceholder="Search courses..."
+                        filters={[
+                            {
+                                key: 'status',
+                                value: statusFilter,
+                                label: 'Status',
+                                options: searchFilterOptions,
+                                onChange: handleStatusFilterChange,
+                            },
+                        ]}
+                        showClearButton={true}
+                        onClear={() => {
+                            setSearchQuery('');
+                            setStatusFilter('all');
+                        }}
+                    />
                 ) : null}
 
                 {/* My Enrolled Courses Section - Only for Students */}
                 {(() => {
                     const showEnrolledSection = isStudent && enrolledCourses.length > 0 && statusFilter === 'all' && !searchQuery;
-                    console.log('Debug - Show Enrolled Section Conditions:', {
-                        isStudent,
-                        enrolledCoursesLength: enrolledCourses.length,
-                        statusFilter,
-                        searchQuery,
-                        showEnrolledSection,
-                    });
                     return showEnrolledSection;
                 })() && (
                     <div className="space-y-4">
@@ -203,96 +178,58 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                                 />
                                             </AspectRatio>
                                         ) : (
-                                            <div
-                                                className="flex h-full w-full items-center justify-center"
-                                                style={{ backgroundColor: course.background_color || '#f3f4f6' }}
-                                            >
-                                                <span className="text-2xl font-bold text-white opacity-70">
-                                                    {course.name.charAt(0).toUpperCase()}
-                                                </span>
+                                            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900">
+                                                <BookOpen className="h-12 w-12 text-blue-500 dark:text-blue-400" />
                                             </div>
                                         )}
-                                        <div className="absolute top-2 right-2 z-10">
-                                            <Badge className="bg-primary text-xs text-primary-foreground">Enrolled</Badge>
-                                        </div>
                                     </Link>
-                                    <CardContent className="flex flex-1 flex-col p-3">
-                                        <h3 className="text-sm leading-tight font-medium">
-                                            <Link href={route('courses.show', course.id)} className="hover:underline">
-                                                {course.name}
-                                            </Link>
-                                        </h3>
-                                        <p className="mt-1 line-clamp-2 flex-1 text-xs text-muted-foreground">
-                                            {course.description || 'No description provided.'}
-                                        </p>
+                                    <CardContent className="flex flex-1 flex-col p-4">
+                                        <div className="mb-2 flex items-start justify-between gap-2">
+                                            <h3 className="line-clamp-2 flex-1 font-semibold leading-tight">
+                                                <Link href={route('courses.show', course.id)} className="hover:text-primary">
+                                                    {course.name}
+                                                </Link>
+                                            </h3>
+                                            <div>
+                                                <CourseRoleBadge course={course} user={user} />
+                                            </div>
+                                        </div>
+                                        {course.description && (
+                                            <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
+                                                {course.description}
+                                            </p>
+                                        )}
+                                        <div className="mt-auto flex items-center justify-between text-xs text-muted-foreground">
+                                            <span className="flex items-center gap-1">
+                                                <Users className="h-3 w-3" />
+                                                {course.enrollments_count || 0} students
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <Calendar className="h-3 w-3" />
+                                                {formatDistanceToNow(new Date(course.created_at), { addSuffix: true })}
+                                            </span>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             ))}
                         </div>
-                        {enrolledCourses.length > 4 && (
-                            <div className="text-center">
-                                <Button variant="outline" size="sm" onClick={() => setStatusFilter('my_courses')}>
-                                    View All My Courses ({enrolledCourses.length})
-                                </Button>
-                            </div>
-                        )}
-                        <div className="border-t pt-4">
-                            <h2 className="mb-4 text-xl font-semibold">Discover More Courses</h2>
-                        </div>
                     </div>
                 )}
 
-                {/* Results Summary */}
-                {courses.data && courses.meta && (searchQuery || statusFilter !== 'all') ? (
-                    <div className="text-sm text-muted-foreground">
-                        {coursesToDisplay.length === 0 ? (
-                            <span>No courses found matching your criteria.</span>
-                        ) : (
-                            <span>
-                                {coursesToDisplay.length} of {courses.meta.total} courses
-                                {(searchQuery || statusFilter !== 'all') && ` matching current filters`}
-                            </span>
-                        )}
-                    </div>
-                ) : null}
+                {/* All Courses Grid */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {coursesToDisplay.map((course) => {
+                        const actionItems = [
+                            commonActions.view(() => router.visit(route('courses.show', course.id))),
+                            ...(canEditCourse(course) ? [
+                                commonActions.edit(() => router.visit(route('courses.edit', course.id))),
+                                commonActions.delete(() => handleDelete(course.id, course.name)),
+                            ] : []),
+                        ];
 
-                {/* Course Grid - Enhanced Responsive Layout */}
-                {coursesToDisplay.length === 0 ? (
-                    <Card>
-                        <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16">
-                            <BookOpen className="mb-4 h-12 w-12 text-muted-foreground sm:h-16 sm:w-16" />
-                            <h3 className="mb-2 text-lg font-semibold sm:text-xl">
-                                {searchQuery || statusFilter !== 'all' ? 'No courses match your criteria' : 'No courses found'}
-                            </h3>
-                            <p className="mb-6 max-w-md text-center text-sm text-muted-foreground sm:text-base">
-                                {searchQuery || statusFilter !== 'all'
-                                    ? "Try adjusting your search terms or filters to find what you're looking for."
-                                    : canCreateCourse
-                                      ? 'Get started by creating your first course'
-                                      : "You haven't enrolled in any courses yet"}
-                            </p>
-                            {!searchQuery && statusFilter === 'all' && canCreateCourse && (
-                                <Button asChild>
-                                    <Link href="/courses/create">
-                                        <Plus className="mr-2 h-4 w-4" /> Create Course
-                                    </Link>
-                                </Button>
-                            )}
-                        </CardContent>
-                    </Card>
-                ) : (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {coursesToDisplay.map((course) => (
+                        return (
                             <Card key={course.id} className="group flex flex-col overflow-hidden">
-                                <Link
-                                    href={
-                                        user === null || (isStudent && !course.pivot?.enrolled_as && !course.is_private)
-                                            ? route('courses.public_show', course.id)
-                                            : route('courses.show', course.id)
-                                    }
-                                    className="relative block h-40 overflow-hidden"
-                                    tabIndex={-1}
-                                >
+                                <Link href={route('courses.show', course.id)} className="relative block h-32 overflow-hidden" tabIndex={-1}>
                                     {course.image ? (
                                         <AspectRatio ratio={16 / 9}>
                                             <img
@@ -302,120 +239,78 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                             />
                                         </AspectRatio>
                                     ) : (
-                                        <div
-                                            className="flex h-full w-full items-center justify-center"
-                                            style={{ backgroundColor: course.background_color || '#f3f4f6' }}
-                                        >
-                                            <span className="text-4xl font-bold text-white opacity-70">{course.name.charAt(0).toUpperCase()}</span>
+                                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900">
+                                            <BookOpen className="h-12 w-12 text-blue-500 dark:text-blue-400" />
                                         </div>
                                     )}
-                                    <div className="absolute top-2 right-2 z-10 flex gap-1">
-                                        {!isStudent || course.status !== 'published' ? (
-                                            <CourseStatusBadge status={course.status} />
-                                        ) : null}
-                                        {course.is_private === true && (
-                                            <Badge variant="outline" className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-                                                Private
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    {/* Use the new CourseRoleBadge component */}
-                                    <div className="absolute bottom-2 left-2 z-10">
-                                        <CourseRoleBadge course={course} user={user} />
-                                    </div>
                                 </Link>
                                 <CardContent className="flex flex-1 flex-col p-4">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-lg leading-tight font-semibold">
-                                            <Link
-                                                href={
-                                                    user === null || (isStudent && !course.pivot?.enrolled_as && !course.is_private)
-                                                        ? route('courses.public_show', course.id)
-                                                        : route('courses.show', course.id)
-                                                }
-                                                className="hover:underline"
-                                            >
+                                    <div className="mb-2 flex items-start justify-between gap-2">
+                                        <h3 className="line-clamp-2 flex-1 font-semibold leading-tight">
+                                            <Link href={route('courses.show', course.id)} className="hover:text-primary">
                                                 {course.name}
                                             </Link>
                                         </h3>
-                                        {canEditCourse(course) && (
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                        <span className="sr-only">Open menu</span>
-                                                        <MoreVertical className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={`/courses/${course.id}/edit`}>
-                                                            <Edit className="mr-2 h-4 w-4" /> Edit
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={`/courses/${course.id}`}>
-                                                            <Eye className="mr-2 h-4 w-4" /> View
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        onClick={() => handleDelete(course.id, course.name)}
-                                                        className="text-destructive focus:text-destructive"
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        )}
-                                    </div>
-                                    <p className="mt-2 line-clamp-2 flex-1 text-sm text-muted-foreground">
-                                        {course.description || 'No description provided.'}
-                                    </p>
-                                    <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-                                        {course.creator && (
-                                            <div className="flex items-center">
-                                                <Users className="mr-2 h-4 w-4" />
-                                                <span>{course.creator.name}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex items-center">
-                                            <Calendar className="mr-2 h-4 w-4" />
-                                            <span>Last updated {formatDistanceToNow(new Date(course.updated_at))} ago</span>
+                                        <div className="flex items-center gap-1">
+                                            <CourseStatusBadge status={course.status} />
+                                            {course.pivot?.enrolled_as && (
+                                                <CourseRoleBadge course={course} user={user} />
+                                            )}
                                         </div>
+                                    </div>
+                                    {course.description && (
+                                        <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
+                                            {course.description}
+                                        </p>
+                                    )}
+                                    <div className="mt-auto flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <span className="flex items-center gap-1">
+                                                <Users className="h-3 w-3" />
+                                                {course.enrollments_count || 0}
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <Calendar className="h-3 w-3" />
+                                                {formatDistanceToNow(new Date(course.created_at), { addSuffix: true })}
+                                            </span>
+                                        </div>
+                                        {actionItems.length > 1 && <ActionMenu items={actionItems} />}
                                     </div>
                                 </CardContent>
                             </Card>
-                        ))}
-                    </div>
-                )}
-                {/* Pagination */}
-                {courses.meta && courses.meta.last_page > 1 && (
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm text-muted-foreground">
-                            Showing {(courses.meta.current_page - 1) * courses.meta.per_page + 1} to{' '}
-                            {Math.min(courses.meta.current_page * courses.meta.per_page, courses.meta.total)} of {courses.meta.total} courses
-                        </p>
+                        );
+                    })}
+                </div>
 
-                        <div className="flex gap-2">
-                            {courses.links.map((link, index) => (
-                                <React.Fragment key={index}>
-                                    {link.url === null ? (
-                                        <Button variant="outline" size="sm" disabled dangerouslySetInnerHTML={{ __html: link.label }} />
-                                    ) : (
-                                        <Button
-                                            variant={link.active ? 'default' : 'outline'}
-                                            size="sm"
-                                            onClick={() => router.get(link.url!)}
-                                            dangerouslySetInnerHTML={{ __html: link.label }}
-                                        />
-                                    )}
-                                </React.Fragment>
-                            ))}
-                        </div>
-                    </div>
+                {/* Empty State */}
+                {coursesToDisplay.length === 0 && (
+                    <Card>
+                        <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16">
+                            <BookOpen className="mb-4 h-12 w-12 text-muted-foreground sm:h-16 sm:w-16" />
+                            <h3 className="mb-2 text-lg font-semibold sm:text-xl">
+                                {searchQuery || statusFilter !== 'all' ? 'No courses found' : 'No courses yet'}
+                            </h3>
+                            <p className="mb-6 max-w-md text-center text-sm text-muted-foreground sm:text-base">
+                                {searchQuery || statusFilter !== 'all'
+                                    ? 'Try adjusting your search or filter criteria'
+                                    : canCreateCourse
+                                    ? 'Get started by creating your first course'
+                                    : 'No courses are available at the moment'}
+                            </p>
+                            {canCreateCourse && !searchQuery && statusFilter === 'all' && (
+                                <Button asChild size={isMobile ? 'sm' : 'default'}>
+                                    <Link href="/courses/create">
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Create First Course
+                                    </Link>
+                                </Button>
+                            )}
+                        </CardContent>
+                    </Card>
                 )}
+
+                {confirmDialog}
             </div>
-            {confirmDialog}
         </AppLayout>
     );
 }
