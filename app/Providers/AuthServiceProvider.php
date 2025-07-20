@@ -2,14 +2,13 @@
 
 namespace App\Providers;
 
+// use Illuminate\Support\Facades\Gate;
+use App\Models\Comment;
 use App\Models\Course;
-use App\Models\User;
-use App\Models\Assignment;
-use App\Models\Category;
+use App\Models\Discussion;
+use App\Policies\CommentPolicy;
 use App\Policies\CoursePolicy;
-use App\Policies\UserPolicy;
-use App\Policies\AssignmentPolicy;
-use App\Policies\CategoryPolicy;
+use App\Policies\DiscussionPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -21,9 +20,8 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         Course::class => CoursePolicy::class,
-        User::class => UserPolicy::class,
-        Assignment::class => AssignmentPolicy::class,
-        Category::class => CategoryPolicy::class,
+        Discussion::class => DiscussionPolicy::class,
+        Comment::class => CommentPolicy::class,
     ];
 
     /**
@@ -31,6 +29,8 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->registerPolicies();
+
         //
     }
 }

@@ -352,10 +352,27 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                             <TabsContent value="discussions" className="mt-4">
                                 <Card>
                                     <CardHeader className="pb-3 sm:pb-4">
-                                        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                                            <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
-                                            Discussions
-                                        </CardTitle>
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
+                                                Discussions
+                                            </CardTitle>
+                                            <div className="flex items-center gap-2">
+                                                {visibleDiscussions.length > 0 && (
+                                                    <Button variant="outline" size="sm" asChild>
+                                                        <Link href={route('courses.discussions.index', { course: course.id })}>
+                                                            View All
+                                                        </Link>
+                                                    </Button>
+                                                )}
+                                                <Button size="sm" asChild>
+                                                    <Link href={route('courses.discussions.index', { course: course.id })}>
+                                                        <Plus className="mr-2 h-4 w-4" />
+                                                        Start Discussion
+                                                    </Link>
+                                                </Button>
+                                            </div>
+                                        </div>
                                     </CardHeader>
                                     <CardContent className="grid gap-4">
                                         {visibleDiscussions.length > 0 ? (
@@ -375,12 +392,21 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                                 ))}
                                             </ul>
                                         ) : (
-                                            <p className="text-sm italic text-muted-foreground sm:text-base">
-                                                No discussions available for this course.
-                                            </p>
+                                            <div className="text-center py-8">
+                                                <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                                                <p className="text-sm italic text-muted-foreground sm:text-base mb-4">
+                                                    No discussions available for this course.
+                                                </p>
+                                                <Button asChild>
+                                                    <Link href={route('courses.discussions.index', { course: course.id })}>
+                                                        <Plus className="mr-2 h-4 w-4" />
+                                                        Start First Discussion
+                                                    </Link>
+                                                </Button>
+                                            </div>
                                         )}
-                                                        </CardContent>
-                                                    </Card>
+                                    </CardContent>
+                                </Card>
                             </TabsContent>
 
                             {/* Assessments Tab */}

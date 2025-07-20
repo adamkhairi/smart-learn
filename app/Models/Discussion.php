@@ -2,21 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Discussion extends Model
 {
     use HasFactory, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'title',
         'content',
@@ -24,43 +20,41 @@ class Discussion extends Model
         'created_by',
         'is_pinned',
         'is_locked',
+        'views_count',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'is_pinned' => 'boolean',
             'is_locked' => 'boolean',
+            'views_count' => 'integer',
         ];
     }
 
     /**
-     * Get the course this discussion belongs to.
+     * Get the course that owns the discussion.
      */
     public function course(): BelongsTo
     {
-        return $this->belongsTo(Course::class);
+        return $this->belongsTo(Course::class, 'course_id');
     }
 
     /**
-     * Get the user who created this discussion.
+     * Get the user who created the discussion.
      */
-    public function creator(): BelongsTo
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
     /**
-     * Get the comments for this discussion.
+     * Get the comments for the discussion.
      */
     public function comments(): HasMany
     {
-        return $this->hasMany(DiscussionComment::class);
+        return $this->hasMany(Comment::class, 'commentable_id')
+                    ->where('commentable_type', self::class);
     }
 
     /**
@@ -120,11 +114,12 @@ class Discussion extends Model
     }
 
     /**
-     * Scope to get discussions for a specific course.
+     * Scope to get discussions for a specific discussionable model.
      */
-    public function scopeForCourse($query, int $courseId)
+    public function scopeForDiscussionable($query, string $type, int $id)
     {
-        return $query->where('course_id', $courseId);
+        return $query->where('discussionable_type', $type)
+                     ->where('discussionable_id', $id);
     }
 
     /**
@@ -132,6 +127,6 @@ class Discussion extends Model
      */
     public function scopeByCreator($query, int $userId)
     {
-        return $query->where('created_by', $userId);
+        return $query->where('user_id', $userId);
     }
 }

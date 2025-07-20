@@ -27,11 +27,27 @@ class Comment extends Model
     ];
 
     /**
-     * Get the user who made this comment.
+     * Get the user who posted the comment.
      */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the parent comment (if this is a reply).
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Comment::class, 'parent_id');
+    }
+
+    /**
+     * Get the replies to this comment.
+     */
+    public function replies(): HasMany
+    {
+        return $this->hasMany(Comment::class, 'parent_id');
     }
 
     /**
@@ -40,22 +56,6 @@ class Comment extends Model
     public function commentable(): MorphTo
     {
         return $this->morphTo();
-    }
-
-    /**
-     * Get the parent comment (for replies).
-     */
-    public function parent(): BelongsTo
-    {
-        return $this->belongsTo(Comment::class, 'parent_id');
-    }
-
-    /**
-     * Get the child comments (replies).
-     */
-    public function replies(): HasMany
-    {
-        return $this->hasMany(Comment::class, 'parent_id');
     }
 
     /**

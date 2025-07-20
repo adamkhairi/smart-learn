@@ -10,45 +10,52 @@ use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+// Static pages
+// Landing page
 Route::get('/', function () {
     return Inertia::render('Landing');
 })->name('home');
 
-// Static pages
+// About page
 Route::get('/about', function () {
     return Inertia::render('About');
 })->name('about');
 
+// Contact page
 Route::get('/contact', function () {
     return Inertia::render('Contact');
 })->name('contact');
 
+// Privacy page
 Route::get('/privacy', function () {
     return Inertia::render('Privacy');
 })->name('privacy');
 
+// Terms page
 Route::get('/terms', function () {
     return Inertia::render('Terms');
 })->name('terms');
 
+// Unauthorized page
 Route::get('/unauthorized', function () {
     return Inertia::render('Unauthorized');
 })->name('unauthorized');
 
-// Public course detail page (for unenrolled/guest users)
+// Public course detail page
 Route::get('courses/{course}/public', [CourseController::class, 'publicShow'])->name('courses.public_show');
 
+// Dashboard
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Course routes
+    // Courses
     Route::resource('courses', CourseController::class);
     Route::post('courses/{course}/enroll', [CourseController::class, 'enroll'])->name('courses.enroll');
     Route::post('courses/{course}/enrollment-request', [CourseController::class, 'enrollmentRequest'])->name('courses.enrollment_request'); // New enrollment request route
     Route::delete('courses/{course}/unenroll', [CourseController::class, 'unenroll'])->name('courses.unenroll');
     Route::get('courses/{course}/stats', [CourseController::class, 'stats'])->name('courses.stats');
 
-    // Course Module routes
+    // Course Modules
     Route::patch('courses/{course}/modules/order', [App\Http\Controllers\Courses\CourseModuleController::class, 'updateOrder'])
         ->name('courses.modules.updateOrder');
     Route::patch('courses/{course}/modules/{module}/toggle-published', [App\Http\Controllers\Courses\CourseModuleController::class, 'togglePublished'])
@@ -59,30 +66,68 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('courses/{course}/modules', [App\Http\Controllers\Courses\CourseModuleController::class, 'index'])
         ->name('courses.modules.index');
 
-    // Course Module Item routes
+    // Discussions & Comments System
+
+    // Course Discussions
+    Route::get('courses/{course}/discussions', [\App\Http\Controllers\Discussions\DiscussionController::class, 'index'])
+        ->name('courses.discussions.index');
+    Route::post('courses/{course}/discussions', [\App\Http\Controllers\Discussions\DiscussionController::class, 'store'])
+        ->name('courses.discussions.store');
+
+    // Individual Course Discussion
+    Route::get('courses/{course}/discussions/{discussion}', [\App\Http\Controllers\Discussions\DiscussionController::class, 'show'])
+        ->name('courses.discussions.show');
+
+    // Module Discussions
+    Route::get('courses/{course}/modules/{module}/discussions', [\App\Http\Controllers\Discussions\DiscussionController::class, 'index'])
+        ->name('modules.discussions.index');
+    Route::post('courses/{course}/modules/{module}/discussions', [\App\Http\Controllers\Discussions\DiscussionController::class, 'store'])
+        ->name('modules.discussions.store');
+
+    // Discussion CRUD (legacy routes - keep for backward compatibility)
+    Route::get('discussions/{discussion}', [\App\Http\Controllers\Discussions\DiscussionController::class, 'show'])
+        ->name('discussions.show');
+    Route::put('discussions/{discussion}', [\App\Http\Controllers\Discussions\DiscussionController::class, 'update'])
+        ->name('discussions.update');
+    Route::delete('discussions/{discussion}', [\App\Http\Controllers\Discussions\DiscussionController::class, 'destroy'])
+        ->name('discussions.destroy');
+
+    // Comments CRUD (real-time)
+    Route::post('discussions/{discussion}/comments', [\App\Http\Controllers\Discussions\CommentController::class, 'store'])
+        ->name('comments.store');
+    Route::put('comments/{comment}', [\App\Http\Controllers\Discussions\CommentController::class, 'update'])
+        ->name('comments.update');
+    Route::delete('comments/{comment}', [\App\Http\Controllers\Discussions\CommentController::class, 'destroy'])
+        ->name('comments.destroy');
+
+    // Comments polling endpoint
+    Route::get('discussions/{discussion}/comments', [\App\Http\Controllers\Discussions\CommentController::class, 'getNewComments'])
+        ->name('discussions.comments.poll');
+
+    // Course Module Items
     Route::patch('courses/{course}/modules/{module}/items/order', [App\Http\Controllers\Courses\CourseModuleItemController::class, 'updateOrder'])
         ->name('courses.modules.items.updateOrder');
     Route::post('courses/{course}/modules/{module}/items/{item}/duplicate', [App\Http\Controllers\Courses\CourseModuleItemController::class, 'duplicate'])
         ->name('courses.modules.items.duplicate');
     Route::resource('courses.modules.items', CourseModuleItemController::class)->middleware(['auth']);
 
-    // Assignment routes
+    // Assignments
     Route::post('assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->middleware('auth');
     Route::get('assignments/{assignment}/submissions', [AssignmentController::class, 'submissions'])->middleware('auth');
     Route::post('submissions/{submission}/grade', [AssignmentController::class, 'grade'])->middleware('auth');
 
-    // Assessment routes
+    // Assessments
     Route::get('courses/{course}/assessments/{assessment}/take', [AssessmentController::class, 'take'])->name('assessments.take');
     Route::post('courses/{course}/assessments/{assessment}/submit', [AssessmentController::class, 'submit'])->name('assessments.submit');
     Route::get('courses/{course}/assessments/{assessment}/results', [AssessmentController::class, 'results'])->name('assessments.results');
 
-    // Progress routes
+    // Progress
     Route::get('courses/{course}/progress', [ProgressController::class, 'show'])->name('courses.progress');
     Route::get('progress/overall', [ProgressController::class, 'overall'])->name('progress.overall');
     Route::get('courses/{course}/progress/analytics', [ProgressController::class, 'analytics'])->name('courses.progress.analytics');
     Route::get('progress/{course}', [ProgressController::class, 'show'])->name('progress.show');
 
-    // Progress API routes
+    // Progress API
     Route::post('courses/{course}/progress/mark-started', [ProgressController::class, 'markAsStarted'])->name('courses.progress.mark-started');
     Route::post('courses/{course}/progress/mark-completed', [ProgressController::class, 'markAsCompleted'])->name('courses.progress.mark-completed');
     Route::post('courses/{course}/progress/update-time', [ProgressController::class, 'updateTimeSpent'])->name('courses.progress.update-time');
