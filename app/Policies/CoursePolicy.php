@@ -30,8 +30,8 @@ class CoursePolicy
             return true;
         }
 
-        // Enrolled users can view the course if it's published and not private
-        if ($course->enrolledUsers()->where('user_id', $user->id)->exists() && $course->status === 'published' && !$course->is_private) {
+        // Enrolled users can view the course if it's published (regardless of private status)
+        if ($course->enrolledUsers()->where('user_id', $user->id)->exists() && $course->status === 'published') {
             return true;
         }
 

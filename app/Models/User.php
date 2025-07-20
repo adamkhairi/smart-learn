@@ -265,6 +265,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is enrolled in a specific course.
+     */
+    public function isEnrolled(Course $course): bool
+    {
+        return $this->enrollments()->where('course_id', $course->id)->exists();
+    }
+
+    /**
      * Assign user to a course with specific role.
      */
     public function assignToCourse(Course $course, string $role = 'student'): void

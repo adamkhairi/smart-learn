@@ -64,12 +64,11 @@ class CourseController extends Controller
             // Admin sees all courses (no change needed for private/public filtering)
             $courses = $query->paginate(10);
         } elseif ($user->isInstructor()) {
-            // Instructor sees courses they created, and other published non-private courses they are enrolled in
+            // Instructor sees courses they created, and other published courses they are enrolled in (regardless of private status)
             $courses = $query->where(function ($q) use ($user) {
                 $q->where('created_by', $user->id) // Courses created by the instructor
                   ->orWhere(function ($q2) use ($user) {
-                      $q2->where('is_private', false) // Non-private courses
-                         ->where('status', 'published') // and published
+                      $q2->where('status', 'published') // Published courses
                          ->whereHas('enrolledUsers', function ($q3) use ($user) { // and they are enrolled in
                             $q3->where('user_id', $user->id);
                          });
@@ -268,9 +267,9 @@ class CourseController extends Controller
 
         $user = Auth::user();
 
-        // If the course is private, or not published, and the user is not an admin or the creator, deny access.
+        // If the course is private, or not published, and the user is not an admin, creator, or enrolled, deny access.
         if ($course->is_private || $course->status !== 'published') {
-            if (!$user || (!$user->isAdmin() && $course->created_by !== $user->id)) {
+            if (!$user || (!$user->isAdmin() && $course->created_by !== $user->id && !$course->enrolledUsers()->where('user_id', $user->id)->exists())) {
                 abort(403, 'You do not have access to this course.');
             }
         }

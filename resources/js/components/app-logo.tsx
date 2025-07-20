@@ -1,14 +1,11 @@
-import AppLogoIcon from './app-logo-icon';
+import { useAppearance } from '@/hooks/use-appearance';
 
 export default function AppLogo() {
+    const theme = useAppearance();
+    const logoSrc = theme.appearance === 'dark' ? '/logo-white.svg' : theme.appearance === 'light' ? '/logo-black.svg' : '/logo-white.svg';
     return (
-        <>
-            <div className="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-                <AppLogoIcon className="size-6 fill-current text-white dark:text-black" />
-            </div>
-            <div className="ml-1 grid flex-1 text-left text-sm">
-                <span className="mb-0.5 truncate leading-tight font-semibold">Smart Learn</span>
-            </div>
-        </>
+        <div className="flex items-center justify-center">
+            <img src={logoSrc} alt="Smart Learn Logo" className="w-56" />
+        </div>
     );
 }

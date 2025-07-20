@@ -25,6 +25,7 @@ class CourseFactory extends Factory
             'image' => $this->faker->imageUrl(640, 480, 'education'),
             'background_color' => $this->faker->hexColor(),
             'status' => $this->faker->randomElement(['published', 'archived']),
+            'is_private' => $this->faker->boolean(20), // 20% chance of being private
             'files' => $this->faker->optional()->randomElements([
                 [
                     'name' => 'syllabus.pdf',
@@ -65,6 +66,26 @@ class CourseFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'created_by' => $user->id,
+        ]);
+    }
+
+    /**
+     * Indicate that the course is private.
+     */
+    public function private(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_private' => true,
+        ]);
+    }
+
+    /**
+     * Indicate that the course is public.
+     */
+    public function public(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_private' => false,
         ]);
     }
 }
