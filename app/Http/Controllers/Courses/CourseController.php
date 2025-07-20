@@ -89,6 +89,32 @@ class CourseController extends Controller
             ->paginate(10);
         }
 
+        // Add enrollment data to each course for authenticated users
+        if ($user) {
+            Log::info('Adding enrollment data for user:', ['user_id' => $user->id, 'user_role' => $user->role]);
+            foreach ($courses as $course) {
+                Log::info('Checking enrollment for course:', ['course_id' => $course->id, 'course_name' => $course->name]);
+
+                $enrollment = $course->enrolledUsers()->where('user_id', $user->id)->first();
+
+                if ($enrollment) {
+                    Log::info('Found enrollment:', [
+                        'course_id' => $course->id,
+                        'user_id' => $user->id,
+                        'enrolled_as' => $enrollment->pivot->enrolled_as,
+                        'created_at' => $enrollment->pivot->created_at
+                    ]);
+
+                    $course->pivot = [
+                        'enrolled_as' => $enrollment->pivot->enrolled_as,
+                        'created_at' => $enrollment->pivot->created_at,
+                    ];
+                } else {
+                    Log::info('No enrollment found for course:', ['course_id' => $course->id, 'user_id' => $user->id]);
+                }
+            }
+        }
+
         Log::info('Courses data sent to frontend:', ['courses' => $courses->toArray()]);
 
         return Inertia::render('Courses/Index', [

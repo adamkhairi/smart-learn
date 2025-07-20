@@ -270,7 +270,7 @@ class LMSSeeder extends Seeder
 
                         case 'assignment':
                             $assignment = Assignment::create([
-                                'assignment_type' => 'assignment',
+                                'assignment_type' => 'essay',
                                 'title' => $faker->sentence(4, 6),
                                 'description' => $faker->paragraph(),
                                 'total_points' => rand(50, 100),

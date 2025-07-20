@@ -1,22 +1,21 @@
+import { CourseRoleBadge } from '@/components/course-role-badge';
+import { CourseStatusBadge } from '@/components/course-status-badge';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
+import useDebounce from '@/hooks/use-debounce';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem, Course, CoursesPageProps } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { formatDistanceToNow } from 'date-fns';
 import { BookOpen, Calendar, Edit, Eye, Filter, MoreVertical, Plus, Search, Trash2, Users } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
-import useDebounce from '@/hooks/use-debounce';
-import { CourseStatusBadge } from '@/components/course-status-badge';
-import { CourseRoleBadge } from '@/components/course-role-badge';
-import React from 'react';
-import { Badge } from '@/components/ui/badge';
+import React, { useEffect, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -35,7 +34,9 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
 
     // State for search and filtering
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
-    const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'archived' | 'my_courses'>(filters.status as 'all' | 'published' | 'archived' || 'all');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'archived' | 'my_courses'>(
+        (filters.status as 'all' | 'published' | 'archived') || 'all',
+    );
 
     const debouncedSearchQuery = useDebounce(searchQuery, 500);
     const debouncedStatusFilter = useDebounce(statusFilter, 500);
@@ -64,13 +65,24 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
         }
     }, [debouncedSearchQuery, debouncedStatusFilter]);
 
+    // Filter enrolled courses for students
+    const enrolledCourses = isStudent ? courses.data.filter((course) => course.pivot?.enrolled_as === 'student') : [];
+
+    // Debug logging
+    console.log('Debug - User:', user);
+    console.log('Debug - Is Student:', isStudent);
+    console.log('Debug - All Courses:', courses.data);
+    console.log('Debug - Enrolled Courses:', enrolledCourses);
+    console.log('Debug - Status Filter:', statusFilter);
+    console.log('Debug - Search Query:', searchQuery);
+
     // Filter and search courses directly in render
     const coursesToDisplay = courses.data.filter((course) => {
         const matchesSearch =
-            course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            course.description?.toLowerCase().includes(searchQuery.toLowerCase());
+            course.name.toLowerCase().includes(searchQuery.toLowerCase()) || course.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
-        const matchesStatus = statusFilter === 'all' || course.status === statusFilter || (statusFilter === 'my_courses' && course.pivot?.enrolled_as === 'student');
+        const matchesStatus =
+            statusFilter === 'all' || course.status === statusFilter || (statusFilter === 'my_courses' && course.pivot?.enrolled_as === 'student');
 
         return matchesSearch && matchesStatus;
     });
@@ -97,6 +109,13 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
 
     console.log('courses', courses);
 
+    // Additional course data debugging
+    courses.data.forEach((course, index) => {
+        if (course.pivot) {
+            console.log(`Course ${index} (${course.name}) pivot data:`, course.pivot);
+        }
+    });
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Courses" />
@@ -121,10 +140,10 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                 </div>
 
                 {/* Search and Filter Bar - Enhanced for Mobile */}
-                {(courses.data && courses.data.length > 0) || (searchQuery || statusFilter !== 'all') ? (
+                {(courses.data && courses.data.length > 0) || searchQuery || statusFilter !== 'all' ? (
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                         {/* Search Input */}
-                        <div className="relative flex-1 w-full">
+                        <div className="relative w-full flex-1">
                             <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search courses..."
@@ -146,16 +165,85 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                 <DropdownMenuItem onClick={() => setStatusFilter('all')}>All Status</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setStatusFilter('published')}>Published</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setStatusFilter('archived')}>Archived</DropdownMenuItem>
-                                {isStudent && (
-                                    <DropdownMenuItem onClick={() => setStatusFilter('my_courses')}>My Courses</DropdownMenuItem>
-                                )}
+                                {isStudent && <DropdownMenuItem onClick={() => setStatusFilter('my_courses')}>My Courses</DropdownMenuItem>}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
                 ) : null}
 
+                {/* My Enrolled Courses Section - Only for Students */}
+                {(() => {
+                    const showEnrolledSection = isStudent && enrolledCourses.length > 0 && statusFilter === 'all' && !searchQuery;
+                    console.log('Debug - Show Enrolled Section Conditions:', {
+                        isStudent,
+                        enrolledCoursesLength: enrolledCourses.length,
+                        statusFilter,
+                        searchQuery,
+                        showEnrolledSection,
+                    });
+                    return showEnrolledSection;
+                })() && (
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-semibold">My Enrolled Courses</h2>
+                            <Badge variant="secondary" className="text-xs">
+                                {enrolledCourses.length} {enrolledCourses.length === 1 ? 'course' : 'courses'}
+                            </Badge>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {enrolledCourses.slice(0, 4).map((course) => (
+                                <Card key={course.id} className="group flex flex-col overflow-hidden border-2 border-primary/20">
+                                    <Link href={route('courses.show', course.id)} className="relative block h-32 overflow-hidden" tabIndex={-1}>
+                                        {course.image ? (
+                                            <AspectRatio ratio={16 / 9}>
+                                                <img
+                                                    src={course.image.startsWith('http') ? course.image : `/storage/${course.image}`}
+                                                    alt={course.name}
+                                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                />
+                                            </AspectRatio>
+                                        ) : (
+                                            <div
+                                                className="flex h-full w-full items-center justify-center"
+                                                style={{ backgroundColor: course.background_color || '#f3f4f6' }}
+                                            >
+                                                <span className="text-2xl font-bold text-white opacity-70">
+                                                    {course.name.charAt(0).toUpperCase()}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="absolute top-2 right-2 z-10">
+                                            <Badge className="bg-primary text-xs text-primary-foreground">Enrolled</Badge>
+                                        </div>
+                                    </Link>
+                                    <CardContent className="flex flex-1 flex-col p-3">
+                                        <h3 className="text-sm leading-tight font-medium">
+                                            <Link href={route('courses.show', course.id)} className="hover:underline">
+                                                {course.name}
+                                            </Link>
+                                        </h3>
+                                        <p className="mt-1 line-clamp-2 flex-1 text-xs text-muted-foreground">
+                                            {course.description || 'No description provided.'}
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                        {enrolledCourses.length > 4 && (
+                            <div className="text-center">
+                                <Button variant="outline" size="sm" onClick={() => setStatusFilter('my_courses')}>
+                                    View All My Courses ({enrolledCourses.length})
+                                </Button>
+                            </div>
+                        )}
+                        <div className="border-t pt-4">
+                            <h2 className="mb-4 text-xl font-semibold">Discover More Courses</h2>
+                        </div>
+                    </div>
+                )}
+
                 {/* Results Summary */}
-                {(courses.data && courses.meta && (searchQuery || statusFilter !== 'all')) ? (
+                {courses.data && courses.meta && (searchQuery || statusFilter !== 'all') ? (
                     <div className="text-sm text-muted-foreground">
                         {coursesToDisplay.length === 0 ? (
                             <span>No courses found matching your criteria.</span>
@@ -198,7 +286,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                             <Card key={course.id} className="group flex flex-col overflow-hidden">
                                 <Link
                                     href={
-                                        (user === null || (isStudent && !course.pivot?.enrolled_as && !course.is_private))
+                                        user === null || (isStudent && !course.pivot?.enrolled_as && !course.is_private)
                                             ? route('courses.public_show', course.id)
                                             : route('courses.show', course.id)
                                     }
@@ -218,13 +306,13 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                             className="flex h-full w-full items-center justify-center"
                                             style={{ backgroundColor: course.background_color || '#f3f4f6' }}
                                         >
-                                            <span className="text-4xl font-bold text-white opacity-70">
-                                                {course.name.charAt(0).toUpperCase()}
-                                            </span>
+                                            <span className="text-4xl font-bold text-white opacity-70">{course.name.charAt(0).toUpperCase()}</span>
                                         </div>
                                     )}
                                     <div className="absolute top-2 right-2 z-10 flex gap-1">
-                                        <CourseStatusBadge status={course.status} />
+                                        {!isStudent || course.status !== 'published' ? (
+                                            <CourseStatusBadge status={course.status} />
+                                        ) : null}
                                         {course.is_private === true && (
                                             <Badge variant="outline" className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
                                                 Private
@@ -238,18 +326,18 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                 </Link>
                                 <CardContent className="flex flex-1 flex-col p-4">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-lg font-semibold leading-tight">
+                                        <h3 className="text-lg leading-tight font-semibold">
                                             <Link
                                                 href={
-                                                    (user === null || (isStudent && !course.pivot?.enrolled_as && !course.is_private))
+                                                    user === null || (isStudent && !course.pivot?.enrolled_as && !course.is_private)
                                                         ? route('courses.public_show', course.id)
                                                         : route('courses.show', course.id)
                                                 }
                                                 className="hover:underline"
-                                             >
-                                                 {course.name}
-                                             </Link>
-                                         </h3>
+                                            >
+                                                {course.name}
+                                            </Link>
+                                        </h3>
                                         {canEditCourse(course) && (
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -280,7 +368,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                             </DropdownMenu>
                                         )}
                                     </div>
-                                    <p className="mt-2 flex-1 text-sm text-muted-foreground line-clamp-2">
+                                    <p className="mt-2 line-clamp-2 flex-1 text-sm text-muted-foreground">
                                         {course.description || 'No description provided.'}
                                     </p>
                                     <div className="mt-4 space-y-2 text-sm text-muted-foreground">
@@ -312,12 +400,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                             {courses.links.map((link, index) => (
                                 <React.Fragment key={index}>
                                     {link.url === null ? (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            disabled
-                                            dangerouslySetInnerHTML={{ __html: link.label }}
-                                        />
+                                        <Button variant="outline" size="sm" disabled dangerouslySetInnerHTML={{ __html: link.label }} />
                                     ) : (
                                         <Button
                                             variant={link.active ? 'default' : 'outline'}
