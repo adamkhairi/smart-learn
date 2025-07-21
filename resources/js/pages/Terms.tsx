@@ -3,8 +3,12 @@ import { ArrowRight, FileText, Calendar } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 
 export default function Terms() {
+    const breadcrumbs = [
+        { title: 'Home', href: '/' },
+        { title: 'Terms of Service', href: '/terms' },
+    ];
     return (
-        <PublicLayout title="Terms of Service – SmartLearn">
+        <PublicLayout title="Terms of Service – SmartLearn" breadcrumbs={breadcrumbs}>
             <div className="flex flex-col gap-24">
                 {/* Hero */}
                 <section className="relative isolate overflow-hidden bg-gradient-to-b from-[#FFF5F2] via-transparent to-transparent pt-28 pb-32 dark:from-[#1a0a0a]">

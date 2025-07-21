@@ -40,8 +40,14 @@ export default function UserStats({ stats }: Props) {
         });
     };
 
+    const breadcrumbs = [
+        { title: 'Admin', href: '/admin/dashboard' },
+        { title: 'Users', href: '/admin/users' },
+        { title: 'Stats', href: '#' },
+    ];
+
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="User Statistics" />
 
             <div className="space-y-6">

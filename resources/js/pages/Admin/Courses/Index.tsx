@@ -32,6 +32,11 @@ interface Props {
 export default function Index({ courses, creators, filters }: Props) {
     // Initialize flash toast notifications
 
+    const breadcrumbs = [
+        { title: 'Admin', href: '/admin/dashboard' },
+        { title: 'Courses', href: '/admin/courses' },
+    ];
+
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
     const [creatorFilter, setCreatorFilter] = useState(filters.creator || 'all');
@@ -88,7 +93,7 @@ export default function Index({ courses, creators, filters }: Props) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Course Management" />
 
             <div className="space-y-6 p-6">

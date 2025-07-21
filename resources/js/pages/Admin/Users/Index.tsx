@@ -147,8 +147,13 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
             .toUpperCase();
     };
 
+    const breadcrumbs = [
+        { title: 'Admin', href: '/admin/dashboard' },
+        { title: 'Users', href: '/admin/users' },
+    ];
+
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="User Management" />
 
             <div className="space-y-6 p-6">

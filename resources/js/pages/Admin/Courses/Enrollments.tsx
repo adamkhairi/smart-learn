@@ -148,8 +148,15 @@ export default function Enrollments({ course, enrolledUsers, availableUsers, fil
         );
     };
 
+    const breadcrumbs = [
+        { title: 'Admin', href: '/admin/dashboard' },
+        { title: 'Courses', href: '/admin/courses' },
+        { title: course.name, href: `/admin/courses/${course.id}` },
+        { title: 'Enrollments', href: '#' },
+    ];
+
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${course.name} - Enrollments`} />
 
             <div className="space-y-6">

@@ -11,7 +11,6 @@ export default function Landing() {
     return (
         <>
             <Head title="SmartLearn – Learn Smarter" />
-
             {/* Header */}
             <Header />
 

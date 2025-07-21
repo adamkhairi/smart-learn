@@ -3,13 +3,26 @@ import { Head, Link, usePage } from '@inertiajs/react';
 
 export default function Welcome() {
     const { auth } = usePage<SharedData>().props;
-
+    const breadcrumbs = [
+        { title: 'Home', href: '/' },
+        { title: 'Welcome', href: '/welcome' },
+    ];
     return (
         <>
             <Head title="Welcome">
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
             </Head>
+            <nav className="mt-8 mb-8 flex justify-center" aria-label="Breadcrumbs">
+                <ol className="flex items-center space-x-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                    {breadcrumbs.map((crumb, idx) => (
+                        <li key={crumb.title} className="flex items-center">
+                            {idx > 0 && <span className="mx-2">/</span>}
+                            {crumb.href !== '#' ? <Link href={crumb.href}>{crumb.title}</Link> : <span>{crumb.title}</span>}
+                        </li>
+                    ))}
+                </ol>
+            </nav>
             <div className="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] lg:justify-center lg:p-8 dark:bg-[#0a0a0a]">
                 <header className="mb-6 w-full max-w-[335px] text-sm not-has-[nav]:hidden lg:max-w-4xl">
                     <nav className="flex items-center justify-end gap-4">

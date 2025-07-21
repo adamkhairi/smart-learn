@@ -31,6 +31,13 @@ export default function ShowUser({ user, stats }: Props) {
     const { confirm, confirmDialog } = useConfirmDialog();
     const { success, error } = useToast();
 
+    const breadcrumbs = [
+        { title: 'Admin', href: '/admin/dashboard' },
+        { title: 'Users', href: '/admin/users' },
+        { title: user.name, href: `/admin/users/${user.id}` },
+        { title: 'Show', href: '#' },
+    ];
+
     const handleRemoveCourse = (courseId: number, courseName: string) => {
         confirm({
             title: 'Remove User from Course',
@@ -74,7 +81,7 @@ export default function ShowUser({ user, stats }: Props) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`User Details - ${user.name}`} />
 
             <div className="space-y-6">

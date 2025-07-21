@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 
 import AppLayout from '@/layouts/app-layout';
 import { CourseForm, CourseFormData } from '@/components/course-form';
-import { Course, User as Instructor } from '@/types';
+import { Course, User as Instructor, Level } from '@/types';
 
 interface Category {
     id: number;
@@ -20,7 +20,10 @@ interface Props {
     errors?: Record<string, string>;
 }
 
-export default function Edit({ course, instructors, categories }: Props) {
+export default function Edit({ course, categories }: Props) {
+    const level: Level = (['Beginner', 'Intermediate', 'Advanced', 'All Levels'] as Level[]).includes(course.level as Level)
+        ? (course.level as Level)
+        : 'All Levels';
     const { data, setData, post, processing, errors } = useForm<CourseFormData>({
         name: course.name,
         description: course.description || '',
@@ -29,10 +32,18 @@ export default function Edit({ course, instructors, categories }: Props) {
         background_color: course.background_color || '',
         image: null as File | null,
         category_id: (course.category_id || '').toString(),
-        level: course.level || '',
+        level,
         duration: (course.duration || '').toString(),
         _method: 'put', // Ensure _method is set for useForm
+        is_private: course.is_private ?? false,
     });
+
+    const breadcrumbs = [
+        { title: 'Admin', href: '/admin/dashboard' },
+        { title: 'Courses', href: '/admin/courses' },
+        { title: course.name, href: `/admin/courses/${course.id}` },
+        { title: 'Edit', href: '#' },
+    ];
 
     const [imagePreview, setImagePreview] = useState<string | null>(
         course.image ? (course.image.startsWith('http') ? course.image : `/storage/${course.image}`) : null,
@@ -64,7 +75,7 @@ export default function Edit({ course, instructors, categories }: Props) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Edit ${course.name}`} />
 
             <div className="space-y-6">
@@ -85,11 +96,11 @@ export default function Edit({ course, instructors, categories }: Props) {
                         data={data}
                         setData={setData}
                         errors={errors}
-                        instructors={instructors}
                         categories={categories}
                         imagePreview={imagePreview}
                         handleImageChange={handleImageChange}
                         removeImage={removeImage}
+                        processing={processing}
                     />
                     <Button type="submit" disabled={processing} className="mt-4">
                         {processing ? 'Saving...' : 'Save Course'}

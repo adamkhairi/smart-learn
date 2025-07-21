@@ -3,8 +3,12 @@ import { ArrowRight, Users, Target, Heart, Award, Globe, Zap, BookOpen } from 'l
 import { Link } from '@inertiajs/react';
 
 export default function About() {
+    const breadcrumbs = [
+        { title: 'Home', href: '/' },
+        { title: 'About', href: '/about' },
+    ];
     return (
-        <PublicLayout title="About Us – SmartLearn">
+        <PublicLayout title="About Us – SmartLearn" breadcrumbs={breadcrumbs}>
             <div className="flex flex-col gap-24">
                 {/* Hero */}
                 <section className="relative isolate flex items-center overflow-hidden bg-gradient-to-b from-[#FFF5F2] via-transparent to-transparent pt-28 pb-32 dark:from-[#1a0a0a]">

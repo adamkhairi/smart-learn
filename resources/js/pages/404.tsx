@@ -6,10 +6,23 @@ import { ArrowRight, Home, Search, BookOpen, HelpCircle } from 'lucide-react';
 
 export default function NotFound() {
     const { auth } = usePage<SharedData>().props;
-
+    const breadcrumbs = [
+        { title: 'Home', href: '/' },
+        { title: '404', href: '#' },
+    ];
     return (
         <>
             <Head title="Page Not Found – SmartLearn" />
+            <nav className="mt-24 mb-8 flex justify-center" aria-label="Breadcrumbs">
+                <ol className="flex items-center space-x-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                    {breadcrumbs.map((crumb, idx) => (
+                        <li key={crumb.title} className="flex items-center">
+                            {idx > 0 && <span className="mx-2">/</span>}
+                            {crumb.href !== '#' ? <Link href={crumb.href}>{crumb.title}</Link> : <span>{crumb.title}</span>}
+                        </li>
+                    ))}
+                </ol>
+            </nav>
 
             {/* Header */}
             <header className="fixed inset-x-0 top-0 z-50 bg-white/80 backdrop-blur-md dark:bg-[#0a0a0acc] border-b border-gray-200/50 dark:border-gray-800/50">

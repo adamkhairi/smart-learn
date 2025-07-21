@@ -76,6 +76,13 @@ export default function Show({ course, stats, recentActivity }: Props) {
     const [activeTab, setActiveTab] = useState('overview');
     const [searchUsers, setSearchUsers] = useState('');
 
+    const breadcrumbs = [
+        { title: 'Admin', href: '/admin/dashboard' },
+        { title: 'Courses', href: '/admin/courses' },
+        { title: course.name, href: `/admin/courses/${course.id}` },
+        { title: 'Show', href: '#' },
+    ];
+
     const getInitials = (name: string) => {
         return name
             .split(' ')
@@ -142,7 +149,7 @@ export default function Show({ course, stats, recentActivity }: Props) {
     );
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={course.name} />
 
             <div className="space-y-6">

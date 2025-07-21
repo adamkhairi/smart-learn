@@ -3,8 +3,12 @@ import { ArrowRight, Shield, Calendar } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 
 export default function Privacy() {
+    const breadcrumbs = [
+        { title: 'Home', href: '/' },
+        { title: 'Privacy Policy', href: '/privacy' },
+    ];
     return (
-        <PublicLayout title="Privacy Policy – SmartLearn">
+        <PublicLayout title="Privacy Policy – SmartLearn" breadcrumbs={breadcrumbs}>
             <div className="flex flex-col gap-24">
                 {/* Hero */}
                 <section className="relative isolate overflow-hidden bg-gradient-to-b from-[#FFF5F2] via-transparent to-transparent pt-28 pb-32 dark:from-[#1a0a0a]">

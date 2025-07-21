@@ -29,7 +29,14 @@ export default function Create({ categories }: Props) {
         category_id: '',
         level: 'All Levels',
         duration: '',
+        is_private: false,
     });
+
+    const breadcrumbs = [
+        { title: 'Admin', href: '/admin/dashboard' },
+        { title: 'Courses', href: '/admin/courses' },
+        { title: 'Create', href: '#' },
+    ];
 
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -59,7 +66,7 @@ export default function Create({ categories }: Props) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Create Course" />
 
             <div className="space-y-6">
@@ -84,6 +91,7 @@ export default function Create({ categories }: Props) {
                         imagePreview={imagePreview}
                         handleImageChange={handleImageChange}
                         removeImage={removeImage}
+                        processing={processing}
                     />
                     <Button type="submit" disabled={processing} className="mt-4">
                         {processing ? 'Creating...' : 'Create Course'}

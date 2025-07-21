@@ -3,8 +3,12 @@ import { Head, Link } from '@inertiajs/react';
 import { Lock, Rocket, Ban } from 'lucide-react';
 
 export default function Unauthorized() {
+    const breadcrumbs = [
+        { title: 'Home', href: '/' },
+        { title: 'Unauthorized', href: '#' },
+    ];
     return (
-        <PublicLayout title="Unauthorized Access – SmartLearn">
+        <PublicLayout title="Unauthorized Access – SmartLearn" breadcrumbs={breadcrumbs}>
             <div className="flex min-h-screen flex-col items-center justify-center bg-[#FDFDFC] text-[#1b1b18] dark:bg-[#0a0a0a] dark:text-[#EDEDEC]">
                 <Head title="Unauthorized - Access Denied" />
 

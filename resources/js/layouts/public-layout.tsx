@@ -3,14 +3,14 @@ import AppearanceToggleDropdown from '@/components/appearance-dropdown';
 import ScrollToTop, { ScrollIndicator } from '@/components/scroll-to-top';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { type ReactNode } from 'react';
 
 interface PublicLayoutProps {
-    children: ReactNode;
+    children: React.ReactNode;
     title?: string;
+    breadcrumbs?: { title: string; href: string }[];
 }
 
-export default function PublicLayout({ children, title = 'SmartLearn' }: PublicLayoutProps) {
+export default function PublicLayout({ children, title = 'SmartLearn', breadcrumbs }: PublicLayoutProps) {
     const { auth } = usePage<SharedData>().props;
 
     return (
@@ -29,13 +29,13 @@ export default function PublicLayout({ children, title = 'SmartLearn' }: PublicL
                         <Link href={route('courses.index')} className="hover:text-[#f53003] dark:hover:text-[#FF4433] transition-colors">
                             Courses
                         </Link>
-                        <Link href="#features" className="hover:text-[#f53003] dark:hover:text-[#FF4433] transition-colors">
+                        <Link href="/#features" className="hover:text-[#f53003] dark:hover:text-[#FF4433] transition-colors">
                             Features
                         </Link>
-                        <Link href="#testimonials" className="hover:text-[#f53003] dark:hover:text-[#FF4433] transition-colors">
+                        <Link href="/#testimonials" className="hover:text-[#f53003] dark:hover:text-[#FF4433] transition-colors">
                             Testimonials
                         </Link>
-                        <Link href="#pricing" className="hover:text-[#f53003] dark:hover:text-[#FF4433] transition-colors">
+                        <Link href="/#pricing" className="hover:text-[#f53003] dark:hover:text-[#FF4433] transition-colors">
                             Pricing
                         </Link>
                         <Link href={route('about')} className="hover:text-[#f53003] dark:hover:text-[#FF4433] transition-colors">
@@ -80,6 +80,18 @@ export default function PublicLayout({ children, title = 'SmartLearn' }: PublicL
             {/* Main content */}
             <main className="mt-20 bg-[#FDFDFC] text-[#1b1b18] dark:bg-[#0a0a0a] dark:text-[#EDEDEC] scroll-container">
                 <div className="mx-auto max-w-7xl px-4 md:px-8">
+                    {breadcrumbs && (
+                        <nav className="mt-30 mb-8 flex justify-center" aria-label="Breadcrumbs">
+                            <ol className="flex items-center space-x-2 text-sm text-[#706f6c] dark:text-[#A1A09A]">
+                                {breadcrumbs.map((crumb, idx) => (
+                                    <li key={crumb.title} className="flex items-center">
+                                        {idx > 0 && <span className="mx-2">/</span>}
+                                        {crumb.href !== '#' ? <Link href={crumb.href}>{crumb.title}</Link> : <span>{crumb.title}</span>}
+                                    </li>
+                                ))}
+                            </ol>
+                        </nav>
+                    )}
                     {children}
                 </div>
             </main>

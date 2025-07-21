@@ -6,8 +6,12 @@ import { ArrowRight, Mail, Phone, MapPin, MessageSquare, Send } from 'lucide-rea
 import { Link } from '@inertiajs/react';
 
 export default function Contact() {
+    const breadcrumbs = [
+        { title: 'Home', href: '/' },
+        { title: 'Contact', href: '/contact' },
+    ];
     return (
-        <PublicLayout title="Contact Us – SmartLearn">
+        <PublicLayout title="Contact Us – SmartLearn" breadcrumbs={breadcrumbs}>
             <div className="flex flex-col gap-24">
                 {/* Hero */}
                 <section className="relative isolate overflow-hidden bg-gradient-to-b from-[#FFF5F2] via-transparent to-transparent pt-28 pb-32 dark:from-[#1a0a0a]">

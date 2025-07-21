@@ -44,6 +44,13 @@ interface Props {
 }
 
 export default function Analytics({ course, stats, recentActivity, enrollmentTrends }: Props) {
+    const breadcrumbs = [
+        { title: 'Admin', href: '/admin/dashboard' },
+        { title: 'Courses', href: '/admin/courses' },
+        { title: course.name, href: `/admin/courses/${course.id}` },
+        { title: 'Analytics', href: '#' },
+    ];
+
     const getActivityIcon = (type: string) => {
         switch (type) {
             case 'announcement':
@@ -65,7 +72,7 @@ export default function Analytics({ course, stats, recentActivity, enrollmentTre
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${course.name} - Analytics`} />
 
             <div className="space-y-6">

@@ -28,6 +28,10 @@ interface Props {
 }
 
 export default function Index({ categories, filters }: Props) {
+    const breadcrumbs = [
+        { title: 'Admin', href: '/admin/dashboard' },
+        { title: 'Categories', href: '/admin/categories' },
+    ];
 
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
     const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms debounce delay
@@ -145,7 +149,7 @@ export default function Index({ categories, filters }: Props) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Category Management" />
 
             <div className="space-y-6 p-6">
