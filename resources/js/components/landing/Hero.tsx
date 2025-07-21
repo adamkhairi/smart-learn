@@ -80,9 +80,14 @@ export default function Hero({ stats = defaultStats, showIllustration = true }: 
                 {/* Illustration */}
                 {showIllustration && (
                     <div className="relative hidden lg:block">
-                        <div className="relative aspect-video overflow-hidden rounded-2xl border border-[#e3e3e0] shadow-2xl dark:border-[#3E3E3A]">
-                            <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/10 dark:stroke-neutral-100/10" />
-                            <div className="absolute inset-0 bg-gradient-to-br from-[#f53003]/10 to-[#FF9C33]/10" />
+                        <div className=" ">
+                            <img
+                                src={'/hero.svg'}
+                                alt="Hero Illustration"
+                                className="w-130 mx-auto"
+                            />
+                            {/* <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/10 dark:stroke-neutral-100/10" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-[#f53003]/10 to-[#FF9C33]/10" /> */}
 
                             {/* Optional: Add floating UI elements */}
                             <div className="absolute top-4 right-4 rounded-lg bg-white/80 px-3 py-2 shadow-lg backdrop-blur-sm dark:bg-gray-900/80">
