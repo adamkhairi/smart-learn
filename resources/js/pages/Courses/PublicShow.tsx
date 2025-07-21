@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import PublicLayout from '@/layouts/public-layout';
 import { BreadcrumbItem, Course } from '@/types';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { ArrowLeft, UserPlus, CheckCircle, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,11 +9,12 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { CourseStatusBadge } from '@/components/course-status-badge';
 import { useAuth } from '@/hooks/use-auth';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface PublicShowProps {
     course: Course;
     hasPendingEnrollmentRequest: boolean;
+    canAccessFullCourse: boolean; // New prop from backend
 }
 
 const breadcrumbs = (courseName: string): BreadcrumbItem[] => [
@@ -27,11 +28,19 @@ const breadcrumbs = (courseName: string): BreadcrumbItem[] => [
     },
 ];
 
-export default function PublicShow({ course, hasPendingEnrollmentRequest }: PublicShowProps) {
+export default function PublicShow({ course, hasPendingEnrollmentRequest, canAccessFullCourse }: PublicShowProps) {
     const { isAuthenticated } = useAuth();
     const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false);
 
     const { post, processing } = useForm({});
+
+    // Redirect to full course view if user can access it
+    useEffect(() => {
+        if (canAccessFullCourse) {
+            // Use Inertia.visit for client-side navigation
+            router.visit(route('courses.show', course.id), { replace: true });
+        }
+    }, [canAccessFullCourse, course.id]);
 
     if (!course) {
         return (

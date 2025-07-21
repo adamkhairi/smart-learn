@@ -18,6 +18,13 @@ import { formatDistanceToNow } from 'date-fns';
 import { BookOpen, Calendar, Plus, Users } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 
+interface ActionMenuItem {
+    label: string;
+    icon?: React.ReactNode;
+    onClick: () => void;
+    variant?: 'default' | 'destructive';
+}
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Courses',
@@ -108,11 +115,10 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
         ...(isStudent ? [{ value: 'my_courses', label: 'My Courses' }] : []),
     ], [isStudent]);
 
-    // Memoize page header actions
-    const pageHeaderActions = useMemo(() => {
-        if (!canCreateCourse) return null;
-        return pageActions.create('/courses/create', 'Create Course', <Plus className="mr-2 h-4 w-4" />);
-    }, [canCreateCourse]);
+    // Page Header Actions
+    // const pageHeaderActions: React.ReactNode | null = canCreateCourse
+    //     ? pageActions.create('/courses/create', 'Create Course', <Plus className="mr-2 h-4 w-4" />)
+    //     : null;
 
     // Handle status filter change with proper typing
     const handleStatusFilterChange = (value: string) => {
@@ -127,7 +133,10 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                 <PageHeader
                     title="Courses"
                     description="Manage your learning journey"
-                    actions={pageHeaderActions}
+                    actions={canCreateCourse
+                        ? pageActions.create('/courses/create', 'Create Course', <Plus className="mr-2 h-4 w-4" />)
+                        : null
+                    }
                 />
 
                 {/* Search and Filter Bar */}
@@ -168,7 +177,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {enrolledCourses.slice(0, 4).map((course) => (
                                 <Card key={course.id} className="group flex flex-col overflow-hidden border-2 border-primary/20">
-                                    <Link href={route('courses.show', course.id)} className="relative block h-32 overflow-hidden" tabIndex={-1}>
+                                    <Link href={route('courses.public_show', course.id)} className="relative block h-32 overflow-hidden" tabIndex={-1}>
                                         {course.image ? (
                                             <AspectRatio ratio={16 / 9}>
                                                 <img
@@ -186,7 +195,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                     <CardContent className="flex flex-1 flex-col p-4">
                                         <div className="mb-2 flex items-start justify-between gap-2">
                                             <h3 className="line-clamp-2 flex-1 font-semibold leading-tight">
-                                                <Link href={route('courses.show', course.id)} className="hover:text-primary">
+                                                <Link href={route('courses.public_show', course.id)} className="hover:text-primary">
                                                     {course.name}
                                                 </Link>
                                             </h3>
@@ -202,7 +211,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                         <div className="mt-auto flex items-center justify-between text-xs text-muted-foreground">
                                             <span className="flex items-center gap-1">
                                                 <Users className="h-3 w-3" />
-                                                {course.enrollments_count || 0} students
+                                                {String(course.enrollments_count || 0)} students
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 <Calendar className="h-3 w-3" />
@@ -219,8 +228,8 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                 {/* All Courses Grid */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {coursesToDisplay.map((course) => {
-                        const actionItems = [
-                            commonActions.view(() => router.visit(route('courses.show', course.id))),
+                        const actionItems: ActionMenuItem[] = [
+                            commonActions.view(() => router.visit(route('courses.public_show', course.id))),
                             ...(canEditCourse(course) ? [
                                 commonActions.edit(() => router.visit(route('courses.edit', course.id))),
                                 commonActions.delete(() => handleDelete(course.id, course.name)),
@@ -229,7 +238,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
 
                         return (
                             <Card key={course.id} className="group flex flex-col overflow-hidden">
-                                <Link href={route('courses.show', course.id)} className="relative block h-32 overflow-hidden" tabIndex={-1}>
+                                <Link href={route('courses.public_show', course.id)} className="relative block h-32 overflow-hidden" tabIndex={-1}>
                                     {course.image ? (
                                         <AspectRatio ratio={16 / 9}>
                                             <img
@@ -247,7 +256,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                 <CardContent className="flex flex-1 flex-col p-4">
                                     <div className="mb-2 flex items-start justify-between gap-2">
                                         <h3 className="line-clamp-2 flex-1 font-semibold leading-tight">
-                                            <Link href={route('courses.show', course.id)} className="hover:text-primary">
+                                            <Link href={route('courses.public_show', course.id)} className="hover:text-primary">
                                                 {course.name}
                                             </Link>
                                         </h3>
@@ -267,14 +276,14 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                             <span className="flex items-center gap-1">
                                                 <Users className="h-3 w-3" />
-                                                {course.enrollments_count || 0}
+                                                {String(course.enrollments_count || 0)}
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 <Calendar className="h-3 w-3" />
                                                 {formatDistanceToNow(new Date(course.created_at), { addSuffix: true })}
                                             </span>
                                         </div>
-                                        {actionItems.length > 1 && <ActionMenu items={actionItems} />}
+                                        {actionItems.length > 1 ? <ActionMenu items={actionItems} /> : null}
                                     </div>
                                 </CardContent>
                             </Card>

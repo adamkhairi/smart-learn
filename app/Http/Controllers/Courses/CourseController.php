@@ -189,15 +189,6 @@ class CourseController extends Controller
 
         $user = Auth::user();
 
-        // If the user is authenticated, and NOT an admin or the course creator,
-        // and the course is public and published, and they are NOT enrolled,
-        // then redirect to the public show page.
-        // This covers the case where a student is authorized by policy (because it's public/published)
-        // but should still be directed to the public show if not enrolled or admin/creator.
-        if ($user && !$user->isAdmin() && $course->created_by !== $user->id && !$course->enrolledUsers()->where('user_id', $user->id)->exists() && !$course->is_private && $course->status === 'published') {
-            return redirect()->route('courses.public_show', $course->id);
-        }
-
         // Determine if user is instructor for this course
         $isInstructor = $user->isAdmin() || $course->created_by === $user->id;
 
@@ -260,91 +251,47 @@ class CourseController extends Controller
      */
     public function publicShow(Course $course): Response
     {
-        // If the course is private or not published, guests should not see it
-        if (($course->is_private || $course->status !== 'published') && !Auth::check()) {
-            return redirect()->route('courses.index')->with('error', 'This course is not publicly available or does not exist.');
-        }
-
         $user = Auth::user();
 
-        // If the course is private, or not published, and the user is not an admin, creator, or enrolled, deny access.
+        // If the course is private or not published
         if ($course->is_private || $course->status !== 'published') {
-            if (!$user || (!$user->isAdmin() && $course->created_by !== $user->id && !$course->enrolledUsers()->where('user_id', $user->id)->exists())) {
+            // Guests are redirected to the courses index
+            if (!Auth::check()) {
+                return redirect()->route('courses.index')->with('error', 'This course is not publicly available or does not exist.');
+            }
+            // Authenticated users who are not admin, creator, or enrolled are denied access
+            if (!$user->isAdmin() && $course->created_by !== $user->id && !$course->enrolledUsers()->where('user_id', $user->id)->exists()) {
                 abort(403, 'You do not have access to this course.');
             }
         }
 
-        // If the user is already enrolled, or is the creator/admin, directly render the full course show page.
-        if ($user && ($user->isAdmin() || $course->created_by === $user->id || $course->enrolledUsers()->where('user_id', $user->id)->exists())) {
-            // Re-use the logic from the 'show' method to render the full course page.
-            // This avoids a redirect and ensures the return type is Inertia\Response.
-            $isInstructor = $user->isAdmin() || $course->created_by === $user->id;
+        // Determine if current user is enrolled, creator, or admin to pass this info to frontend
+        $isUserEnrolled = false;
+        $isCourseCreator = false;
+        $isUserAdmin = false;
 
-            $userEnrollmentData = $course->enrolledUsers()
-                ->where('user_id', $user->id)
-                ->first();
-
-            $userEnrollment = null;
-            if ($userEnrollmentData) {
-                $userEnrollment = [
-                    'id' => $userEnrollmentData->pivot->id ?? null,
-                    'user_id' => $user->id,
-                    'course_id' => $course->id,
-                    'enrolled_as' => $userEnrollmentData->pivot->enrolled_as,
-                    'created_at' => $userEnrollmentData->pivot->created_at,
-                    'updated_at' => $userEnrollmentData->pivot->updated_at,
-                    'completed_module_items' => $course->getCompletedModuleItemIds($user->id),
-                ];
-            }
-
-            $course->load([ // Load all necessary relationships for the full show page
-                'creator:id,name,email,photo',
-                'enrolledUsers:id,name,email,photo',
-                'modules' => function ($query) use ($isInstructor) {
-                    $query->when(!$isInstructor, function ($q) {
-                        $q->where('is_published', true);
-                    })->ordered()->with(['moduleItems' => function ($q) {
-                        $q->ordered();
-                    }]);
-                },
-                'assignments:id,title,course_id,expired_at,total_points,status',
-                'assessments:id,title,course_id,expired_at,total_points,status',
-                'announcements' => function ($query) {
-                    $query->select('id', 'title', 'course_id', 'created_at')
-                        ->latest()
-                        ->limit(5);
-                },
-                'discussions' => function ($query) {
-                    $query->select('id', 'title', 'course_id', 'created_at')
-                        ->latest()
-                        ->limit(5);
-                }
-            ]);
-
-            return Inertia::render('Courses/Show', [
-                'course' => $course,
-                'userEnrollment' => $userEnrollment,
-                'userRole' => $user->role,
-            ]);
+        if ($user) {
+            $isUserEnrolled = $course->enrolledUsers()->where('user_id', $user->id)->exists();
+            $isCourseCreator = ($course->created_by === $user->id);
+            $isUserAdmin = $user->isAdmin();
         }
 
-        // Fetch limited details for the public view
-        $course->load(['creator:id,name,email,photo', 'category:id,name,slug']);
-
-        // Placeholder for pending enrollment request check
+        // Check for pending enrollment request only if not already enrolled
         $hasPendingEnrollmentRequest = false;
-        if ($user) {
+        if ($user && !$isUserEnrolled) {
             $hasPendingEnrollmentRequest = EnrollmentRequest::where('user_id', $user->id)
                                             ->where('course_id', $course->id)
                                             ->where('status', 'pending')
                                             ->exists();
         }
 
-        Log::info('Public course data for frontend:', ['course' => $course->toArray()]);
+        // Load minimal details for public view or full details if frontend redirects
+        $course->load(['creator:id,name,email,photo', 'category:id,name,slug']);
 
         return Inertia::render('Courses/PublicShow', [
-            'course' => $course->load(['category:id,name', 'creator:id,name,photo']),
+            'course' => $course,
             'hasPendingEnrollmentRequest' => $hasPendingEnrollmentRequest,
+            'canAccessFullCourse' => $isUserEnrolled || $isCourseCreator || $isUserAdmin, // Flag for frontend redirection
         ]);
     }
 
