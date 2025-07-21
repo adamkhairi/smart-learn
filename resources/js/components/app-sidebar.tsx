@@ -7,10 +7,12 @@ import { adminNavItems, footerNavItems, mainNavItems } from '@/lib/navigation';
 import { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import AppLogo from './app-logo';
+import { useSidebar } from './ui/sidebar';
 
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
     const isAdmin = auth.user?.role === 'admin';
+    const { state } = useSidebar();
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -19,7 +21,7 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
                             <Link href="/" prefetch>
-                                <AppLogo />
+                                <AppLogo icon={state === 'collapsed'} />
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

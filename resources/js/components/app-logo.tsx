@@ -1,7 +1,7 @@
 import { useAppearance } from '@/hooks/use-appearance';
 import { useEffect, useState } from 'react';
 
-export default function AppLogo({ forceWhite = false }: { forceWhite?: boolean } = {}) {
+export default function AppLogo({ forceWhite = false, icon = false }: { forceWhite?: boolean; icon?: boolean } = {}) {
     const { appearance } = useAppearance();
     const [isDark, setIsDark] = useState(false);
 
@@ -24,6 +24,12 @@ export default function AppLogo({ forceWhite = false }: { forceWhite?: boolean }
 
         return () => observer.disconnect();
     }, [appearance]);
+
+    if (icon) {
+        return (
+            <img src="/favicon.svg" alt="Smart Learn Icon" className="w-8 h-8" />
+        );
+    }
 
     const logoSrc = forceWhite ? '/logo-white.svg' : (isDark ? '/logo-white.svg' : '/logo-black.svg');
 
