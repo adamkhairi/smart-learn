@@ -1,8 +1,13 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import { type SharedData } from '@/types';
 import AppLogo from '@/components/app-logo';
 import AppearanceToggleDropdown from '@/components/appearance-dropdown';
 import SmoothAnchor from '@/components/smooth-anchor';
+import { User } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { UserMenuContent } from '@/components/user-menu-content';
+import { useInitials } from '@/hooks/use-initials';
 
 interface NavigationItem {
     label: string;
@@ -32,6 +37,7 @@ export default function Header({
     className = ""
 }: HeaderProps) {
     const { auth } = usePage<SharedData>().props;
+    const getInitials = useInitials();
 
     const renderNavigationItem = (item: NavigationItem, index: number) => {
         const baseClasses = "hover:text-[#f53003] dark:hover:text-[#FF4433] transition-colors";
@@ -93,6 +99,12 @@ export default function Header({
                     {navigationItems.map(renderNavigationItem)}
                 </nav>
 
+
+                {/* Mobile Menu Button - TODO: Implement mobile menu */}
+                <div className="lg:hidden">
+                    {/* Mobile menu button can be added here */}
+                </div>
+
                 {/* Right Side Actions */}
                 <div className="flex items-center gap-4 text-sm">
                     {/* Appearance Toggle */}
@@ -100,12 +112,22 @@ export default function Header({
 
                     {/* Authentication */}
                     {auth?.user ? (
-                        <Link
-                            href={route('dashboard')}
-                            className="rounded-lg border border-[#19140035] px-4 py-2 font-medium text-[#1b1b18] hover:border-[#19140080] hover:bg-gray-50 dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-gray-800 transition-all"
-                        >
-                            Dashboard
-                        </Link>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="flex items-center gap-2 rounded-lg px-4 py-2 font-medium text-[#1b1b18] hover:border-[#19140080] hover:bg-gray-50 dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b] dark:hover:bg-gray-800 transition-all">
+                                    <Avatar className="size-6 overflow-hidden rounded-full">
+                                        <AvatarImage src={auth.user.photo} alt={auth.user.name} />
+                                        <AvatarFallback className="bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
+                                            {getInitials(auth.user.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span>{auth.user.name}</span>
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56" align="end">
+                                <UserMenuContent user={auth.user} />
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     ) : (
                         <>
                             <Link
@@ -114,19 +136,8 @@ export default function Header({
                             >
                                 Log&nbsp;in
                             </Link>
-                            <Link
-                                href={route('register')}
-                                className="rounded-lg bg-[#f53003] px-6 py-2 font-medium text-white shadow-lg hover:bg-[#d92b02] dark:bg-[#FF4433] dark:hover:bg-[#e83b29] transition-all hover:shadow-xl"
-                            >
-                                Get&nbsp;Started
-                            </Link>
                         </>
                     )}
-                </div>
-
-                {/* Mobile Menu Button - TODO: Implement mobile menu */}
-                <div className="lg:hidden">
-                    {/* Mobile menu button can be added here */}
                 </div>
             </div>
         </header>

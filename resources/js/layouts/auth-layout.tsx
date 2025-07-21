@@ -1,9 +1,27 @@
-import AuthLayoutTemplate from '@/layouts/auth/auth-simple-layout';
+import AuthSimpleLayout from '@/layouts/auth/auth-simple-layout';
+import AuthSplitLayout from '@/layouts/auth/auth-split-layout';
 
-export default function AuthLayout({ children, title, description, ...props }: { children: React.ReactNode; title: string; description: string }) {
+interface AuthLayoutProps {
+    children: React.ReactNode;
+    title: string;
+    description: string;
+    splitLayout?: boolean;
+    isRegisterPage?: boolean;
+}
+
+export default function AuthLayout({
+    children,
+    title,
+    description,
+    splitLayout = false,
+    isRegisterPage = false,
+    ...props
+}: AuthLayoutProps) {
+    const LayoutComponent = splitLayout ? AuthSplitLayout : AuthSimpleLayout;
+
     return (
-        <AuthLayoutTemplate title={title} description={description} {...props}>
+        <LayoutComponent title={title} description={description} isRegisterPage={isRegisterPage} {...props}>
             {children}
-        </AuthLayoutTemplate>
+        </LayoutComponent>
     );
 }

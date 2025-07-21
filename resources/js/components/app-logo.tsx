@@ -1,11 +1,35 @@
 import { useAppearance } from '@/hooks/use-appearance';
+import { useEffect, useState } from 'react';
 
-export default function AppLogo() {
-    const theme = useAppearance();
-    const logoSrc = theme.appearance === 'dark' ? '/logo-white.svg' : theme.appearance === 'light' ? '/logo-black.svg' : '/logo-white.svg';
+export default function AppLogo({ forceWhite = false }: { forceWhite?: boolean } = {}) {
+    const { appearance } = useAppearance();
+    const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+        const updateTheme = () => {
+            // Check if dark class is present on html element
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            setIsDark(isDarkMode);
+        };
+
+        // Update immediately
+        updateTheme();
+
+        // Listen for theme changes using MutationObserver
+        const observer = new MutationObserver(updateTheme);
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+
+        return () => observer.disconnect();
+    }, [appearance]);
+
+    const logoSrc = forceWhite ? '/logo-white.svg' : (isDark ? '/logo-white.svg' : '/logo-black.svg');
+
     return (
-        <div className="flex items-center justify-center">
-            <img src={logoSrc} alt="Smart Learn Logo" className="w-56" />
+        <div className="">
+            <img src={logoSrc} alt="Smart Learn Logo" className="w-48" />
         </div>
     );
 }

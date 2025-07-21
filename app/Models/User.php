@@ -33,6 +33,9 @@ class User extends Authenticatable
         'is_email_registered',
         'code',
         'last_seen_at',
+        'bio',
+        'location',
+        'website',
     ];
 
     /**

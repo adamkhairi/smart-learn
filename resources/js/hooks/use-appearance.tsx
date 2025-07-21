@@ -66,8 +66,19 @@ export function useAppearance() {
         const savedAppearance = localStorage.getItem('appearance') as Appearance | null;
         updateAppearance(savedAppearance || 'system');
 
-        return () => mediaQuery()?.removeEventListener('change', handleSystemThemeChange);
-    }, [updateAppearance]);
+        // Listen for system theme changes and update if using system preference
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleSystemChange = () => {
+            if (appearance === 'system') {
+                // Force a re-render by updating the appearance state
+                setAppearance('system');
+            }
+        };
+
+        mediaQuery.addEventListener('change', handleSystemChange);
+
+        return () => mediaQuery.removeEventListener('change', handleSystemChange);
+    }, [updateAppearance, appearance]);
 
     return { appearance, updateAppearance } as const;
 }
