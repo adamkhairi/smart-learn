@@ -1,19 +1,19 @@
-import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { CourseStatusBadge } from '@/components/course-status-badge';
+import { ModuleProgress } from '@/components/module-progress';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ModuleProgress } from '@/components/module-progress';
 import { useAuth } from '@/hooks/use-auth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem, CourseShowPageProps } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { useState } from 'react';
 import {
     ArrowLeft,
     Award,
+    BarChart3,
     Bell,
     BookOpen,
     Calendar,
@@ -28,8 +28,8 @@ import {
     Star,
     Target,
     Users,
-    BarChart3,
 } from 'lucide-react';
+import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -51,9 +51,7 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
     const [expandedAssignments, setExpandedAssignments] = useState<number[]>([]);
 
     const toggleAssignmentExpansion = (assignmentId: number) => {
-        setExpandedAssignments((prev) =>
-            prev.includes(assignmentId) ? prev.filter((id) => id !== assignmentId) : [...prev, assignmentId]
-        );
+        setExpandedAssignments((prev) => (prev.includes(assignmentId) ? prev.filter((id) => id !== assignmentId) : [...prev, assignmentId]));
     };
 
     const isAssignmentExpanded = (assignmentId: number) => expandedAssignments.includes(assignmentId);
@@ -75,85 +73,87 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                 {/* Top Header Row: Back Button and Action Buttons */}
                 <div className="flex items-center justify-between">
                     {/* Back Button */}
-                            <Button variant="ghost" size={isMobile ? 'sm' : 'default'} asChild>
-                                <Link href="/courses">
-                                    <ArrowLeft className="mr-2 h-4 w-4" />
-                                    <span className="hidden sm:inline">Back to Courses</span>
-                                    <span className="sm:hidden">Back</span>
-                                </Link>
-                            </Button>
+                    <Button variant="ghost" size={isMobile ? 'sm' : 'default'} asChild>
+                        <Link href="/courses">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            <span className="hidden sm:inline">Back to Courses</span>
+                            <span className="sm:hidden">Back</span>
+                        </Link>
+                    </Button>
 
                     {/* Action Buttons (Edit Course, Add Module) */}
                     {isInstructor && (
-                    <div className="flex shrink-0 items-center gap-2">
-                                {isMobile ? (
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" size="sm">
-                                                <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-48">
-                                            <DropdownMenuItem asChild>
-                                                <Link href={`/courses/${course.id}/edit`}>
-                                                    <Edit className="mr-2 h-4 w-4" />
-                                                    Edit Course
-                                                </Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem asChild>
-                                                <Link href={`/courses/${course.id}/modules/create`}>
-                                                    <Plus className="mr-2 h-4 w-4" />
-                                                    Add Module
-                                                </Link>
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                ) : (
-                                    <>
-                                        <Button variant="outline" asChild>
+                        <div className="flex shrink-0 items-center gap-2">
+                            {isMobile ? (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm">
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                        <DropdownMenuItem asChild>
                                             <Link href={`/courses/${course.id}/edit`}>
                                                 <Edit className="mr-2 h-4 w-4" />
                                                 Edit Course
                                             </Link>
-                                        </Button>
-                                        <Button asChild variant="outline">
-                                            <Link href={`/admin/courses/${course.id}/enrollments`}>
-                                                <Users className="mr-2 h-4 w-4" />
-                                                Manage Enrollments
-                                            </Link>
-                                        </Button>
-                                        <Button asChild>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem asChild>
                                             <Link href={`/courses/${course.id}/modules/create`}>
                                                 <Plus className="mr-2 h-4 w-4" />
                                                 Add Module
                                             </Link>
-                                        </Button>
-                                    </>
-                                )}
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            ) : (
+                                <>
+                                    <Button variant="outline" asChild>
+                                        <Link href={`/courses/${course.id}/edit`}>
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            Edit Course
+                                        </Link>
+                                    </Button>
+                                    <Button asChild variant="outline">
+                                        <Link href={`/admin/courses/${course.id}/enrollments`}>
+                                            <Users className="mr-2 h-4 w-4" />
+                                            Manage Enrollments
+                                        </Link>
+                                    </Button>
+                                    {/* Go to Modules Button (Always visible) */}
+                                    <Button variant="outline" size={isMobile ? 'sm' : 'default'} asChild>
+                                        <Link href={`/courses/${course.id}/modules`}>
+                                            <BookOpen className="mr-2 h-4 w-4" />
+                                            <span className="hidden sm:inline">Go to Modules</span>
+                                            <span className="sm:hidden">Modules</span>
+                                        </Link>
+                                    </Button>
+                                    <Button asChild>
+                                        <Link href={`/courses/${course.id}/modules/create`}>
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Add Module
+                                        </Link>
+                                    </Button>{' '}
+                                </>
+                            )}
                         </div>
-                        )}
+                    )}
                 </div>
 
                 {/* Main Course Info Card (Image, Title, Status, Creator, Description) */}
                 <Card className="flex flex-col overflow-hidden">
                     {/* Course Image Banner */}
                     {course.image && (
-                        <div className="w-full h-56 mb-4 overflow-hidden">
+                        <div className="mb-4 h-56 w-full overflow-hidden">
                             <AspectRatio ratio={16 / 9}>
-                                <img
-                                    src={`/storage/${course.image}`}
-                                    alt={course.name}
-                                    className="h-full w-full object-cover"
-                                />
+                                <img src={`/storage/${course.image}`} alt={course.name} className="h-full w-full object-cover" />
                             </AspectRatio>
                         </div>
                     )}
                     <CardHeader>
                         <div className="space-y-2">
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                                <CardTitle className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
-                                    {course.name}
-                                </CardTitle>
+                                <CardTitle className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">{course.name}</CardTitle>
                                 <CourseStatusBadge status={course.status} />
                             </div>
                             <CardDescription className="text-sm text-muted-foreground sm:text-base lg:text-lg">
@@ -174,9 +174,7 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-xs font-medium text-muted-foreground sm:text-sm">Students</p>
-                                        <p className="text-lg font-bold sm:text-2xl">
-                                            {course.enrolled_users?.length || 0}
-                                        </p>
+                                        <p className="text-lg font-bold sm:text-2xl">{course.enrolled_users?.length || 0}</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -202,9 +200,7 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-xs font-medium text-muted-foreground sm:text-sm">Assignments</p>
-                                        <p className="text-lg font-bold sm:text-2xl">
-                                            {course.assignments?.length || 0}
-                                        </p>
+                                        <p className="text-lg font-bold sm:text-2xl">{course.assignments?.length || 0}</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -217,9 +213,7 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-xs font-medium text-muted-foreground sm:text-sm">Discussions</p>
-                                        <p className="text-lg font-bold sm:text-2xl">
-                                            {course.discussions?.length || 0}
-                                        </p>
+                                        <p className="text-lg font-bold sm:text-2xl">{course.discussions?.length || 0}</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -241,11 +235,9 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                             </CardHeader>
                             <CardContent>
                                 {course.description ? (
-                                    <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-                                        {course.description}
-                                    </p>
+                                    <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">{course.description}</p>
                                 ) : (
-                                    <p className="text-sm italic text-muted-foreground sm:text-base">No description provided.</p>
+                                    <p className="text-sm text-muted-foreground italic sm:text-base">No description provided.</p>
                                 )}
                             </CardContent>
                         </Card>
@@ -254,26 +246,23 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                         {visibleModules.length > 0 && (
                             <Card>
                                 <CardHeader className="pb-3 sm:pb-4">
-                                        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                                            <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+                                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                        <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
                                         Modules
-                                        </CardTitle>
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent className="grid gap-4">
                                     {visibleModules.map((module) => (
                                         <Link
                                             key={module.id}
-                                            href={route('courses.modules.show', [
-                                                course.id,
-                                                module.id,
-                                            ])}
+                                            href={route('courses.modules.show', [course.id, module.id])}
                                             className="block rounded-md p-3 transition-colors hover:bg-muted"
                                         >
                                             <h3 className="font-semibold">{module.title}</h3>
-                                            <p className="text-sm text-muted-foreground line-clamp-2">
+                                            <p className="line-clamp-2 text-sm text-muted-foreground">
                                                 {module.description || 'No description provided.'}
                                             </p>
-                                                                </Link>
+                                        </Link>
                                     ))}
                                 </CardContent>
                             </Card>
@@ -288,18 +277,12 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                 <TabsTrigger value="assessments">Assessments</TabsTrigger>
                             </TabsList>
                             <TabsContent value="modules" className="mt-4">
-                        <Card>
+                                <Card>
                                     <CardContent className="grid gap-4">
                                         {visibleModules.length > 0 ? (
-                                            <ModuleProgress
-                                                course={course}
-                                                userEnrollment={userEnrollment}
-                                                modules={visibleModules}
-                                            />
+                                            <ModuleProgress course={course} userEnrollment={userEnrollment} modules={visibleModules} />
                                         ) : (
-                                            <p className="text-sm italic text-muted-foreground sm:text-base">
-                                                No modules available.
-                                            </p>
+                                            <p className="text-sm text-muted-foreground italic sm:text-base">No modules available.</p>
                                         )}
                                     </CardContent>
                                 </Card>
@@ -319,20 +302,28 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                                             </CardTitle>
                                                         </CardHeader>
                                                         <CardContent>
-                                                            <p className={isAssignmentExpanded(assignment.id) ? 'text-sm text-muted-foreground' : 'text-sm text-muted-foreground line-clamp-3'}>
+                                                            <p
+                                                                className={
+                                                                    isAssignmentExpanded(assignment.id)
+                                                                        ? 'text-sm text-muted-foreground'
+                                                                        : 'line-clamp-3 text-sm text-muted-foreground'
+                                                                }
+                                                            >
                                                                 {assignment.description || 'No description provided.'}
                                                             </p>
                                                             {assignment.description && assignment.description.length > 150 && (
-                                                                <Button variant="link" onClick={() => toggleAssignmentExpansion(assignment.id)} className="px-0">
+                                                                <Button
+                                                                    variant="link"
+                                                                    onClick={() => toggleAssignmentExpansion(assignment.id)}
+                                                                    className="px-0"
+                                                                >
                                                                     {isAssignmentExpanded(assignment.id) ? 'Show Less' : 'Read More'}
                                                                 </Button>
                                                             )}
                                                             <p className="mt-2 text-xs text-muted-foreground">
                                                                 <span className="flex items-center gap-1">
                                                                     <Calendar className="h-3 w-3" /> Due:{' '}
-                                                                    {assignment.due_date
-                                                                        ? new Date(assignment.due_date).toLocaleDateString()
-                                                                        : 'N/A'}
+                                                                    {assignment.due_date ? new Date(assignment.due_date).toLocaleDateString() : 'N/A'}
                                                                 </span>
                                                             </p>
                                                         </CardContent>
@@ -340,13 +331,11 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                                 ))}
                                             </div>
                                         ) : (
-                                            <p className="text-sm italic text-muted-foreground sm:text-base">
-                                                No assignments available.
-                                            </p>
+                                            <p className="text-sm text-muted-foreground italic sm:text-base">No assignments available.</p>
                                         )}
                                     </CardContent>
                                 </Card>
-                                    </TabsContent>
+                            </TabsContent>
 
                             {/* Discussions Tab */}
                             <TabsContent value="discussions" className="mt-4">
@@ -360,9 +349,7 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                             <div className="flex items-center gap-2">
                                                 {visibleDiscussions.length > 0 && (
                                                     <Button variant="outline" size="sm" asChild>
-                                                        <Link href={route('courses.discussions.index', { course: course.id })}>
-                                                            View All
-                                                        </Link>
+                                                        <Link href={route('courses.discussions.index', { course: course.id })}>View All</Link>
                                                     </Button>
                                                 )}
                                                 <Button size="sm" asChild>
@@ -384,7 +371,7 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                                             className="block rounded-md p-3 transition-colors hover:bg-muted"
                                                         >
                                                             <h3 className="font-semibold">{discussion.title}</h3>
-                                                            <p className="text-sm text-muted-foreground line-clamp-2">
+                                                            <p className="line-clamp-2 text-sm text-muted-foreground">
                                                                 {discussion.content || 'No description provided.'}
                                                             </p>
                                                         </Link>
@@ -392,9 +379,9 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                                 ))}
                                             </ul>
                                         ) : (
-                                            <div className="text-center py-8">
-                                                <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                                                <p className="text-sm italic text-muted-foreground sm:text-base mb-4">
+                                            <div className="py-8 text-center">
+                                                <MessageSquare className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                                                <p className="mb-4 text-sm text-muted-foreground italic sm:text-base">
                                                     No discussions available for this course.
                                                 </p>
                                                 <Button asChild>
@@ -428,19 +415,24 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                                             className="block rounded-md p-3 transition-colors hover:bg-muted"
                                                         >
                                                             <h3 className="font-semibold">{assessment.title}</h3>
-                                                            <p className="text-sm text-muted-foreground line-clamp-2">
-                                                                {(assessment.content_html || assessment.instructions_html) ?
-                                                                    <div dangerouslySetInnerHTML={{ __html: (assessment.content_html || assessment.instructions_html) as string }} /> :
-                                                                    'No description provided.'}
+                                                            <p className="line-clamp-2 text-sm text-muted-foreground">
+                                                                {assessment.content_html || assessment.instructions_html ? (
+                                                                    <div
+                                                                        dangerouslySetInnerHTML={{
+                                                                            __html: (assessment.content_html ||
+                                                                                assessment.instructions_html) as string,
+                                                                        }}
+                                                                    />
+                                                                ) : (
+                                                                    'No description provided.'
+                                                                )}
                                                             </p>
                                                             <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
                                                                 <span className="flex items-center gap-1">
-                                                                    <Clock className="h-3 w-3" /> Duration:{' '}
-                                                                    {assessment.duration || 'N/A'} mins
+                                                                    <Clock className="h-3 w-3" /> Duration: {assessment.duration || 'N/A'} mins
                                                                 </span>
                                                                 <span className="flex items-center gap-1">
-                                                                    <Star className="h-3 w-3" /> Max Score:{' '}
-                                                                    {assessment.max_score || 'N/A'}
+                                                                    <Star className="h-3 w-3" /> Max Score: {assessment.max_score || 'N/A'}
                                                                 </span>
                                                             </div>
                                                         </Link>
@@ -448,14 +440,14 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                                 ))}
                                             </ul>
                                         ) : (
-                                            <p className="text-sm italic text-muted-foreground sm:text-base">
+                                            <p className="text-sm text-muted-foreground italic sm:text-base">
                                                 No assessments available for this course.
                                             </p>
                                         )}
                                     </CardContent>
                                 </Card>
-                                    </TabsContent>
-                                </Tabs>
+                            </TabsContent>
+                        </Tabs>
 
                         {/* Enrollment Section for Students */}
                         {!isInstructor && !userEnrollment && (
@@ -477,7 +469,7 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                             </Card>
                         )}
                         {/* Instructor Info Card */}
-                                {isInstructor && (
+                        {isInstructor && (
                             <Card>
                                 <CardHeader className="pb-3 sm:pb-4">
                                     <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
@@ -487,8 +479,7 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                 </CardHeader>
                                 <CardContent className="grid gap-3 text-sm">
                                     <p className="text-muted-foreground">
-                                        As an instructor, you can manage course details, modules, assignments, and track
-                                        student progress.
+                                        As an instructor, you can manage course details, modules, assignments, and track student progress.
                                     </p>
                                     <Button variant="outline" asChild>
                                         <Link href={route('admin.courses.analytics', { course: course.id })}>
@@ -504,7 +495,7 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                     {/* Sidebar/Right Column - Takes 1/3 on desktop, full width on mobile */}
                     <div className="space-y-4 lg:col-span-1 lg:space-y-6">
                         {/* Course Overview/Details */}
-                            <Card>
+                        <Card>
                             <CardHeader className="pb-3 sm:pb-4">
                                 <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                                     <Eye className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -537,9 +528,7 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                     <Calendar className="mr-3 h-4 w-4 text-muted-foreground" />
                                     <div>
                                         <p className="font-medium">Last Updated:</p>
-                                        <p className="text-muted-foreground">
-                                            {new Date(course.updated_at).toLocaleDateString()}
-                                        </p>
+                                        <p className="text-muted-foreground">{new Date(course.updated_at).toLocaleDateString()}</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -551,15 +540,11 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                 <CardHeader className="pb-3 sm:pb-4">
                                     <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                                         <CheckCircle className="h-5 w-5 text-green-600" />
-                                            Your Progress
-                                        </CardTitle>
+                                        Your Progress
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <ModuleProgress
-                                        course={course}
-                                        userEnrollment={userEnrollment}
-                                        modules={publishedModules}
-                                    />
+                                    <ModuleProgress course={course} userEnrollment={userEnrollment} modules={publishedModules} />
                                     <Button variant="outline" className="mt-4 w-full" asChild>
                                         <Link href={route('progress.show', { course: course.id })}>View Detailed Progress</Link>
                                     </Button>
