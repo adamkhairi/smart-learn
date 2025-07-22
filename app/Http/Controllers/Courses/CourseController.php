@@ -25,7 +25,8 @@ class CourseController extends Controller
     {
         $user = Auth::user();
 
-        $query = Course::with(['creator:id,name,email,photo', 'category:id,name,slug']);
+        $query = Course::with(['creator:id,name,email,photo', 'category:id,name,slug'])
+                       ->withCount('enrolledUsers'); // Add this line
 
         // Apply search filter
         if ($search = $request->query('search')) {

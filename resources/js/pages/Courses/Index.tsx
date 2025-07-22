@@ -211,7 +211,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                         <div className="mt-auto flex items-center justify-between text-xs text-muted-foreground">
                                             <span className="flex items-center gap-1">
                                                 <Users className="h-3 w-3" />
-                                                {String(course.enrollments_count || 0)} students
+                                                {String(course.enrolled_users_count || 0)} students
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 <Calendar className="h-3 w-3" />
@@ -276,7 +276,7 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                             <span className="flex items-center gap-1">
                                                 <Users className="h-3 w-3" />
-                                                {String(course.enrollments_count || 0)}
+                                                {String(course.enrolled_users_count || 0)}
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 <Calendar className="h-3 w-3" />
