@@ -7,65 +7,52 @@ use App\Models\EnrollmentRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redirect;
+use App\Actions\EnrollmentRequest\ListEnrollmentRequestsAction;
+use App\Actions\EnrollmentRequest\ApproveEnrollmentRequestAction;
+use App\Actions\EnrollmentRequest\RejectEnrollmentRequestAction;
 
 class EnrollmentRequestController extends Controller
 {
-    /**
-     * Display a listing of enrollment requests.
-     */
-    public function index(Request $request): Response
+    public function index(Request $request, ListEnrollmentRequestsAction $listEnrollmentRequestsAction): Response
     {
-        $query = EnrollmentRequest::with(['user:id,name,email', 'course:id,name']);
+        try {
+            $requests = $listEnrollmentRequestsAction->execute($request);
 
-        // Apply status filter
-        if ($status = $request->query('status')) {
-            if (in_array($status, ['pending', 'approved', 'rejected'])) {
-                $query->where('status', $status);
+            return Inertia::render('Admin/EnrollmentRequests/Index', [
+                'enrollmentRequests' => $requests,
+                'filters' => $request->only('status'),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching enrollment requests: ' . $e->getMessage());
+            return Redirect::back()->with('error', 'Failed to load enrollment requests.');
+        }
+    }
+
+    public function approve(EnrollmentRequest $enrollmentRequest, ApproveEnrollmentRequestAction $approveEnrollmentRequestAction)
+    {
+        try {
+            if (!$approveEnrollmentRequestAction->execute($enrollmentRequest)) {
+                return Redirect::back()->with('error', 'Only pending requests can be approved.');
             }
+            return Redirect::back()->with('success', 'Enrollment request approved and user enrolled successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error approving enrollment request: ' . $e->getMessage());
+            return Redirect::back()->with('error', 'Failed to approve enrollment request.');
         }
-
-        $requests = $query->latest()->paginate(10);
-
-        return Inertia::render('Admin/EnrollmentRequests/Index', [
-            'enrollmentRequests' => $requests,
-            'filters' => $request->only('status'),
-        ]);
     }
 
-    /**
-     * Approve an enrollment request.
-     */
-    public function approve(EnrollmentRequest $enrollmentRequest)
+    public function reject(EnrollmentRequest $enrollmentRequest, RejectEnrollmentRequestAction $rejectEnrollmentRequestAction)
     {
-        // Only pending requests can be approved
-        if ($enrollmentRequest->status !== 'pending') {
-            return back()->with('error', 'Only pending requests can be approved.');
+        try {
+            if (!$rejectEnrollmentRequestAction->execute($enrollmentRequest)) {
+                return Redirect::back()->with('error', 'Only pending requests can be rejected.');
+            }
+            return Redirect::back()->with('success', 'Enrollment request rejected.');
+        } catch (\Exception $e) {
+            Log::error('Error rejecting enrollment request: ' . $e->getMessage());
+            return Redirect::back()->with('error', 'Failed to reject enrollment request.');
         }
-
-        DB::transaction(function () use ($enrollmentRequest) {
-            // Update request status
-            $enrollmentRequest->update(['status' => 'approved']);
-
-            // Enroll the user in the course
-            $enrollmentRequest->course->enroll($enrollmentRequest->user_id, 'student');
-        });
-
-        return back()->with('success', 'Enrollment request approved and user enrolled successfully.');
-    }
-
-    /**
-     * Reject an enrollment request.
-     */
-    public function reject(EnrollmentRequest $enrollmentRequest)
-    {
-        // Only pending requests can be rejected
-        if ($enrollmentRequest->status !== 'pending') {
-            return back()->with('error', 'Only pending requests can be rejected.');
-        }
-
-        $enrollmentRequest->update(['status' => 'rejected']);
-
-        return back()->with('success', 'Enrollment request rejected.');
     }
 }
