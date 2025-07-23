@@ -6,20 +6,25 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
-use App\Actions\Category\ListCategoriesAction;
-use App\Actions\Category\CreateCategoryAction;
-use App\Actions\Category\UpdateCategoryAction;
-use App\Actions\Category\DeleteCategoryAction;
-use Illuminate\Support\Facades\Log;
 
 class CategoryController extends Controller
 {
-    public function index(Request $request, ListCategoriesAction $listCategoriesAction)
+    public function index(Request $request)
     {
         try {
-            $categories = $listCategoriesAction->execute($request);
+            $query = Category::query();
+
+            // Search functionality
+            if ($request->filled('search')) {
+                $search = $request->get('search');
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('slug', 'like', "%{$search}%");
+            }
+
+            $categories = $query->paginate(15)->withQueryString();
 
             $filters = [
                 'search' => $request->get('search'),
@@ -30,40 +35,45 @@ class CategoryController extends Controller
                 'filters' => $filters,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching categories: ' . $e->getMessage());
+            // Log the error for debugging
+            \Illuminate\Support\Facades\Log
+::error('Error fetching categories: ' . $e->getMessage());
             return Redirect::back()->with('error', 'Failed to load categories.');
         }
     }
 
-    public function store(CategoryRequest $request, CreateCategoryAction $createCategoryAction)
+    public function store(CategoryRequest $request)
     {
         try {
-            $createCategoryAction->execute($request);
+            Category::create($request->validated());
             return Redirect::route('admin.categories.index')->with('success', 'Category created successfully.');
         } catch (\Exception $e) {
-            Log::error('Error creating category: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log
+::error('Error creating category: ' . $e->getMessage());
             return Redirect::back()->with('error', 'Failed to create category.');
         }
     }
 
-    public function update(CategoryRequest $request, Category $category, UpdateCategoryAction $updateCategoryAction)
+    public function update(CategoryRequest $request, Category $category)
     {
         try {
-            $updateCategoryAction->execute($request, $category);
+            $category->update($request->validated());
             return Redirect::route('admin.categories.index')->with('success', 'Category updated successfully.');
         } catch (\Exception $e) {
-            Log::error('Error updating category: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log
+::error('Error updating category: ' . $e->getMessage());
             return Redirect::back()->with('error', 'Failed to update category.');
         }
     }
 
-    public function destroy(Category $category, DeleteCategoryAction $deleteCategoryAction)
+    public function destroy(Category $category)
     {
         try {
-            $deleteCategoryAction->execute($category);
+            $category->delete();
             return Redirect::route('admin.categories.index')->with('success', 'Category deleted successfully.');
         } catch (\Exception $e) {
-            Log::error('Error deleting category: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log
+::error('Error deleting category: ' . $e->getMessage());
             return Redirect::back()->with('error', 'Failed to delete category.');
         }
     }
