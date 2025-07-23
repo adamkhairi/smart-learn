@@ -6,25 +6,45 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UserRequest;
 use App\Models\User;
 use App\Models\Course;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
-use Inertia\Inertia;
-use App\Actions\User\ListUsersAction;
 use App\Actions\User\CreateUserAction;
 use App\Actions\User\UpdateUserAction;
 use App\Actions\User\DeleteUserAction;
-use App\Actions\User\ToggleUserActiveStatusAction;
 use App\Actions\User\ManageUserCoursesAction;
-use App\Actions\User\GetUserStatsAction;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class UserController extends Controller
 {
     /**
      * Display a listing of users.
      */
-    public function index(Request $request, ListUsersAction $listUsersAction)
+    public function index(Request $request)
     {
-        $users = $listUsersAction->execute($request);
+        $query = User::withCount(['enrollments', 'createdCourses', 'submissions']);
+
+        // Apply search filter
+        if ($request->filled('search')) {
+            $query->search($request->search);
+        }
+
+        // Apply role filter
+        if ($request->filled('role') && $request->role !== 'all') {
+            $query->role($request->role);
+        }
+
+        // Apply status filter
+        if ($request->filled('status') && $request->status !== 'all') {
+            if ($request->status === 'active') {
+                $query->active();
+            } else {
+                $query->where('is_active', false);
+            }
+        }
+
+        $users = $query->orderBy('created_at', 'desc')
+                      ->paginate(15)
+                      ->withQueryString();
 
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
@@ -129,14 +149,14 @@ class UserController extends Controller
     /**
      * Toggle user active status.
      */
-    public function toggleActive(User $user, ToggleUserActiveStatusAction $toggleUserActiveStatusAction)
+    public function toggleActive(User $user)
     {
         if ($user->id === auth()->id()) {
             return back()->withErrors(['error' => 'You cannot deactivate your own account.']);
         }
 
         try {
-            $toggleUserActiveStatusAction->execute($user);
+            $user->toggleActive();
 
             $status = $user->is_active ? 'activated' : 'deactivated';
             return back()->with('success', "User {$status} successfully.");
@@ -204,9 +224,24 @@ class UserController extends Controller
     /**
      * Get user statistics.
      */
-    public function stats(GetUserStatsAction $getUserStatsAction)
+    public function stats()
     {
-        $stats = $getUserStatsAction->execute();
+        $stats = [
+            'total_users' => User::count(),
+            'active_users' => User::active()->count(),
+            'inactive_users' => User::where('is_active', false)->count(),
+            'role_distribution' => [
+                'admin' => User::role('admin')->count(),
+                'instructor' => User::role('instructor')->count(),
+                'student' => User::role('student')->count(),
+            ],
+            'recent_registrations' => User::orderBy('created_at', 'desc')->limit(5)->get(),
+            'top_instructors' => User::role('instructor')
+                               ->withCount('createdCourses')
+                               ->orderBy('created_courses_count', 'desc')
+                               ->limit(5)
+                               ->get(),
+        ];
 
         return Inertia::render('Admin/Users/Stats', [
             'stats' => $stats

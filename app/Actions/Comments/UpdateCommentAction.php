@@ -16,7 +16,7 @@ class UpdateCommentAction
     public function execute(Comment $comment, array $data): Comment
     {
         $comment->update([
-            'body' => $data['body'],
+            'content' => $data['content'],
         ]);
 
         return $comment;

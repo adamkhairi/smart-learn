@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\Users;
+namespace App\Actions\User;
 
 use App\Models\User;
 use App\Models\Course;

@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers\Discussions;
 
+use App\Actions\Comments\CreateCommentAction;
+use App\Actions\Comments\DeleteCommentAction;
+use App\Actions\Comments\UpdateCommentAction;
+
 use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\Course;
@@ -12,19 +16,22 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use App\Actions\Comments\ListNewCommentsAction;
-use App\Actions\Comments\CreateCommentAction;
-use App\Actions\Comments\UpdateCommentAction;
-use App\Actions\Comments\DeleteCommentAction;
 
 class CommentController extends Controller
 {
     /**
      * Get comments after a specific ID for polling.
      */
-    public function getNewComments(Request $request, Discussion $discussion, ListNewCommentsAction $listNewCommentsAction): JsonResponse
+    public function getNewComments(Request $request, Discussion $discussion): JsonResponse
     {
-        $comments = $listNewCommentsAction->execute($request, $discussion);
+        $afterId = $request->query('after', 0);
+
+        $comments = Comment::where('commentable_type', Discussion::class)
+            ->where('commentable_id', $discussion->id)
+            ->where('id', '>', $afterId)
+            ->with(['user', 'replies.user', 'likes'])
+            ->orderBy('id', 'asc')
+            ->get();
 
         return response()->json([
             'comments' => $comments,
@@ -147,4 +154,4 @@ class CommentController extends Controller
             return back()->withErrors(['error' => 'Failed to delete comment. Please try again.']);
         }
     }
-} 
+}
