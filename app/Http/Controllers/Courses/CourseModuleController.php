@@ -7,35 +7,32 @@ use App\Http\Requests\Courses\CourseModuleRequest;
 use App\Models\Course;
 use App\Models\CourseModule;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Actions\CourseModules\ListCourseModulesAction;
+use App\Actions\CourseModules\CreateCourseModuleAction;
+use App\Actions\CourseModules\ShowCourseModuleAction;
+use App\Actions\CourseModules\UpdateCourseModuleAction;
+use App\Actions\CourseModules\DeleteCourseModuleAction;
+use App\Actions\CourseModules\UpdateCourseModuleOrderAction;
+use App\Actions\CourseModules\ToggleCourseModulePublishedStatusAction;
+use App\Actions\CourseModules\DuplicateCourseModuleAction;
+use Exception;
 
 class CourseModuleController extends Controller
 {
     /**
      * Display a listing of course modules.
      */
-    public function index(Course $course): Response
+    public function index(Course $course, ListCourseModulesAction $listCourseModulesAction): Response
     {
         $this->authorize('view', $course);
 
-        $user = Auth::user();
-        $isInstructor = $user->isAdmin() || $course->created_by === $user->id;
-
-        $course->load([
-            'modules' => function ($query) use ($isInstructor) {
-                $query->ordered()->withCount('moduleItems');
-                if (!$isInstructor) {
-                    // Students only see published modules
-                    $query->where('is_published', true);
-                }
-            }
-        ]);
+        $modules = $listCourseModulesAction->execute($course);
 
         return Inertia::render('Courses/Modules/Index', [
             'course' => $course,
-            'modules' => $course->modules,
+            'modules' => $modules,
         ]);
     }
 
@@ -46,7 +43,6 @@ class CourseModuleController extends Controller
     {
         $this->authorize('update', $course);
 
-        // Get the next order number
         $nextOrder = $course->modules()->max('order') + 1;
 
         return Inertia::render('Courses/Modules/Create', [
@@ -58,60 +54,38 @@ class CourseModuleController extends Controller
     /**
      * Store a newly created course module.
      */
-    public function store(CourseModuleRequest $request, Course $course)
+    public function store(CourseModuleRequest $request, Course $course, CreateCourseModuleAction $createCourseModuleAction)
     {
         $this->authorize('update', $course);
 
         $validated = $request->validated();
         $validated['course_id'] = $course->id;
 
-        // If no order specified, set it to the end
-        if (!isset($validated['order'])) {
-            $validated['order'] = $course->modules()->max('order') + 1;
+        try {
+            $module = $createCourseModuleAction->execute($course, $validated);
+
+            return redirect()->route('courses.modules.show', [$course, $module])
+                ->with('success', 'Module created successfully!');
+        } catch (Exception $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to create module. Please try again. Error: ' . $e->getMessage()]);
         }
-
-        $module = CourseModule::create($validated);
-
-        return redirect()->route('courses.modules.show', [$course, $module])
-            ->with('success', 'Module created successfully!');
     }
 
     /**
      * Display the specified course module.
      */
-    public function show(Course $course, CourseModule $module): Response
+    public function show(Course $course, CourseModule $module, ShowCourseModuleAction $showCourseModuleAction): Response
     {
         $this->authorize('view', $course);
 
-        // Ensure the module belongs to the course
-        if ($module->course_id !== $course->id) {
-            abort(404);
+        try {
+            $data = $showCourseModuleAction->execute($course, $module);
+            return Inertia::render('Courses/Modules/Show', $data);
+        } catch (Exception $e) {
+            abort(403, $e->getMessage());
         }
-
-        // Check if user can access this module
-        $user = Auth::user();
-        $isInstructor = $user->isAdmin() || $course->created_by === $user->id;
-
-        // Students cannot access draft modules
-        if (!$isInstructor && !$module->is_published) {
-            abort(403, 'This module is not available yet.');
-        }
-
-        // Refresh the module to get latest data and load items
-        $module->refresh();
-        $module->load([
-            'moduleItems' => function ($query) {
-                $query->ordered();
-            }
-        ]);
-
-        // Add created_by field to course for frontend compatibility
-        $course->created_by = $course->created_by ?? $course->user_id;
-
-        return Inertia::render('Courses/Modules/Show', [
-            'course' => $course->load('creator'),
-            'module' => $module,
-        ]);
     }
 
     /**
@@ -121,7 +95,6 @@ class CourseModuleController extends Controller
     {
         $this->authorize('update', $course);
 
-        // Ensure the module belongs to the course
         if ($module->course_id !== $course->id) {
             abort(404);
         }
@@ -135,55 +108,49 @@ class CourseModuleController extends Controller
     /**
      * Update the specified course module.
      */
-    public function update(CourseModuleRequest $request, Course $course, CourseModule $module)
+    public function update(CourseModuleRequest $request, Course $course, CourseModule $module, UpdateCourseModuleAction $updateCourseModuleAction)
     {
         $this->authorize('update', $course);
 
-        // Ensure the module belongs to the course
-        if ($module->course_id !== $course->id) {
-            abort(404);
+        try {
+            $updateCourseModuleAction->execute($course, $module, $request->validated());
+
+            return redirect()->route('courses.modules.show', [$course, $module])
+                ->with('success', 'Module updated successfully!');
+        } catch (Exception $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to update module. Please try again. Error: ' . $e->getMessage()]);
         }
-
-        $validated = $request->validated();
-
-        // Handle order changes
-        if (isset($validated['order']) && $validated['order'] !== $module->order) {
-            $this->reorderModules($course, $module, $validated['order']);
-        }
-
-        $module->update($validated);
-
-        return redirect()->route('courses.modules.show', [$course, $module])
-            ->with('success', 'Module updated successfully!');
     }
 
     /**
      * Remove the specified course module.
      */
-    public function destroy(Course $course, CourseModule $module)
+    public function destroy(Course $course, CourseModule $module, DeleteCourseModuleAction $deleteCourseModuleAction)
     {
         $this->authorize('update', $course);
 
-        // Ensure the module belongs to the course
-        if ($module->course_id !== $course->id) {
-            abort(404);
+        try {
+            $deleteCourseModuleAction->execute($course, $module);
+
+            return redirect()->route('courses.modules.index', $course)
+                ->with('success', 'Module deleted successfully!');
+        } catch (Exception $e) {
+            return back()->withErrors(['error' => 'Failed to delete module. Please try again.']);
         }
-
-        $module->delete();
-
-        // Reorder remaining modules
-        $this->reorderRemainingModules($course);
-
-        return redirect()->route('courses.modules.index', $course)
-            ->with('success', 'Module deleted successfully!');
     }
 
     /**
      * Update the order of modules.
      */
-    public function updateOrder(Request $request, Course $course)
+    public function updateOrder(Request $request, Course $course, UpdateCourseModuleOrderAction $updateCourseModuleOrderAction)
     {
         $this->authorize('update', $course);
+
+        if ($course->modules()->whereIn('id', collect($request->modules)->pluck('id'))->count() !== count($request->modules)) {
+            abort(404);
+        }
 
         $validated = $request->validate([
             'modules' => 'required|array',
@@ -191,96 +158,46 @@ class CourseModuleController extends Controller
             'modules.*.order' => 'required|integer|min:1',
         ]);
 
-        foreach ($validated['modules'] as $moduleData) {
-            CourseModule::where('id', $moduleData['id'])
-                ->where('course_id', $course->id)
-                ->update(['order' => $moduleData['order']]);
-        }
+        try {
+            $updateCourseModuleOrderAction->updateOrder($course, $validated['modules']);
 
-        return back()->with('success', 'Module order updated successfully!');
+            return back()->with('success', 'Module order updated successfully!');
+        } catch (Exception $e) {
+            return back()->withErrors(['error' => 'Failed to update module order.']);
+        }
     }
 
     /**
      * Toggle module published status.
      */
-    public function togglePublished(Course $course, CourseModule $module)
+    public function togglePublished(Course $course, CourseModule $module, ToggleCourseModulePublishedStatusAction $toggleCourseModulePublishedStatusAction)
     {
         $this->authorize('update', $course);
 
-        // Ensure the module belongs to the course
-        if ($module->course_id !== $course->id) {
-            abort(404);
+        try {
+            $toggleCourseModulePublishedStatusAction->execute($course, $module);
+
+            $status = $module->is_published ? 'published' : 'unpublished';
+            return back()->with('success', "Module {$status} successfully!");
+        } catch (Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
-
-        $module->update(['is_published' => !$module->is_published]);
-
-        $status = $module->is_published ? 'published' : 'unpublished';
-
-        return back()->with('success', "Module {$status} successfully!");
     }
 
     /**
      * Duplicate a module.
      */
-    public function duplicate(Course $course, CourseModule $module)
+    public function duplicate(Course $course, CourseModule $module, DuplicateCourseModuleAction $duplicateCourseModuleAction)
     {
         $this->authorize('update', $course);
 
-        // Ensure the module belongs to the course
-        if ($module->course_id !== $course->id) {
-            abort(404);
-        }
+        try {
+            $newModule = $duplicateCourseModuleAction->execute($course, $module);
 
-        $newModule = $module->replicate();
-        $newModule->title = $module->title . ' (Copy)';
-        $newModule->order = $course->modules()->max('order') + 1;
-        $newModule->is_published = false;
-        $newModule->save();
-
-        // Duplicate module items
-        foreach ($module->moduleItems as $item) {
-            $newItem = $item->replicate();
-            $newItem->course_module_id = $newModule->id;
-            $newItem->save();
-        }
-
-        return redirect()->route('courses.modules.edit', [$course, $newModule])
-            ->with('success', 'Module duplicated successfully!');
-    }
-
-    /**
-     * Reorder modules when changing a module's order.
-     */
-    private function reorderModules(Course $course, CourseModule $module, int $newOrder): void
-    {
-        $oldOrder = $module->order;
-
-        if ($newOrder > $oldOrder) {
-            // Moving down: decrease order of modules between old and new position
-            $course->modules()
-                ->where('order', '>', $oldOrder)
-                ->where('order', '<=', $newOrder)
-                ->where('id', '!=', $module->id)
-                ->decrement('order');
-        } else {
-            // Moving up: increase order of modules between new and old position
-            $course->modules()
-                ->where('order', '>=', $newOrder)
-                ->where('order', '<', $oldOrder)
-                ->where('id', '!=', $module->id)
-                ->increment('order');
-        }
-    }
-
-    /**
-     * Reorder remaining modules after deletion.
-     */
-    private function reorderRemainingModules(Course $course): void
-    {
-        $modules = $course->modules()->ordered()->get();
-
-        foreach ($modules as $index => $module) {
-            $module->update(['order' => $index + 1]);
+            return redirect()->route('courses.modules.edit', [$course, $newModule])
+                ->with('success', 'Module duplicated successfully!');
+        } catch (Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 }
