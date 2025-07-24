@@ -92,6 +92,22 @@ export default function Index({ courses, creators, filters }: Props) {
         return (words[0][0] + words[words.length - 1][0]).toUpperCase();
     };
 
+    const handleDelete = (courseId: number) => {
+        if (confirm('Are you sure you want to delete this course?')) {
+            router.delete(route('admin.courses.destroy', courseId), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    // Optionally handle success, e.g., via flash messages from the server
+                    console.log('Course deleted successfully');
+                },
+                onError: (errors) => {
+                    console.error('Deletion failed:', errors);
+                    // You could add a toast here if using a library like react-toastify
+                },
+            });
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Course Management" />
@@ -279,7 +295,7 @@ export default function Index({ courses, creators, filters }: Props) {
                                                     </Link>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
-                                                    onClick={() => {}}
+                                                    onClick={() => handleDelete(course.id)}
                                                     className="text-red-600 focus:text-red-600"
                                                 >
                                                     <Trash2 className="mr-2 h-4 w-4" />
