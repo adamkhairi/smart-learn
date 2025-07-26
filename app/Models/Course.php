@@ -10,10 +10,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use App\Enums\CourseLevel;
+use App\Traits\StatusTrait;
 
 class Course extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, StatusTrait;
 
     /**
      * The attributes that are mass assignable.
@@ -239,56 +240,6 @@ class Course extends Model
     }
 
     /**
-     * Check if course is published.
-     */
-    public function isPublished(): bool
-    {
-        return $this->status === 'published';
-    }
-
-    /**
-     * Check if course is draft.
-     */
-    public function isDraft(): bool
-    {
-        return $this->status === 'draft';
-    }
-
-    /**
-     * Check if course is archived.
-     */
-    public function isArchived(): bool
-    {
-        return $this->status === 'archived';
-    }
-
-    /**
-     * Scope to get published courses.
-     */
-    public function scopePublished($query)
-    {
-        return $query->where('status', 'published');
-    }
-
-    /**
-     * Scope to get archived courses.
-     */
-    public function scopeArchived($query)
-    {
-        return $query->where('status', 'archived');
-    }
-
-    /**
-     * Scope to get courses for a specific user with their privilege.
-     */
-    public function scopeWithUserPrivilege($query, int $userId)
-    {
-        return $query->with(['enrolledUsers' => function ($q) use ($userId) {
-            $q->where('user_id', $userId);
-        }]);
-    }
-
-    /**
      * Get course statistics.
      */
     public function getStats(): array
@@ -443,38 +394,6 @@ class Course extends Model
             ->first();
 
         return $enrollment ? $enrollment->pivot->enrolled_as : null;
-    }
-
-    /**
-     * Publish the course.
-     */
-    public function publish(): void
-    {
-        $this->update(['status' => 'published']);
-    }
-
-    /**
-     * Archive the course.
-     */
-    public function archive(): void
-    {
-        $this->update(['status' => 'archived']);
-    }
-
-    /**
-     * Draft the course.
-     */
-    public function draft(): void
-    {
-        $this->update(['status' => 'draft']);
-    }
-
-    /**
-     * Get course progress for a specific user.
-     */
-    public function getUserProgress(int $userId): array
-    {
-        return UserProgress::getCourseProgressSummary($userId, $this->id);
     }
 
     /**
