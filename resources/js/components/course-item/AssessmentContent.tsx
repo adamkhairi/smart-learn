@@ -129,21 +129,21 @@ export default function AssessmentContent({
                 return {
                     border: 'border-blue-200',
                     bg: 'bg-blue-50',
-                    text: 'text-blue-800',
+                    text: 'text-gray-800 dark:text-gray-200',
                     icon: 'text-blue-600',
                 };
             case 'draft':
                 return {
                     border: 'border-gray-200',
                     bg: 'bg-gray-50',
-                    text: 'text-gray-800',
+                    text: 'text-gray-800 dark:text-gray-200',
                     icon: 'text-gray-600',
                 };
             default:
                 return {
                     border: 'border-gray-200',
                     bg: 'bg-gray-50',
-                    text: 'text-gray-800',
+                    text: 'text-gray-800 dark:text-gray-200',
                     icon: 'text-gray-600',
                 };
         }
@@ -155,35 +155,35 @@ export default function AssessmentContent({
     return (
         <div className={`space-y-6 ${className}`}>
             {/* Assessment Header */}
-            <Card className={`${statusColors.border} ${statusColors.bg}`}>
-                <CardContent className="p-4">
-                    <div className="mb-3 flex items-center justify-between">
+            <Card>
+                <CardContent className="p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                         <div className="flex items-center gap-3">
-                            <HelpCircle className={`h-5 w-5 ${statusColors.icon}`} />
-                            <h3 className={`font-semibold ${statusColors.text}`}>
+                            <HelpCircle className={`h-6 w-6 ${statusColors.icon}`} />
+                            <h3 className={`text-xl font-semibold ${statusColors.text}`}>
                                 {assessment.type?.charAt(0).toUpperCase() + assessment.type?.slice(1)} Assessment
                             </h3>
                         </div>
                         <Badge variant={getStatusVariant(assessment.visibility)}>{assessment.visibility?.toUpperCase()}</Badge>
                     </div>
-                    <div className={`grid grid-cols-1 gap-2 text-sm ${statusColors.text}`}>
+                    <div className="grid grid-cols-1 gap-3 text-sm">
                         {assessment.max_score && (
-                            <div>
+                            <div className={`flex items-center gap-2 ${statusColors.text}`}>
                                 <span className="font-medium">Max Score:</span> {assessment.max_score} points
                             </div>
                         )}
                         {assessment.time_limit && (
-                            <div>
+                            <div className={`flex items-center gap-2 ${statusColors.text}`}>
                                 <span className="font-medium">Time Limit:</span> {formatDuration(assessment.time_limit)}
                             </div>
                         )}
                         {assessment.questions_type && (
-                            <div>
+                            <div className={`flex items-center gap-2 ${statusColors.text}`}>
                                 <span className="font-medium">Question Type:</span> {assessment.questions_type}
                             </div>
                         )}
                         {assessment.submission_type && (
-                            <div>
+                            <div className={`flex items-center gap-2 ${statusColors.text}`}>
                                 <span className="font-medium">Submission Type:</span> {assessment.submission_type}
                             </div>
                         )}
@@ -191,14 +191,14 @@ export default function AssessmentContent({
 
                     {/* Availability Dates */}
                     {(assessment.available_from || assessment.available_until) && (
-                        <div className={`mt-2 grid grid-cols-1 gap-2 text-sm ${statusColors.text} md:grid-cols-2`}>
+                        <div className={`mt-4 grid grid-cols-1 gap-3 text-sm ${statusColors.text} md:grid-cols-2`}>
                             {assessment.available_from && (
-                                <div>
+                                <div className="flex items-center gap-2">
                                     <span className="font-medium">Available From:</span> {new Date(assessment.available_from).toLocaleString()}
                                 </div>
                             )}
                             {assessment.available_until && (
-                                <div>
+                                <div className="flex items-center gap-2">
                                     <span className="font-medium">Available Until:</span> {new Date(assessment.available_until).toLocaleString()}
                                 </div>
                             )}
@@ -224,15 +224,15 @@ export default function AssessmentContent({
 
             {/* Assessment Instructions */}
             {assessment.instructions && Object.keys(assessment.instructions).length > 0 && (
-                <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950">
+                <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                        <CardTitle className="flex items-center gap-2">
                             <AlertCircle className="h-5 w-5" />
                             Instructions
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-amber-900 dark:text-amber-100">
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
                             {typeof assessment.instructions === 'string' ? (
                                 <p>{assessment.instructions}</p>
                             ) : (
@@ -249,15 +249,15 @@ export default function AssessmentContent({
 
             {/* Assessment Settings */}
             {(assessment.randomize_questions || assessment.show_results !== undefined) && (
-                <Card className="border-gray-200 bg-gray-50 dark:bg-gray-900">
+                <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                        <CardTitle className="flex items-center gap-2">
                             <Settings className="h-5 w-5" />
                             Assessment Settings
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="space-y-2 text-sm">
                             {assessment.randomize_questions && (
                                 <div className="flex items-center gap-2">
                                     <div className="h-2 w-2 rounded-full bg-blue-500"></div>
