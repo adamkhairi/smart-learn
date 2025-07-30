@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Courses;
 
+use App\Actions\Assignment\GradeSubmissionAction;
 use App\Http\Controllers\Controller;
 use App\Models\Assignment;
 use App\Models\Course;
@@ -10,9 +11,12 @@ use App\Actions\Assignment\SubmitAssignmentAction;
 use App\Actions\Assignment\ListAssignmentSubmissionsAction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AssignmentController extends Controller
 {
@@ -34,7 +38,7 @@ class AssignmentController extends Controller
             ])->first();
         }
 
-        return Inertia::render('Assignments/Show', [
+        return Inertia::render('Assignments/Submit', [
             'course' => $course,
             'assignment' => $assignment,
             'userSubmission' => $userSubmission,
@@ -44,7 +48,7 @@ class AssignmentController extends Controller
     /**
      * Show assignment submission form.
      */
-    public function showSubmissionForm(Course $course, Assignment $assignment): Response
+    public function showSubmissionForm(Course $course, Assignment $assignment): Response|RedirectResponse
     {
         $this->authorize('view', $course);
 
@@ -89,10 +93,10 @@ class AssignmentController extends Controller
         $this->authorize('view', $course);
 
         // Debug: Log incoming request data
-        \Log::info('Assignment submission attempt', [
+        Log::info('Assignment submission attempt', [
             'course_id' => $course->id,
             'assignment_id' => $assignment->id,
-            'user_id' => auth()->id(),
+            'user_id' => Auth::id(),
             'has_files' => $request->hasFile('files'),
             'request_files' => $request->allFiles(),
             'request_all' => $request->all(),
@@ -146,7 +150,7 @@ class AssignmentController extends Controller
     /**
      * Download submission file.
      */
-    public function downloadSubmission(Course $course, Assignment $assignment, Submission $submission, string $filename)
+    public function downloadSubmission(Course $course, Assignment $assignment, Submission $submission, string $filename): BinaryFileResponse
     {
         $this->authorize('view', $course);
 
@@ -160,7 +164,9 @@ class AssignmentController extends Controller
             abort(404, 'File not found.');
         }
 
-        return Storage::disk('private')->download($filePath, $submission->original_filename);
+        $fullPath = Storage::disk('private')->path($filePath);
+
+        return response()->download($fullPath, $submission->original_filename);
     }
 
     /**
@@ -182,7 +188,7 @@ class AssignmentController extends Controller
     /**
      * Grade a submission.
      */
-    public function gradeSubmission(Request $request, Course $course, Assignment $assignment, Submission $submission)
+    public function gradeSubmission(Request $request, Course $course, Assignment $assignment, Submission $submission, GradeSubmissionAction $gradeSubmissionAction)
     {
         $this->authorize('update', $course);
 

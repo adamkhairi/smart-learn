@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Assignment } from '@/types';
 import { useForm, router } from '@inertiajs/react';
 import { AlertCircle, CheckCircle, ClipboardList, Download, FileText, Paperclip, Star, Upload, X } from 'lucide-react';
@@ -17,7 +18,11 @@ interface SubmissionFile {
 interface UserSubmission {
     id: number;
     submitted_at: string;
-    files?: string[];
+    files?: string[] | any[];
+    file_path?: string;
+    original_filename?: string;
+    file_size?: number;
+    file_type?: string;
     score?: number | null;
     feedback?: string;
     finished?: boolean;
@@ -47,6 +52,7 @@ export default function AssignmentContent({
     const hasSubmitted = !!userSubmission;
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const { confirm, confirmDialog } = useConfirmDialog();
 
     // Debug: Track selectedFile state changes
     useEffect(() => {
@@ -166,7 +172,7 @@ export default function AssignmentContent({
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         console.log('File selection event:', { file, hasFile: !!file });
-        
+
         if (file) {
             console.log('File details:', {
                 name: file.name,
@@ -174,17 +180,23 @@ export default function AssignmentContent({
                 sizeInMB: (file.size / 1024 / 1024).toFixed(2),
                 type: file.type
             });
-            
+
             // Check file size (3MB = 3 * 1024 * 1024 bytes) - temporarily increased for testing
             const maxSize = 3 * 1024 * 1024;
             if (file.size > maxSize) {
-                console.log('File too large, showing alert');
-                alert(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the 3MB limit. Please choose a smaller file.`);
+                console.log('File too large, showing dialog');
+                confirm({
+                    title: 'File Size Limit Exceeded',
+                    description: `File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the 3MB limit. Please choose a smaller file.`,
+                    confirmText: 'OK',
+                    onConfirm: () => {},
+                    variant: 'destructive'
+                });
                 // Clear the input
                 e.target.value = '';
                 return;
             }
-            
+
             console.log('File size OK, setting selected file');
             setSelectedFile(file);
         } else {
@@ -210,10 +222,10 @@ export default function AssignmentContent({
                 courseId,
                 assignmentId: assignment.id
             });
-            
+
             // Set the file data
             setData('files', selectedFile);
-            
+
             // Submit using Inertia
             post(`/courses/${courseId}/assignments/${assignment.id}/submit`, {
                 onSuccess: () => {
@@ -349,16 +361,42 @@ export default function AssignmentContent({
                         </div>
 
                         {/* Submitted Files */}
-                        {userSubmission.files && userSubmission.files.length > 0 && (
+                        {(userSubmission.file_path || (userSubmission.files && userSubmission.files.length > 0)) && (
                             <div>
                                 <p className="mb-2 text-sm font-medium text-blue-800 dark:text-blue-200">Submitted Files:</p>
                                 <div className="space-y-2">
-                                    {userSubmission.files.map((file, index) => (
+                                    {/* Handle single file submission (file_path field) */}
+                                    {userSubmission.file_path && (
+                                        <div className="flex items-center gap-3 rounded border bg-white p-3 shadow-sm dark:bg-gray-900">
+                                            <Paperclip className="h-4 w-4 text-gray-500" />
+                                            <span className="flex-1 text-sm">
+                                                {userSubmission.original_filename || userSubmission.file_path.split('/').pop()}
+                                            </span>
+                                            <Button size="sm" variant="ghost" asChild>
+                                                <a
+                                                    href={`/courses/${courseId}/assignments/${assignment.id}/submissions/${userSubmission.id}/download/${encodeURIComponent(userSubmission.original_filename || 'file')}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    <Download className="h-4 w-4" />
+                                                </a>
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    {/* Handle multiple files submission (files array) */}
+                                    {userSubmission.files && Array.isArray(userSubmission.files) && userSubmission.files.map((file, index) => (
                                         <div key={index} className="flex items-center gap-3 rounded border bg-white p-3 shadow-sm dark:bg-gray-900">
                                             <Paperclip className="h-4 w-4 text-gray-500" />
-                                            <span className="flex-1 text-sm">{file.split('/').pop()}</span>
+                                            <span className="flex-1 text-sm">
+                                                {typeof file === 'object' && file.original_filename ? file.original_filename : (typeof file === 'string' ? file.split('/').pop() : `File ${index + 1}`)}
+                                            </span>
                                             <Button size="sm" variant="ghost" asChild>
-                                                <a href={`/storage/${file}`} target="_blank" rel="noopener noreferrer">
+                                                <a
+                                                    href={`/courses/${courseId}/assignments/${assignment.id}/submissions/${userSubmission.id}/download/${encodeURIComponent(typeof file === 'object' && file.original_filename ? file.original_filename : `file-${index}`)}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
                                                     <Download className="h-4 w-4" />
                                                 </a>
                                             </Button>
@@ -444,7 +482,7 @@ export default function AssignmentContent({
                                 {errors.files}
                             </div>
                         )}
-                        
+
                         <Button className="w-full" onClick={handleSubmit} disabled={!selectedFile || processing} size="lg">
                             <ClipboardList className="mr-2 h-4 w-4" />
                             {processing ? 'Submitting...' : 'Submit Assignment'}
@@ -487,6 +525,9 @@ export default function AssignmentContent({
                     </div>
                 )}
             </div>
+
+            {/* Custom Dialog */}
+            {confirmDialog}
         </div>
     );
 }
