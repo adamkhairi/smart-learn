@@ -231,6 +231,7 @@ export interface Assessment {
     // Computed properties
     total_points?: number; // Alias for max_score
     duration?: number;
+    allow_result_sharing?: boolean;
 }
 
 export interface Question {

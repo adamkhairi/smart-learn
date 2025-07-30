@@ -123,6 +123,7 @@ function Show({ course, module, item, userSubmission, completedItems = [] }: Sho
                         isCompleted={isCompleted}
                         isInstructor={isInstructor}
                         onMarkComplete={handleMarkComplete}
+                        courseId={course.id}
                     />
                 );
             }

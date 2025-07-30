@@ -50,10 +50,22 @@ class AssignmentController extends Controller
 
         // Check if assignment accepts submissions
         if (!$assignment->canAcceptSubmissions()) {
-            return redirect()->route('assignments.show', [
-                'course' => $course,
-                'assignment' => $assignment,
-            ])->with('error', 'This assignment is not accepting submissions.');
+            // Find the module item that contains this assignment
+            $moduleItem = \App\Models\CourseModuleItem::where('itemable_type', 'App\\Models\\Assignment')
+                ->where('itemable_id', $assignment->id)
+                ->first();
+
+            if ($moduleItem) {
+                return redirect()->route('courses.modules.items.show', [
+                    'course' => $course,
+                    'module' => $moduleItem->courseModule,
+                    'item' => $moduleItem,
+                ])->with('error', 'This assignment is not accepting submissions.');
+            } else {
+                // Fallback to course page if module item not found
+                return redirect()->route('courses.show', $course)
+                    ->with('error', 'This assignment is not accepting submissions.');
+            }
         }
 
         $existingSubmission = Submission::where([
@@ -76,9 +88,26 @@ class AssignmentController extends Controller
     {
         $this->authorize('view', $course);
 
+        // Debug: Log incoming request data
+        \Log::info('Assignment submission attempt', [
+            'course_id' => $course->id,
+            'assignment_id' => $assignment->id,
+            'user_id' => auth()->id(),
+            'has_files' => $request->hasFile('files'),
+            'request_files' => $request->allFiles(),
+            'request_all' => $request->all(),
+        ]);
+
+        // Check if file was uploaded but rejected by PHP due to size limits
+        if ($request->hasFile('files') && !$request->file('files')->isValid()) {
+            return back()->withErrors([
+                'files' => 'File upload failed. Please ensure your file is smaller than 3MB.'
+            ]);
+        }
+
         $validated = $request->validate([
             'submission_text' => 'nullable|string|max:50000',
-            'files.*' => 'nullable|file|max:10240|mimes:pdf,doc,docx,txt,zip,rar,jpg,jpeg,png',
+            'files' => 'nullable|file|max:3072|mimes:pdf,doc,docx,txt,zip,rar,jpg,jpeg,png', // Temporarily increased to 3072 (3MB) for testing
         ]);
 
         try {
@@ -86,17 +115,29 @@ class AssignmentController extends Controller
                 'submission_text' => $validated['submission_text'] ?? null,
             ];
 
-            // Handle file uploads
+            // Handle file upload
             if ($request->hasFile('files')) {
-                $submissionData['files'] = $request->file('files');
+                $submissionData['file'] = $request->file('files');
             }
 
             $result = $submitAction->execute($assignment, $course, $submissionData);
-            
-            return redirect()->route('assignments.show', [
-                'course' => $course,
-                'assignment' => $assignment,
-            ])->with('success', $result['message']);
+
+            // Find the module item that contains this assignment
+            $moduleItem = \App\Models\CourseModuleItem::where('itemable_type', 'App\\Models\\Assignment')
+                ->where('itemable_id', $assignment->id)
+                ->first();
+
+            if ($moduleItem) {
+                return redirect()->route('courses.modules.items.show', [
+                    'course' => $course,
+                    'module' => $moduleItem->courseModule,
+                    'item' => $moduleItem,
+                ])->with('success', $result['message']);
+            } else {
+                // Fallback to course page if module item not found
+                return redirect()->route('courses.show', $course)
+                    ->with('success', $result['message']);
+            }
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }

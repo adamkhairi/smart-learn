@@ -22,11 +22,23 @@ class AutoGradeAssessmentAction
             $totalScore += $questionScore['score'];
             $maxScore += $question->points;
 
+            // For MCQ questions, ensure correct_answer is stored as choice key for consistency
+            $correctAnswer = $question->answer;
+            if ($question->type === 'MCQ' && $question->choices && is_array($question->choices)) {
+                // If answer is stored as choice text, convert to choice key
+                if (!is_numeric($correctAnswer)) {
+                    $choiceKey = array_search($correctAnswer, $question->choices);
+                    if ($choiceKey !== false) {
+                        $correctAnswer = (string) $choiceKey;
+                    }
+                }
+            }
+
             $gradingDetails[$question->id] = [
                 'question_id' => $question->id,
                 'question_text' => $question->question_text,
                 'user_answer' => $answers[$question->id] ?? null,
-                'correct_answer' => $question->answer, // Fixed: use 'answer' field instead of 'correct_answer'
+                'correct_answer' => $correctAnswer,
                 'score' => $questionScore['score'],
                 'max_score' => $question->points,
                 'feedback' => $questionScore['feedback'],
@@ -100,7 +112,23 @@ class AutoGradeAssessmentAction
 
     private function gradeMCQ(Question $question, $userAnswer): bool
     {
-        return strtolower(trim($userAnswer ?? '')) === strtolower(trim($question->answer ?? ''));
+        // Handle case where user didn't answer
+        if ($userAnswer === null || $userAnswer === '') {
+            return false;
+        }
+
+        $correctAnswer = $question->answer ?? '';
+        
+        // Convert correct answer to choice key if it's stored as choice text
+        if ($question->choices && is_array($question->choices) && !is_numeric($correctAnswer)) {
+            $choiceKey = array_search($correctAnswer, $question->choices);
+            if ($choiceKey !== false) {
+                $correctAnswer = (string) $choiceKey;
+            }
+        }
+        
+        // Direct comparison of choice keys (both user answer and correct answer are now choice keys)
+        return trim($userAnswer) === trim($correctAnswer);
     }
 
     private function gradeTrueFalse(Question $question, $userAnswer): bool

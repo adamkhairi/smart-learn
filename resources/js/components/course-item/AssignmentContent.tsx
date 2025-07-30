@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Assignment } from '@/types';
-import { useForm } from '@inertiajs/react';
+import { useForm, router } from '@inertiajs/react';
 import { AlertCircle, CheckCircle, ClipboardList, Download, FileText, Paperclip, Star, Upload, X } from 'lucide-react';
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useState, useEffect } from 'react';
 
 interface SubmissionFile {
     id?: number;
@@ -30,6 +30,7 @@ interface AssignmentContentProps {
     isInstructor: boolean;
     onMarkComplete?: () => void;
     className?: string;
+    courseId?: number;
 }
 
 export default function AssignmentContent({
@@ -39,14 +40,22 @@ export default function AssignmentContent({
     isInstructor,
     onMarkComplete,
     className = '',
+    courseId,
 }: AssignmentContentProps) {
     const isOpen = assignment.status === 'open';
     const isEnded = assignment.status === 'ended';
     const hasSubmitted = !!userSubmission;
 
-    const { data, setData, post, processing, reset } = useForm({
-        submission_file: null as File | null,
-    });
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+    // Debug: Track selectedFile state changes
+    useEffect(() => {
+        console.log('selectedFile state changed:', {
+            hasFile: !!selectedFile,
+            fileName: selectedFile?.name,
+            fileSize: selectedFile?.size
+        });
+    }, [selectedFile]);
 
     // Helper function to convert Lexical JSON to HTML
     const convertLexicalToHTML = (editorState: unknown): string => {
@@ -155,22 +164,69 @@ export default function AssignmentContent({
     };
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            setData('submission_file', e.target.files[0]);
+        const file = e.target.files?.[0];
+        console.log('File selection event:', { file, hasFile: !!file });
+        
+        if (file) {
+            console.log('File details:', {
+                name: file.name,
+                size: file.size,
+                sizeInMB: (file.size / 1024 / 1024).toFixed(2),
+                type: file.type
+            });
+            
+            // Check file size (3MB = 3 * 1024 * 1024 bytes) - temporarily increased for testing
+            const maxSize = 3 * 1024 * 1024;
+            if (file.size > maxSize) {
+                console.log('File too large, showing alert');
+                alert(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the 3MB limit. Please choose a smaller file.`);
+                // Clear the input
+                e.target.value = '';
+                return;
+            }
+            
+            console.log('File size OK, setting selected file');
+            setSelectedFile(file);
+        } else {
+            console.log('No file selected');
         }
     };
 
     const handleRemoveFile = () => {
-        setData('submission_file', null);
+        setSelectedFile(null);
     };
 
+    const { data, setData, post, processing, errors, reset } = useForm({
+        files: null as File | null,
+        submission_text: '',
+    });
+
     const handleSubmit = () => {
-        if (data.submission_file) {
-            post(`/assignments/${assignment.id}/submit`, {
+        if (selectedFile && courseId) {
+            console.log('Starting file submission:', {
+                fileName: selectedFile.name,
+                fileSize: selectedFile.size,
+                fileType: selectedFile.type,
+                courseId,
+                assignmentId: assignment.id
+            });
+            
+            // Set the file data
+            setData('files', selectedFile);
+            
+            // Submit using Inertia
+            post(`/courses/${courseId}/assignments/${assignment.id}/submit`, {
                 onSuccess: () => {
+                    console.log('Submission successful');
+                    setSelectedFile(null);
                     reset();
                 },
+                onError: (errors) => {
+                    console.error('Submission failed:', errors);
+                }
             });
+        } else {
+            console.error('Missing requirements:', { selectedFile: !!selectedFile, courseId });
         }
     };
 
@@ -342,13 +398,16 @@ export default function AssignmentContent({
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {data.submission_file ? (
+                        {(() => {
+                            console.log('Rendering file selection UI, selectedFile:', !!selectedFile, selectedFile?.name);
+                            return selectedFile;
+                        })() ? (
                             <div className="flex items-center justify-between rounded-md border bg-white p-4 shadow-sm dark:bg-gray-800">
                                 <div className="flex items-center gap-3">
                                     <Paperclip className="h-5 w-5 text-gray-500" />
                                     <div>
-                                        <span className="text-sm font-medium">{data.submission_file.name}</span>
-                                        <p className="text-xs text-muted-foreground">{(data.submission_file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                        <span className="text-sm font-medium">{selectedFile?.name}</span>
+                                        <p className="text-xs text-muted-foreground">{selectedFile ? (selectedFile.size / 1024 / 1024).toFixed(2) : '0'} MB</p>
                                     </div>
                                 </div>
                                 <Button variant="ghost" size="sm" onClick={handleRemoveFile}>
@@ -366,7 +425,7 @@ export default function AssignmentContent({
                                         <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                                             <span className="font-semibold">Click to upload</span> or drag and drop
                                         </p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">PDF, DOCX, ZIP, etc. (MAX. 10MB)</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">PDF, DOC, DOCX, TXT, ZIP, RAR, JPG, JPEG, PNG (MAX. 3MB)</p>
                                     </div>
                                     <input
                                         id="file-upload"
@@ -379,7 +438,14 @@ export default function AssignmentContent({
                             </div>
                         )}
 
-                        <Button className="w-full" onClick={handleSubmit} disabled={!data.submission_file || processing} size="lg">
+                        {errors.files && (
+                            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+                                <AlertCircle className="h-4 w-4 inline mr-2" />
+                                {errors.files}
+                            </div>
+                        )}
+                        
+                        <Button className="w-full" onClick={handleSubmit} disabled={!selectedFile || processing} size="lg">
                             <ClipboardList className="mr-2 h-4 w-4" />
                             {processing ? 'Submitting...' : 'Submit Assignment'}
                         </Button>

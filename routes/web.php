@@ -112,9 +112,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('courses.modules.items', CourseModuleItemController::class)->middleware(['auth']);
 
     // Assignments
-    Route::post('assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->middleware('auth');
-    Route::get('assignments/{assignment}/submissions', [AssignmentController::class, 'submissions'])->middleware('auth');
-    Route::post('submissions/{submission}/grade', [AssignmentController::class, 'grade'])->middleware('auth');
+    Route::post('courses/{course}/assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->middleware('auth');
+    Route::get('courses/{course}/assignments/{assignment}/submissions', [AssignmentController::class, 'submissions'])->middleware('auth');
+    Route::post('courses/{course}/assignments/{assignment}/submissions/{submission}/grade', [AssignmentController::class, 'grade'])->middleware('auth');
 
     // Assessments
     Route::get('courses/{course}/assessments/{assessment}/take', [AssessmentController::class, 'take'])->name('assessments.take');
