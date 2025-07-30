@@ -24,8 +24,30 @@ class ShowCourseModuleAction
 
         $module->refresh();
         $module->load(['moduleItems' => function ($query) {
-            $query->ordered();
+            $query->ordered()->with(['itemable']);
         }]);
+        
+        // Load submission data for assessments for students
+        if (!$isInstructor) {
+            $module->moduleItems->each(function ($item) use ($user) {
+                if ($item->itemable_type === 'App\\Models\\Assessment' && $item->itemable) {
+                    // Load the user's submission for this assessment
+                    $submission = $item->itemable->submissions()
+                        ->where('user_id', $user->id)
+                        ->where('finished', true)
+                        ->whereNotNull('submitted_at')
+                        ->latest('submitted_at')
+                        ->first();
+                    
+                    $item->user_submission = $submission ? [
+                        'id' => $submission->id,
+                        'finished' => $submission->finished,
+                        'submitted_at' => $submission->submitted_at,
+                        'score' => $submission->score
+                    ] : null;
+                }
+            });
+        }
 
         $course->created_by = $course->created_by ?? $course->user_id;
 

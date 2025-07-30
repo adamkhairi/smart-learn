@@ -12,6 +12,7 @@ use Inertia\Response;
 use App\Actions\Assessment\TakeAssessmentAction;
 use App\Actions\Assessment\SubmitAssessmentAction;
 use App\Actions\Assessment\GetAssessmentResultsAction;
+use Illuminate\Support\Facades\Log;
 
 class AssessmentController extends Controller
 {
@@ -60,15 +61,27 @@ class AssessmentController extends Controller
     /**
      * Show assessment results.
      */
-    public function results(Course $course, Assessment $assessment, GetAssessmentResultsAction $getAssessmentResultsAction): Response
+    public function results(Course $course, Assessment $assessment, GetAssessmentResultsAction $getAssessmentResultsAction): Response|RedirectResponse
     {
         $this->authorize('view', $course);
 
+        Log::info('AssessmentController::results called', [
+            'course_id' => $course->id,
+            'assessment_id' => $assessment->id,
+            'user_id' => auth()->id(),
+            'request_url' => request()->url(),
+        ]);
+
         try {
             $data = $getAssessmentResultsAction->execute($course, $assessment);
+            Log::info('AssessmentController::results - data retrieved successfully');
             return Inertia::render('Assessments/Results', $data);
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
+            Log::error('AssessmentController::results - Exception caught', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return redirect()->route('courses.show', $course)->with('error', $e->getMessage());
         }
     }
 }

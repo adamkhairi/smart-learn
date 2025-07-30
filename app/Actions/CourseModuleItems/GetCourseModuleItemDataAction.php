@@ -32,6 +32,12 @@ class GetCourseModuleItemDataAction
                 $userSubmission = $item->itemable->submissions()
                     ->where('user_id', Auth::id())
                     ->first();
+            } elseif ($item->isAssessment() && $item->itemable) {
+                $userSubmission = $item->itemable->submissions()
+                    ->where('user_id', Auth::id())
+                    ->where('finished', true) // Only get finished submissions
+                    ->latest('submitted_at') // Get the most recent finished submission
+                    ->first();
             }
 
             $module->load(['moduleItems' => function ($query) {

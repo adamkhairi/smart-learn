@@ -4,45 +4,151 @@ namespace App\Http\Controllers\Courses;
 
 use App\Http\Controllers\Controller;
 use App\Models\Assignment;
+use App\Models\Course;
 use App\Models\Submission;
+use App\Actions\Assignment\SubmitAssignmentAction;
+use App\Actions\Assignment\ListAssignmentSubmissionsAction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use App\Actions\Assignment\SubmitAssignmentAction;
-use App\Actions\Assignment\ListAssignmentSubmissionsAction;
-use App\Actions\Assignment\GradeSubmissionAction;
+use Inertia\Response;
 
 class AssignmentController extends Controller
 {
-    public function submit(Request $request, Assignment $assignment, SubmitAssignmentAction $submitAssignmentAction)
+    /**
+     * Display the specified assignment.
+     */
+    public function show(Course $course, Assignment $assignment): Response
     {
+        $this->authorize('view', $course);
+
+        $assignment->load(['creator', 'course']);
+
+        $userSubmission = null;
+        if (Auth::check()) {
+            $userSubmission = Submission::where([
+                'user_id' => Auth::id(),
+                'course_id' => $course->id,
+                'assignment_id' => $assignment->id,
+            ])->first();
+        }
+
+        return Inertia::render('Assignments/Show', [
+            'course' => $course,
+            'assignment' => $assignment,
+            'userSubmission' => $userSubmission,
+        ]);
+    }
+
+    /**
+     * Show assignment submission form.
+     */
+    public function showSubmissionForm(Course $course, Assignment $assignment): Response
+    {
+        $this->authorize('view', $course);
+
+        // Check if assignment accepts submissions
+        if (!$assignment->canAcceptSubmissions()) {
+            return redirect()->route('assignments.show', [
+                'course' => $course,
+                'assignment' => $assignment,
+            ])->with('error', 'This assignment is not accepting submissions.');
+        }
+
+        $existingSubmission = Submission::where([
+            'user_id' => Auth::id(),
+            'course_id' => $course->id,
+            'assignment_id' => $assignment->id,
+        ])->first();
+
+        return Inertia::render('Assignments/Submit', [
+            'course' => $course,
+            'assignment' => $assignment,
+            'existingSubmission' => $existingSubmission,
+        ]);
+    }
+
+    /**
+     * Submit assignment.
+     */
+    public function submit(Request $request, Course $course, Assignment $assignment, SubmitAssignmentAction $submitAction)
+    {
+        $this->authorize('view', $course);
+
+        $validated = $request->validate([
+            'submission_text' => 'nullable|string|max:50000',
+            'files.*' => 'nullable|file|max:10240|mimes:pdf,doc,docx,txt,zip,rar,jpg,jpeg,png',
+        ]);
+
         try {
-            $submitAssignmentAction->execute($assignment, $request->file('submission_file'));
-            return redirect()->back()->with('success', 'Assignment submitted successfully!');
+            $submissionData = [
+                'submission_text' => $validated['submission_text'] ?? null,
+            ];
+
+            // Handle file uploads
+            if ($request->hasFile('files')) {
+                $submissionData['files'] = $request->file('files');
+            }
+
+            $result = $submitAction->execute($assignment, $course, $submissionData);
+            
+            return redirect()->route('assignments.show', [
+                'course' => $course,
+                'assignment' => $assignment,
+            ])->with('success', $result['message']);
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
     }
 
-    public function submissions(Assignment $assignment, ListAssignmentSubmissionsAction $listAssignmentSubmissionsAction)
+    /**
+     * Download submission file.
+     */
+    public function downloadSubmission(Course $course, Assignment $assignment, Submission $submission, string $filename)
     {
-        $this->authorize('viewSubmissions', $assignment);
+        $this->authorize('view', $course);
 
-        $submissions = $listAssignmentSubmissionsAction->execute($assignment);
+        // Check if user owns the submission or is an instructor
+        if ($submission->user_id !== Auth::id() && !Auth::user()->can('update', $course)) {
+            abort(403, 'Unauthorized access to submission.');
+        }
+
+        $filePath = $submission->file_path;
+        if (!$filePath || !Storage::disk('private')->exists($filePath)) {
+            abort(404, 'File not found.');
+        }
+
+        return Storage::disk('private')->download($filePath, $submission->original_filename);
+    }
+
+    /**
+     * List assignment submissions (for instructors).
+     */
+    public function submissions(Course $course, Assignment $assignment, ListAssignmentSubmissionsAction $listAction): Response
+    {
+        $this->authorize('update', $course);
+
+        $submissions = $listAction->execute($assignment);
 
         return Inertia::render('Assignments/Submissions', [
+            'course' => $course,
             'assignment' => $assignment,
             'submissions' => $submissions,
         ]);
     }
 
-    public function grade(Request $request, Submission $submission, GradeSubmissionAction $gradeSubmissionAction)
+    /**
+     * Grade a submission.
+     */
+    public function gradeSubmission(Request $request, Course $course, Assignment $assignment, Submission $submission)
     {
-        $this->authorize('grade', $submission->assignment);
+        $this->authorize('update', $course);
 
-        $request->validate([
-            'score' => 'required|numeric|min:0',
+        $validated = $request->validate([
+            'score' => 'required|numeric|min:0|max:' . $assignment->total_points,
+            'feedback' => 'nullable|string|max:5000',
+            'grading_notes' => 'nullable|string|max:2000',
             'feedback' => 'nullable|string',
         ]);
 

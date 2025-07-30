@@ -448,6 +448,7 @@ export interface CourseModuleItemShowPageProps extends PageProps {
     module: CourseModule;
     item: CourseModuleItem;
     userSubmission?: Submission;
+    completedItems?: number[];
 }
 
 export interface CourseModuleItemEditPageProps extends PageProps {

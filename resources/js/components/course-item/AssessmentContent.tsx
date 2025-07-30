@@ -372,6 +372,32 @@ export default function AssessmentContent({
                 </CardContent>
             </Card>
 
+            {/* Assessment Results/Statistics */}
+            {hasFinished && userSubmission && typeof userSubmission.score === 'number' && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Award className="h-5 w-5 text-green-500" />
+                            Your Results
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="font-medium">Score:</span>
+                            <Badge variant="outline" className="text-base font-bold">
+                                {userSubmission.score} / {assessment.max_score || '--'}
+                            </Badge>
+                        </div>
+                        {userSubmission.submitted_at && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span className="font-medium">Submitted On:</span>
+                                {new Date(userSubmission.submitted_at).toLocaleString()}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Progress Section */}
             <div className="flex flex-col items-center gap-4">
                 {/* Mark as Complete Button */}

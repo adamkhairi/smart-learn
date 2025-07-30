@@ -187,8 +187,13 @@ function Show({ course, module }: CourseModuleShowPageProps) {
                         {
                             label: module.is_published ? 'Published' : 'Draft',
                             variant: module.is_published ? 'default' : 'secondary',
-                        },
-                    ]}
+                        } as any,
+                    ].map(badge => ({
+                        ...badge,
+                        className: module.is_published 
+                            ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-800'
+                            : 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900 dark:text-orange-200 dark:border-orange-800'
+                    }))}
                     stats={[
                         {
                             label: 'items',

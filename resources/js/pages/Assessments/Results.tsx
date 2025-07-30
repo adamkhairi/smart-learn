@@ -1,212 +1,313 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AssessmentScoreBadge } from '@/components/assessment-score-badge';
-import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Course, Assessment, Submission } from '@/types';
-import { CheckCircle, XCircle, Award } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Course, Assessment, Submission, CourseModule } from '@/types';
 import { Link } from '@inertiajs/react';
-
-interface Question {
-    id: number;
-    question_number: number;
-    type: 'MCQ' | 'Essay' | 'TrueFalse';
-    question_text: string;
-    points: number;
-    choices?: Record<string, string>;
-    keywords?: string[];
-    answer?: string; // Add answer field here as well
-}
+import { ArrowLeft, Award, CheckCircle, XCircle, Clock, FileText, TrendingUp, Info, Download, Share } from 'lucide-react';
 
 interface AssessmentResultsProps {
     course: Course;
-    assessment: Assessment & {
-        questions: Question[];
+    assessment: Assessment;
+    submission: Submission & {
+        score?: number;
+        max_score?: number;
+        percentage?: number;
+        grading_details?: Record<string, any>;
+        time_spent?: number;
+        graded_at?: string;
     };
-    submission: Submission;
+    module?: CourseModule;
 }
 
-export default function AssessmentResults({ course, assessment, submission }: AssessmentResultsProps) {
+export default function AssessmentResults({ course, assessment, submission, module }: AssessmentResultsProps) {
+    const percentage = submission.percentage || 0;
     const score = submission.score || 0;
-    const maxScore = assessment.questions.reduce((sum, q) => sum + q.points, 0);
-    const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-    const answers = (submission.answers as Record<number, string>) || {};
+    const maxScore = submission.max_score || assessment.max_score || 100;
+    const timeSpent = submission.time_spent || 0;
+    const gradingDetails = submission.grading_details || {};
 
-    const getScoreColor = (percentage: number) => {
+    // Calculate questions count from assessment if grading details are missing
+    const questionsCount = Object.keys(gradingDetails).length > 0
+        ? Object.keys(gradingDetails).length
+        : assessment.questions?.length || 0;
+
+    // Calculate correct answers from grading details if available
+    const correctAnswers = Object.keys(gradingDetails).length > 0
+        ? Object.values(gradingDetails).filter((detail: any) => detail.is_correct).length
+        : 0; // Will be calculated from score if grading details are missing
+
+    const getGradeColor = (percentage: number) => {
         if (percentage >= 90) return 'text-green-600';
         if (percentage >= 80) return 'text-blue-600';
         if (percentage >= 70) return 'text-yellow-600';
+        if (percentage >= 60) return 'text-orange-600';
         return 'text-red-600';
     };
 
+    const getGradeLetter = (percentage: number) => {
+        if (percentage >= 90) return 'A';
+        if (percentage >= 80) return 'B';
+        if (percentage >= 70) return 'C';
+        if (percentage >= 60) return 'D';
+        return 'F';
+    };
+
+    const getPerformanceMessage = (percentage: number) => {
+        if (percentage >= 90) return 'Excellent work! You have mastered this material.';
+        if (percentage >= 80) return 'Great job! You have a strong understanding of the material.';
+        if (percentage >= 70) return 'Good work! You have a solid grasp of most concepts.';
+        if (percentage >= 60) return 'You passed, but consider reviewing the material for better understanding.';
+        return 'You may want to review the material and retake the assessment if possible.';
+    };
+
+    const formatTime = (seconds: number) => {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const downloadResults = () => {
+        // This would generate a PDF or export results
+        console.log('Downloading results...');
+    };
+
+    const shareResults = () => {
+        // This would share results (if allowed)
+        console.log('Sharing results...');
+    };
+
     return (
-        <div className="max-w-4xl mx-auto p-6 space-y-6">
+        <div className="container mx-auto max-w-4xl space-y-6 p-6">
             {/* Header */}
-            <div className="text-center space-y-4">
-                <h1 className="text-3xl font-bold">{assessment.title} - Results</h1>
-                <p className="text-muted-foreground">Course: {course.name}</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <Button variant="ghost" asChild className="mb-4">
+                        <Link href={module ? `/courses/${course.id}/modules/${module.id}` : `/courses/${course.id}`}>
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            {module ? 'Back to Module' : 'Back to Course'}
+                        </Link>
+                    </Button>
+                    <h1 className="text-3xl font-bold">{assessment.title} - Results</h1>
+                    <p className="text-muted-foreground">{course.title}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-lg px-4 py-2">
+                        <Award className="mr-2 h-4 w-4" />
+                        {getGradeLetter(percentage)}
+                    </Badge>
+                </div>
             </div>
 
-            {/* Score Summary */}
+            {/* Performance Alert */}
+            <Alert className={`border-l-4 ${
+                percentage >= 70 ? 'border-l-green-500 bg-green-50' : 'border-l-orange-500 bg-orange-50'
+            }`}>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="font-medium">
+                    {getPerformanceMessage(percentage)}
+                </AlertDescription>
+            </Alert>
+
+            {/* Score Overview */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                        <span>Assessment Results</span>
-                        <AssessmentScoreBadge percentage={percentage} />
+                    <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5" />
+                        Score Overview
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="text-center">
-                            <div className={`text-4xl font-bold ${getScoreColor(percentage)}`}>
-                                {score}/{maxScore}
-                            </div>
-                            <p className="text-muted-foreground">Total Score</p>
+                    <div className="text-center">
+                        <div className={`text-6xl font-bold ${getGradeColor(percentage)}`}>
+                            {percentage.toFixed(1)}%
                         </div>
-                        <div className="text-center">
-                            <div className={`text-4xl font-bold ${getScoreColor(percentage)}`}>
-                                {Math.round(percentage)}%
-                            </div>
-                            <p className="text-muted-foreground">Percentage</p>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-4xl font-bold text-gray-600">
-                                {assessment.questions.length}
-                            </div>
-                            <p className="text-muted-foreground">Questions</p>
+                        <div className="text-xl text-muted-foreground mt-2">
+                            {score} out of {maxScore} points
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                            <span>Score Progress</span>
-                            <span>{Math.round(percentage)}%</span>
-                        </div>
-                        <Progress value={percentage} className="h-3" />
-                    </div>
+                    <Progress value={percentage} className="h-3" />
 
-                    <div className="flex items-center justify-center">
-                        <Award className="h-8 w-8 text-yellow-500 mr-2" />
-                        <span className="text-lg font-medium">
-                            {percentage >= 90 ? 'Outstanding Performance!' :
-                             percentage >= 80 ? 'Great Job!' :
-                             percentage >= 70 ? 'Good Work!' :
-                             'Keep Practicing!'}
-                        </span>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        <div className="space-y-1">
+                            <div className="text-2xl font-semibold">{score}</div>
+                            <div className="text-sm text-muted-foreground">Points Earned</div>
+                        </div>
+                        <div className="space-y-1">
+                            <div className="text-2xl font-semibold">{maxScore}</div>
+                            <div className="text-sm text-muted-foreground">Total Points</div>
+                        </div>
+                        <div className="space-y-1">
+                            <div className="text-2xl font-semibold">{correctAnswers}/{questionsCount}</div>
+                            <div className="text-sm text-muted-foreground">Correct Answers</div>
+                        </div>
+                        <div className="space-y-1">
+                            <div className="text-2xl font-semibold">{formatTime(timeSpent)}</div>
+                            <div className="text-sm text-muted-foreground">Time Spent</div>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Question Review */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Question Review</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {assessment.questions.map((question) => {
-                        const userAnswer = answers[question.id] || '';
-
-                        const getUserAnswerText = (q: Question, ans: string) => {
-                            if (q.type === 'MCQ' && q.choices) {
-                                return q.choices[ans];
-                            } else if (q.type === 'TrueFalse') {
-                                return ans === 'true' ? 'True' : ans === 'false' ? 'False' : null;
-                            }
-                            return ans;
-                        };
-
-                        const userSelectedText = getUserAnswerText(question, userAnswer);
-                        const correctText = question.answer;
-
-                        // Normalize for comparison (similar to backend for consistency)
-                        const normalizedUserText = userSelectedText ? userSelectedText.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim() : '';
-                        const normalizedCorrectText = correctText ? correctText.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim() : '';
-
-                        const isCorrect = question.type === 'MCQ' || question.type === 'TrueFalse'
-                            ? normalizedUserText === normalizedCorrectText
-                            : null; // Essay questions can't be auto-graded for correctness
-
-                        return (
-                            <div key={question.id} className="border rounded-lg p-4 space-y-3">
+            {/* Question Results */}
+            {Object.keys(gradingDetails).length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Question-by-Question Results
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {Object.values(gradingDetails).map((detail: any, index: number) => (
+                            <div key={detail.question_id} className="border rounded-lg p-4 space-y-3">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="font-medium">Question {question.question_number}</span>
-                                            <Badge variant="outline">{question.points} points</Badge>
-                                            {isCorrect !== null && (
-                                                isCorrect ?
-                                                    <CheckCircle className="h-4 w-4 text-green-500" /> :
-                                                    <XCircle className="h-4 w-4 text-red-500" />
+                                        <h4 className="font-medium flex items-center gap-2">
+                                            Question {index + 1}
+                                            {detail.is_correct ? (
+                                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                            ) : (
+                                                <XCircle className="h-4 w-4 text-red-600" />
                                             )}
-                                        </div>
-                                        <p className="text-gray-700">{question.question_text}</p>
+                                        </h4>
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                            {detail.question_text}
+                                        </p>
                                     </div>
+                                    <Badge variant={detail.is_correct ? 'default' : 'destructive'} className="ml-4">
+                                        {detail.score}/{detail.max_score} pts
+                                    </Badge>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <div className="font-medium text-sm text-gray-600">Your Answer:</div>
-                                    <div className="pl-4">
-                                        <span className="text-gray-700">
-                                            {userSelectedText || 'No answer provided'}
-                                        </span>
-                                    </div>
-                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span className="font-medium text-foreground">Your Answer:</span>
+                                        <div className={`mt-1 p-3 rounded border ${
+                                            detail.is_correct
+                                                ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700'
+                                                : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 dark:border-red-700'
+                                        }`}>
+                                            {(() => {
+                                                if (detail.user_answer === null || detail.user_answer === undefined || detail.user_answer === '') {
+                                                    return 'No answer provided';
+                                                }
 
-                                {question.type === 'MCQ' && question.choices && (
-                                    <div className="space-y-2">
-                                        <div className="font-medium text-sm text-gray-600">Correct Answer:</div>
-                                        <div className="pl-4">
-                                            <span className="text-green-700 font-medium">
-                                                {question.answer || ''}
-                                            </span>
+                                                const question = assessment.questions?.find(q => q.id.toString() === detail.question_id.toString());
+                                                if (question && question.type === 'MCQ' && question.choices) {
+                                                    const answerKey = detail.user_answer.toString();
+                                                    if (question.choices[answerKey]) {
+                                                        return `(${answerKey}) ${question.choices[answerKey]}`;
+                                                    }
+                                                }
+                                                return detail.user_answer;
+                                            })()}
                                         </div>
                                     </div>
-                                )}
-
-                                {question.type === 'TrueFalse' && (
-                                    <div className="space-y-2">
-                                        <div className="font-medium text-sm text-gray-600">Correct Answer:</div>
-                                        <div className="pl-4">
-                                            <span className="text-green-700 font-medium">
-                                                {question.answer === 'true' ? 'True' : 'False'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {question.type === 'Essay' && question.keywords && (
-                                    <div className="space-y-2">
-                                        <div className="font-medium text-sm text-gray-600">Keywords to include:</div>
-                                        <div className="pl-4">
-                                            <div className="flex flex-wrap gap-1">
-                                                {question.keywords.map((keyword, idx) => (
-                                                    <Badge key={idx} variant="outline" className="text-xs">
-                                                        {keyword}
-                                                    </Badge>
-                                                ))}
+                                    {detail.correct_answer !== null && detail.correct_answer !== undefined && detail.correct_answer !== '' && (
+                                        <div>
+                                            <span className="font-medium text-foreground">Correct Answer:</span>
+                                            <div className="mt-1 p-3 rounded border bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700">
+                                                {(() => {
+                                                    const question = assessment.questions?.find(q => q.id.toString() === detail.question_id.toString());
+                                                    if (question && question.type === 'MCQ' && question.choices) {
+                                                        // For MCQ, the correct answer is stored as the choice text (e.g., "Option A")
+                                                        // We need to find its index in the choices array
+                                                        const correctAnswerText = detail.correct_answer ? detail.correct_answer.toString() : '';
+                                                        const correctIndex = question.choices.findIndex((choice: string) => choice === correctAnswerText);
+                                                        if (correctIndex !== -1) {
+                                                            return `(${correctIndex}) ${correctAnswerText}`;
+                                                        }
+                                                        // Fallback: just return the correct answer text
+                                                        return correctAnswerText;
+                                                    }
+                                                    return detail.correct_answer;
+                                                })()}
                                             </div>
                                         </div>
+                                    )}
+                                </div>
+
+                                {detail.feedback && (
+                                    <div className="text-sm p-3 rounded border bg-blue-100 dark:bg-blue-900 border-blue-200 dark:border-blue-700">
+                                        <span className="font-medium text-blue-800 dark:text-blue-200">Feedback:</span>
+                                        <p className="mt-1 text-blue-700 dark:text-blue-100">{detail.feedback}</p>
                                     </div>
                                 )}
                             </div>
-                        );
-                    })}
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Assessment Info */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Clock className="h-5 w-5" />
+                        Assessment Information
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span className="font-medium">Submitted:</span>
+                            <p className="text-muted-foreground">
+                                {new Date(submission.submitted_at).toLocaleString()}
+                            </p>
+                        </div>
+                        <div>
+                            <span className="font-medium">Time Limit:</span>
+                            <p className="text-muted-foreground">
+                                {assessment.time_limit ? `${assessment.time_limit} minutes` : 'No time limit'}
+                            </p>
+                        </div>
+                        <div>
+                            <span className="font-medium">Questions:</span>
+                            <p className="text-muted-foreground">
+                                {questionsCount || 'N/A'}
+                            </p>
+                        </div>
+                        <div>
+                            <span className="font-medium">Graded:</span>
+                            <p className="text-muted-foreground">
+                                {submission.graded_at ? new Date(submission.graded_at).toLocaleString() : 'Auto-graded'}
+                            </p>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
-            {/* Navigation */}
-            <div className="flex justify-center gap-4">
+            {/* Actions */}
+            <div className="flex flex-wrap justify-center gap-4">
                 <Button variant="outline" asChild>
-                    <Link href={`/courses/${course.id}`}>
-                        Back to Course
+                    <Link href={module ? `/courses/${course.id}/modules/${module.id}` : `/courses/${course.id}`}>
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        {module ? 'Back to Module' : 'Back to Course'}
                     </Link>
                 </Button>
-                <Button asChild>
-                    <Link href={`/courses/${course.id}/modules`}>
-                        View All Modules
-                    </Link>
+                {assessment.show_results && (
+                    <Button variant="outline" asChild>
+                        <Link href={`/courses/${course.id}/assessments/${assessment.id}/take`}>
+                            <FileText className="mr-2 h-4 w-4" />
+                            View Assessment
+                        </Link>
+                    </Button>
+                )}
+                <Button variant="outline" onClick={downloadResults}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Results
                 </Button>
+                {(assessment as any).allow_result_sharing && (
+                    <Button variant="outline" onClick={shareResults}>
+                        <Share className="mr-2 h-4 w-4" />
+                        Share Results
+                    </Button>
+                )}
             </div>
         </div>
     );

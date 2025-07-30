@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { ActionMenu, commonActions } from '@/components/ui/action-button';
 import { Link } from '@inertiajs/react';
 import {
+    CheckCircle,
     ClipboardList,
     Clock,
     ExternalLink,
@@ -14,12 +15,21 @@ import {
     GripVertical,
     HelpCircle,
     Play,
+    XCircle,
 } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { CourseModuleItem } from '@/types';
 
 interface ModuleItemCardProps {
-    item: CourseModuleItem;
+    item: CourseModuleItem & {
+        user_submission?: {
+            id: number;
+            finished: boolean;
+            submitted_at: string | null;
+            score?: number | null;
+        } | null;
+        is_completed?: boolean;
+    };
     isInstructor: boolean;
     isMobile: boolean;
     draggedItem: number | null;
@@ -87,6 +97,59 @@ export const ModuleItemCard = React.memo<ModuleItemCardProps>(function ModuleIte
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }, [item.duration]);
 
+    // Memoize completion status for assessments
+    const completionStatus = useMemo(() => {
+        if (itemType !== 'assessment' || isInstructor) return null;
+        
+        // Check multiple possible sources for completion data
+        const submission = item.user_submission;
+        const isCompleted = item.is_completed;
+        const itemData = item as any;
+        
+        // Debug log to see what data is available
+        if (itemType === 'assessment') {
+            console.log('Assessment completion data:', {
+                itemId: item.id,
+                user_submission: submission,
+                is_completed: isCompleted,
+                itemData: itemData
+            });
+        }
+        
+        // Try different data sources for completion status
+        if (submission) {
+            if (submission.finished && submission.submitted_at) {
+                return { 
+                    completed: true, 
+                    label: 'Completed',
+                    score: submission.score
+                };
+            }
+            return { completed: false, label: 'In Progress' };
+        }
+        
+        // Fallback to is_completed flag if available
+        if (isCompleted === true) {
+            return { completed: true, label: 'Completed' };
+        }
+        
+        // Check if there's completion data in the itemable object
+        if (itemData.itemable && itemData.itemable.user_submission) {
+            const itemSubmission = itemData.itemable.user_submission;
+            if (itemSubmission.finished && itemSubmission.submitted_at) {
+                return { 
+                    completed: true, 
+                    label: 'Completed',
+                    score: itemSubmission.score
+                };
+            }
+            return { completed: false, label: 'In Progress' };
+        }
+        
+        // Default to not started
+        return { completed: false, label: 'Not Started' };
+    }, [itemType, item.user_submission, item.is_completed, item, isInstructor]);
+
     // Memoize action menu items
     const actionItems = useMemo(() => [
         commonActions.edit(() => onEdit(item.id)),
@@ -135,11 +198,50 @@ export const ModuleItemCard = React.memo<ModuleItemCardProps>(function ModuleIte
                                         </Link>
                                     </h3>
                                     <div className="flex items-center gap-2">
-                                        <Badge variant={item.is_required ? 'default' : 'secondary'} className="text-xs">
-                                            {item.is_required ? 'Required' : 'Optional'}
-                                        </Badge>
-                                        {item.status === 'draft' && (
-                                            <Badge variant="outline" className="text-xs">
+                                        {/* Assessment Completion Status */}
+                                        {completionStatus && (
+                                            <Badge 
+                                                variant={completionStatus.completed ? "default" : "outline"}
+                                                className={`text-xs flex items-center gap-1 ${
+                                                    completionStatus.completed 
+                                                        ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-800' 
+                                                        : completionStatus.label === 'In Progress'
+                                                            ? 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-200 dark:border-yellow-800'
+                                                            : 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900 dark:text-gray-200 dark:border-gray-800'
+                                                }`}
+                                            >
+                                                {completionStatus.completed ? (
+                                                    <CheckCircle className="h-3 w-3" />
+                                                ) : completionStatus.label === 'In Progress' ? (
+                                                    <Clock className="h-3 w-3" />
+                                                ) : (
+                                                    <XCircle className="h-3 w-3" />
+                                                )}
+                                                {completionStatus.label}
+                                                {completionStatus.completed && completionStatus.score !== undefined && (
+                                                    <span className="ml-1 font-medium">
+                                                        ({completionStatus.score}%)
+                                                    </span>
+                                                )}
+                                            </Badge>
+                                        )}
+                                        
+                                        {/* Required Badge - Enhanced styling */}
+                                        {item.is_required && (
+                                            <Badge 
+                                                variant="outline" 
+                                                className="text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800"
+                                            >
+                                                Required
+                                            </Badge>
+                                        )}
+                                        
+                                        {/* Draft Badge - Enhanced styling - Only show to instructors */}
+                                        {!(item as any).is_published && isInstructor && (
+                                            <Badge 
+                                                variant="secondary" 
+                                                className="text-xs bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                                            >
                                                 Draft
                                             </Badge>
                                         )}

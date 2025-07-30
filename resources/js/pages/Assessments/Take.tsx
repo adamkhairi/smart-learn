@@ -6,8 +6,9 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Course, Assessment, Submission } from '@/types';
+import { Course, Assessment, Submission, CourseModule } from '@/types';
 import { Clock, CheckCircle, AlertTriangle, ArrowLeft, ArrowRight, Save } from 'lucide-react';
+import { Link } from '@inertiajs/react';
 
 
 interface TakeAssessmentProps {
@@ -24,10 +25,11 @@ interface TakeAssessmentProps {
         }>;
     };
     submission: Submission;
+    module?: CourseModule;
     timeRemaining?: number;
 }
 
-export default function TakeAssessment({ course, assessment, submission, timeRemaining }: TakeAssessmentProps) {
+export default function TakeAssessment({ course, assessment, submission, module, timeRemaining }: TakeAssessmentProps) {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [timeLeft, setTimeLeft] = useState(timeRemaining || 0);
@@ -138,6 +140,14 @@ export default function TakeAssessment({ course, assessment, submission, timeRem
 
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-6">
+            {/* Back Button */}
+            <Button variant="ghost" asChild className="mb-4">
+                <Link href={module ? `/courses/${course.id}/modules/${module.id}` : `/courses/${course.id}`}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    {module ? 'Back to Module' : 'Back to Course'}
+                </Link>
+            </Button>
+            
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
