@@ -15,6 +15,11 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('users-stats', [UserController::class, 'stats'])->name('users.stats');
 
     // Course management routes
+    Route::post('courses/{course}/modules/bulk-delete', [
+        \App\Http\Controllers\Courses\CourseModuleController::class,
+        'bulkDelete',
+    ])->name('courses.modules.bulk-delete');
+
     Route::resource('courses', CourseController::class);
     Route::patch('courses/{course}/toggle-status', [CourseController::class, 'toggleStatus'])->name('courses.toggle-status');
     Route::get('courses/{course}/stats', [CourseController::class, 'stats'])->name('courses.stats');

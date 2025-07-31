@@ -17,7 +17,9 @@ use App\Actions\CourseModules\DeleteCourseModuleAction;
 use App\Actions\CourseModules\UpdateCourseModuleOrderAction;
 use App\Actions\CourseModules\ToggleCourseModulePublishedStatusAction;
 use App\Actions\CourseModules\DuplicateCourseModuleAction;
+use App\Actions\CourseModules\BulkDeleteCourseModulesAction;
 use Exception;
+use Illuminate\Http\RedirectResponse;
 
 class CourseModuleController extends Controller
 {
@@ -198,6 +200,30 @@ class CourseModuleController extends Controller
                 ->with('success', 'Module duplicated successfully!');
         } catch (Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Bulk delete course modules.
+     */
+    public function bulkDelete(
+        Request $request,
+        Course $course,
+        BulkDeleteCourseModulesAction $bulkDeleteCourseModulesAction
+    ): RedirectResponse {
+        $this->authorize('update', $course);
+
+        $validated = $request->validate([
+            'module_ids' => 'required|array',
+            'module_ids.*' => 'required|exists:course_modules,id',
+        ]);
+
+        try {
+            $deletedCount = $bulkDeleteCourseModulesAction->execute($course, $validated['module_ids']);
+
+            return back()->with('success', "Successfully deleted {$deletedCount} modules.");
+        } catch (Exception $e) {
+            return back()->withErrors(['error' => 'Failed to bulk delete modules: ' . $e->getMessage()]);
         }
     }
 }

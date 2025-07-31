@@ -48,16 +48,31 @@ class SubmitAssignmentAction
                 'submission_data' => $data['submission_data'] ?? null,
             ];
 
-            // Handle file upload if provided
+            // Handle file upload - always store in 'files' array for consistency
+            $uploadedFiles = [];
+            
+            // Handle single file upload
             if (isset($data['file']) && $data['file'] instanceof UploadedFile) {
                 $fileData = $this->handleFileUpload($assignment, $data['file']);
+                $uploadedFiles[] = $fileData['file_path'];
+                
+                // Also store individual file data for backward compatibility
                 $submissionData = array_merge($submissionData, $fileData);
             }
 
             // Handle multiple files if provided
             if (isset($data['files']) && is_array($data['files'])) {
-                $filesData = $this->handleMultipleFileUploads($assignment, $data['files']);
-                $submissionData['files'] = $filesData;
+                foreach ($data['files'] as $file) {
+                    if ($file instanceof UploadedFile) {
+                        $fileData = $this->handleFileUpload($assignment, $file);
+                        $uploadedFiles[] = $fileData['file_path'];
+                    }
+                }
+            }
+            
+            // Always store files array if any files were uploaded
+            if (!empty($uploadedFiles)) {
+                $submissionData['files'] = $uploadedFiles;
             }
 
             // Create or update submission
@@ -127,19 +142,7 @@ class SubmitAssignmentAction
         ];
     }
 
-    private function handleMultipleFileUploads(Assignment $assignment, array $files): array
-    {
-        $uploadedFiles = [];
 
-        foreach ($files as $file) {
-            if ($file instanceof UploadedFile) {
-                $fileData = $this->handleFileUpload($assignment, $file);
-                $uploadedFiles[] = $fileData;
-            }
-        }
-
-        return $uploadedFiles;
-    }
 
     private function notifyInstructor(Assignment $assignment, Submission $submission): void
     {

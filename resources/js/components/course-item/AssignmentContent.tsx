@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Assignment } from '@/types';
-import { useForm, router } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { AlertCircle, CheckCircle, ClipboardList, Download, FileText, Paperclip, Star, Upload, X } from 'lucide-react';
 import { ChangeEvent, useState, useEffect } from 'react';
 
@@ -209,7 +209,7 @@ export default function AssignmentContent({
     };
 
     const { data, setData, post, processing, errors, reset } = useForm({
-        files: null as File | null,
+        file: null as File | null,
         submission_text: '',
     });
 
@@ -223,8 +223,8 @@ export default function AssignmentContent({
                 assignmentId: assignment.id
             });
 
-            // Set the file data
-            setData('files', selectedFile);
+            // Set the file data - use 'file' (singular) to match backend expectation
+            setData('file', selectedFile);
 
             // Submit using Inertia
             post(`/courses/${courseId}/assignments/${assignment.id}/submit`, {
@@ -360,51 +360,70 @@ export default function AssignmentContent({
                             </p>
                         </div>
 
-                        {/* Submitted Files */}
-                        {(userSubmission.file_path || (userSubmission.files && userSubmission.files.length > 0)) && (
-                            <div>
-                                <p className="mb-2 text-sm font-medium text-blue-800 dark:text-blue-200">Submitted Files:</p>
-                                <div className="space-y-2">
-                                    {/* Handle single file submission (file_path field) */}
-                                    {userSubmission.file_path && (
-                                        <div className="flex items-center gap-3 rounded border bg-white p-3 shadow-sm dark:bg-gray-900">
-                                            <Paperclip className="h-4 w-4 text-gray-500" />
-                                            <span className="flex-1 text-sm">
-                                                {userSubmission.original_filename || userSubmission.file_path.split('/').pop()}
-                                            </span>
-                                            <Button size="sm" variant="ghost" asChild>
-                                                <a
-                                                    href={`/courses/${courseId}/assignments/${assignment.id}/submissions/${userSubmission.id}/download/${encodeURIComponent(userSubmission.original_filename || 'file')}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                >
-                                                    <Download className="h-4 w-4" />
-                                                </a>
-                                            </Button>
-                                        </div>
-                                    )}
 
-                                    {/* Handle multiple files submission (files array) */}
-                                    {userSubmission.files && Array.isArray(userSubmission.files) && userSubmission.files.map((file, index) => (
-                                        <div key={index} className="flex items-center gap-3 rounded border bg-white p-3 shadow-sm dark:bg-gray-900">
-                                            <Paperclip className="h-4 w-4 text-gray-500" />
-                                            <span className="flex-1 text-sm">
-                                                {typeof file === 'object' && file.original_filename ? file.original_filename : (typeof file === 'string' ? file.split('/').pop() : `File ${index + 1}`)}
-                                            </span>
-                                            <Button size="sm" variant="ghost" asChild>
-                                                <a
-                                                    href={`/courses/${courseId}/assignments/${assignment.id}/submissions/${userSubmission.id}/download/${encodeURIComponent(typeof file === 'object' && file.original_filename ? file.original_filename : `file-${index}`)}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                >
-                                                    <Download className="h-4 w-4" />
-                                                </a>
-                                            </Button>
-                                        </div>
-                                    ))}
+                        {/* Submitted Files */}
+                        {(() => {
+                            // Check if there are any files to display
+                            const hasFiles = userSubmission.file_path ||
+                                            (userSubmission.files && Array.isArray(userSubmission.files) && userSubmission.files.length > 0);
+
+                            if (!hasFiles) return null;
+
+                            return (
+                                <div>
+                                    <p className="mb-2 text-sm font-medium text-blue-800 dark:text-blue-200">Submitted Files:</p>
+                                    <div className="space-y-2">
+                                        {/* Handle single file submission (file_path field) - for backward compatibility */}
+                                        {userSubmission.file_path && !userSubmission.files && (
+                                            <div className="flex items-center gap-3 rounded border bg-white p-3 shadow-sm dark:bg-gray-900">
+                                                <Paperclip className="h-4 w-4 text-gray-500" />
+                                                <span className="flex-1 text-sm">
+                                                    {userSubmission.original_filename || userSubmission.file_path.split('/').pop()}
+                                                </span>
+                                                <Button size="sm" variant="ghost" asChild>
+                                                    <a
+                                                        href={`/courses/${courseId}/assignments/${assignment.id}/submissions/${userSubmission.id}/download/${encodeURIComponent(userSubmission.original_filename || 'file')}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        <Download className="h-4 w-4" />
+                                                    </a>
+                                                </Button>
+                                            </div>
+                                        )}
+
+                                        {/* Handle files array (new standardized format) */}
+                                        {userSubmission.files && Array.isArray(userSubmission.files) && userSubmission.files.map((file, index) => {
+                                            // Extract filename from file path
+                                            const fileName = typeof file === 'string' ? file.split('/').pop() :
+                                                           (typeof file === 'object' && file.original_filename ? file.original_filename : `File ${index + 1}`);
+
+                                            // Create download filename
+                                            const downloadFileName = typeof file === 'string' ? fileName :
+                                                                    (typeof file === 'object' && file.original_filename ? file.original_filename : `file-${index}`);
+
+                                            return (
+                                                <div key={index} className="flex items-center gap-3 rounded border bg-white p-3 shadow-sm dark:bg-gray-900">
+                                                    <Paperclip className="h-4 w-4 text-gray-500" />
+                                                    <span className="flex-1 text-sm">
+                                                        {fileName}
+                                                    </span>
+                                                    <Button size="sm" variant="ghost" asChild>
+                                                        <a
+                                                            href={`/courses/${courseId}/assignments/${assignment.id}/submissions/${userSubmission.id}/download/${encodeURIComponent(downloadFileName)}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                        >
+                                                            <Download className="h-4 w-4" />
+                                                        </a>
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
 
                         {/* Grade */}
                         {userSubmission.score !== null && (
@@ -476,10 +495,10 @@ export default function AssignmentContent({
                             </div>
                         )}
 
-                        {errors.files && (
+                        {errors.file && (
                             <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
                                 <AlertCircle className="h-4 w-4 inline mr-2" />
-                                {errors.files}
+                                {errors.file}
                             </div>
                         )}
 

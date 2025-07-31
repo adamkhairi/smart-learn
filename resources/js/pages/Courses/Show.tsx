@@ -242,32 +242,6 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                             </CardContent>
                         </Card>
 
-                        {/* Quick Access to Modules */}
-                        {visibleModules.length > 0 && (
-                            <Card>
-                                <CardHeader className="pb-3 sm:pb-4">
-                                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                                        <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-                                        Modules
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="grid gap-4">
-                                    {visibleModules.map((module) => (
-                                        <Link
-                                            key={module.id}
-                                            href={route('courses.modules.show', [course.id, module.id])}
-                                            className="block rounded-md p-3 transition-colors hover:bg-muted"
-                                        >
-                                            <h3 className="font-semibold">{module.title}</h3>
-                                            <p className="line-clamp-2 text-sm text-muted-foreground">
-                                                {module.description || 'No description provided.'}
-                                            </p>
-                                        </Link>
-                                    ))}
-                                </CardContent>
-                            </Card>
-                        )}
-
                         {/* Tabs for Course Content (Modules, Assignments, Discussions, Assessments) */}
                         <Tabs defaultValue="modules" className="w-full">
                             <TabsList className="grid w-full grid-cols-4">
@@ -278,9 +252,45 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                             </TabsList>
                             <TabsContent value="modules" className="mt-4">
                                 <Card>
+                                    <CardHeader className="pb-3 sm:pb-4">
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+                                                Course Modules
+                                            </CardTitle>
+                                            {isInstructor && (
+                                                <Button size="sm" asChild>
+                                                    <Link href={route('courses.modules.create', { course: course.id })}>
+                                                        <Plus className="mr-2 h-4 w-4" />
+                                                        Add Module
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </CardHeader>
                                     <CardContent className="grid gap-4">
                                         {visibleModules.length > 0 ? (
-                                            <ModuleProgress course={course} userEnrollment={userEnrollment} modules={visibleModules} />
+                                            <>
+                                                {visibleModules.map((module) => (
+                                                    <Link
+                                                        key={module.id}
+                                                        href={route('courses.modules.show', [course.id, module.id])}
+                                                        className="block rounded-md p-3 transition-colors hover:bg-muted"
+                                                    >
+                                                        <h3 className="font-semibold">{module.title}</h3>
+                                                        <p className="line-clamp-2 text-sm text-muted-foreground">
+                                                            {module.description || 'No description provided.'}
+                                                        </p>
+                                                    </Link>
+                                                ))}
+                                                <div className="flex justify-center pt-4">
+                                                    <Button asChild variant="outline">
+                                                        <Link href={route('courses.modules.index', { course: course.id })}>
+                                                            View All Modules
+                                                        </Link>
+                                                    </Button>
+                                                </div>
+                                            </>
                                         ) : (
                                             <p className="text-sm text-muted-foreground italic sm:text-base">No modules available.</p>
                                         )}
@@ -468,28 +478,6 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                 </CardContent>
                             </Card>
                         )}
-                        {/* Instructor Info Card */}
-                        {isInstructor && (
-                            <Card>
-                                <CardHeader className="pb-3 sm:pb-4">
-                                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                                        <Bell className="h-5 w-5" />
-                                        Course Management
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="grid gap-3 text-sm">
-                                    <p className="text-muted-foreground">
-                                        As an instructor, you can manage course details, modules, assignments, and track student progress.
-                                    </p>
-                                    <Button variant="outline" asChild>
-                                        <Link href={route('admin.courses.analytics', { course: course.id })}>
-                                            <BarChart3 className="mr-2 h-4 w-4" />
-                                            View Course Analytics
-                                        </Link>
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        )}
                     </div>
 
                     {/* Sidebar/Right Column - Takes 1/3 on desktop, full width on mobile */}
@@ -533,6 +521,29 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {/* Instructor Info Card (moved) */}
+                        {isInstructor && (
+                            <Card>
+                                <CardHeader className="pb-3 sm:pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                        <Bell className="h-5 w-5" />
+                                        Course Management
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-3 text-sm">
+                                    <p className="text-muted-foreground">
+                                        As an instructor, you can manage course details, modules, assignments, and track student progress.
+                                    </p>
+                                    <Button variant="outline" asChild>
+                                        <Link href={route('admin.courses.analytics', { course: course.id })}>
+                                            <BarChart3 className="mr-2 h-4 w-4" />
+                                            View Course Analytics
+                                        </Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Enrollment/Progress Card */}
                         {isStudent && userEnrollment && (
