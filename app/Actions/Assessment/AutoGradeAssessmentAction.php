@@ -5,10 +5,15 @@ namespace App\Actions\Assessment;
 use App\Models\Assessment;
 use App\Models\Submission;
 use App\Models\Question;
+use App\Actions\Notification\CreateNotificationAction;
 use Illuminate\Support\Facades\Log;
 
 class AutoGradeAssessmentAction
 {
+    public function __construct(
+        private CreateNotificationAction $createNotificationAction
+    ) {}
+
     public function execute(Submission $submission): array
     {
         $assessment = $submission->assessment;
@@ -56,6 +61,27 @@ class AutoGradeAssessmentAction
             'grading_details' => $gradingDetails,
             'graded_at' => now(),
         ]);
+
+        // Send notification to student about the assessment grade
+        if ($submission->user) {
+            $moduleItem = \App\Models\CourseModuleItem::where('itemable_type', 'App\\Models\\Assessment')
+                ->where('itemable_id', $assessment->id)
+                ->first();
+            
+            $actionUrl = null;
+            if ($moduleItem) {
+                $actionUrl = "/courses/{$assessment->course_id}/modules/{$moduleItem->course_module_id}/items/{$moduleItem->id}";
+            }
+
+            $this->createNotificationAction->createGradeNotification(
+                user: $submission->user,
+                itemTitle: $assessment->title,
+                score: (float) $totalScore,
+                maxScore: (float) $maxScore,
+                itemType: 'assessment',
+                actionUrl: $actionUrl
+            );
+        }
 
         return [
             'total_score' => $totalScore,

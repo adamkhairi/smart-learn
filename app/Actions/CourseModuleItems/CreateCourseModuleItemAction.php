@@ -9,12 +9,17 @@ use App\Models\Lecture;
 use App\Models\Assessment;
 use App\Models\Assignment;
 use App\Models\Question;
+use App\Actions\Notification\CreateNotificationAction;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 class CreateCourseModuleItemAction
 {
+    public function __construct(
+        private CreateNotificationAction $createNotificationAction
+    ) {}
+
     public function execute(Course $course, CourseModule $module, array $data): CourseModuleItem
     {
         return DB::transaction(function () use ($course, $module, $data) {
@@ -30,6 +35,21 @@ class CreateCourseModuleItemAction
                 'is_required' => $data['is_required'] ?? false,
                 'status' => $data['status'] ?? 'published',
             ]);
+
+            // Send notifications to enrolled students about new content
+            if ($data['status'] === 'published') {
+                $enrolledStudents = $course->enrolledUsers()->where('pivot.enrolled_as', 'student')->get();
+                
+                foreach ($enrolledStudents as $student) {
+                    $this->createNotificationAction->createNewContentNotification(
+                        user: $student,
+                        courseTitle: $course->name,
+                        contentTitle: $data['title'],
+                        contentType: $data['item_type'],
+                        actionUrl: "/courses/{$course->id}/modules/{$module->id}/items/{$moduleItem->id}"
+                    );
+                }
+            }
 
             return $moduleItem;
         });

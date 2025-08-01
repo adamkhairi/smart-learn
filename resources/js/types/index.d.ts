@@ -56,6 +56,45 @@ export interface User {
     [key: string]: unknown;
 }
 
+export interface Notification {
+    id: number;
+    title: string;
+    message: string;
+    type: 'info' | 'success' | 'warning' | 'error';
+    user_id: number;
+    data?: Record<string, unknown>;
+    read_at?: string;
+    action_url?: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at?: string;
+}
+
+export interface NotificationCounts {
+    all: number;
+    unread: number;
+    read: number;
+}
+
+export interface NotificationTypeCounts {
+    info: number;
+    success: number;
+    warning: number;
+    error: number;
+}
+
+export interface NotificationFilters {
+    type: string;
+    status: string;
+}
+
+export interface NotificationsPageProps extends PageProps {
+    notifications: PaginatedResponse<Notification>;
+    counts: NotificationCounts;
+    typeCounts: NotificationTypeCounts;
+    filters: NotificationFilters;
+}
+
 export interface Category {
     id: number;
     name: string;
