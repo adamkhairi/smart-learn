@@ -84,12 +84,7 @@ class AutoGradeAssessmentAction
                 $feedback = $isCorrect ? 'Correct answer!' : 'Incorrect answer.';
                 break;
 
-            case 'Essay':
-                $grading = $this->gradeEssay($question, $userAnswer);
-                $score = $grading['score'];
-                $feedback = $grading['feedback'];
-                $isCorrect = $score >= ($question->points * 0.7); // 70% threshold
-                break;
+
 
             case 'ShortAnswer':
                 $grading = $this->gradeShortAnswer($question, $userAnswer);
@@ -133,7 +128,7 @@ class AutoGradeAssessmentAction
 
     private function gradeTrueFalse(Question $question, $userAnswer): bool
     {
-        $correctAnswer = strtolower(trim($question->correct_answer ?? ''));
+        $correctAnswer = strtolower(trim($question->answer ?? ''));
         $userAnswerNormalized = strtolower(trim($userAnswer ?? ''));
 
         // Handle various true/false formats
@@ -146,55 +141,7 @@ class AutoGradeAssessmentAction
         return $correctIsTrueValue === $userIsTrueValue;
     }
 
-    private function gradeEssay(Question $question, $userAnswer): array
-    {
-        if (empty($userAnswer)) {
-            return ['score' => 0, 'feedback' => 'No answer provided.'];
-        }
 
-        $keywords = $question->keywords ?? [];
-        $userAnswerLower = strtolower($userAnswer);
-        $matchedKeywords = 0;
-        $totalKeywords = count($keywords);
-
-        foreach ($keywords as $keyword) {
-            if (strpos($userAnswerLower, strtolower($keyword)) !== false) {
-                $matchedKeywords++;
-            }
-        }
-
-        if ($totalKeywords === 0) {
-            // If no keywords defined, give partial credit for effort
-            $wordCount = str_word_count($userAnswer);
-            $score = min($question->points, max(1, $wordCount / 50 * $question->points));
-            return [
-                'score' => round($score, 2),
-                'feedback' => 'Answer submitted. Manual review may be required for final grading.',
-            ];
-        }
-
-        $keywordScore = ($matchedKeywords / $totalKeywords) * $question->points;
-
-        // Length bonus (up to 20% extra)
-        $wordCount = str_word_count($userAnswer);
-        $lengthBonus = min(0.2, $wordCount / 200) * $question->points;
-
-        $totalScore = min($question->points, $keywordScore + $lengthBonus);
-
-        $feedback = sprintf(
-            'Matched %d out of %d key concepts. Word count: %d. Score: %.1f/%.1f',
-            $matchedKeywords,
-            $totalKeywords,
-            $wordCount,
-            $totalScore,
-            $question->points
-        );
-
-        return [
-            'score' => round($totalScore, 2),
-            'feedback' => $feedback,
-        ];
-    }
 
     private function gradeShortAnswer(Question $question, $userAnswer): array
     {
@@ -202,7 +149,7 @@ class AutoGradeAssessmentAction
             return ['score' => 0, 'feedback' => 'No answer provided.'];
         }
 
-        $correctAnswer = $question->correct_answer ?? '';
+        $correctAnswer = $question->answer ?? '';
         $userAnswerNormalized = strtolower(trim($userAnswer));
         $correctAnswerNormalized = strtolower(trim($correctAnswer));
 
@@ -215,9 +162,9 @@ class AutoGradeAssessmentAction
         }
 
         // Partial credit for similar answers
-        $similarity = similar_text($userAnswerNormalized, $correctAnswerNormalized);
-        $maxLength = max(strlen($userAnswerNormalized), strlen($correctAnswerNormalized));
-        $similarityPercentage = $maxLength > 0 ? ($similarity / $maxLength) : 0;
+        $similarity = similar_text($userAnswerNormalized, $correctAnswerNormalized, $similarityPercentage);
+        // similar_text() already calculates percentage as third parameter
+        $similarityPercentage = $similarityPercentage / 100; // Convert to decimal
 
         if ($similarityPercentage >= 0.8) {
             $score = $question->points * 0.8;

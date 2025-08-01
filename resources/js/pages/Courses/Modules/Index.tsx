@@ -310,7 +310,10 @@ function Index({ course, modules }: ModulesIndexProps) {
 
     const isAllModulesSelected = selectedModuleIds.size === filteredModules.length && filteredModules.length > 0;
 
-    const totalItems = visibleModules.reduce((total, module) => total + (module.module_items_count || module.itemsCount || 0), 0);
+    const totalItems = visibleModules.reduce((total, module) => {
+        const itemsCount = module.module_items?.length || module.moduleItems?.length || module.items?.length || 0;
+        return total + itemsCount;
+    }, 0);
     const publishedModules = visibleModules.filter((m) => m.is_published).length;
     const draftModules = visibleModules.filter((m) => !m.is_published).length;
 

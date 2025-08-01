@@ -146,18 +146,7 @@ class LMSTestSeeder extends Seeder
                         ]);
                 }
 
-                // Create Essay questions
-                for ($i = 1; $i <= rand(1, 3); $i++) {
-                    Question::factory()
-                        ->create([
-                            'assessment_id' => $assessment->id,
-                            'question_number' => $i + 10, // Offset to avoid conflicts
-                            'points' => 20,
-                            'type' => 'Essay',
-                            'auto_graded' => false,
-                            'keywords' => ['keyword1', 'keyword2', 'keyword3'],
-                        ]);
-                }
+
             }
 
             // Create submissions for some assessments

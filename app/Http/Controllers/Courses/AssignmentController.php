@@ -38,10 +38,17 @@ class AssignmentController extends Controller
             ])->first();
         }
 
-        return Inertia::render('Assignments/Submit', [
+        // Get submission count for instructors
+        $submissionCount = Submission::where([
+            'course_id' => $course->id,
+            'assignment_id' => $assignment->id,
+        ])->count();
+
+        return Inertia::render('Assignments/Show', [
             'course' => $course,
             'assignment' => $assignment,
             'userSubmission' => $userSubmission,
+            'submissionCount' => $submissionCount,
         ]);
     }
 
@@ -103,15 +110,15 @@ class AssignmentController extends Controller
         ]);
 
         // Check if file was uploaded but rejected by PHP due to size limits
-        if ($request->hasFile('files') && !$request->file('files')->isValid()) {
+        if ($request->hasFile('file') && !$request->file('file')->isValid()) {
             return back()->withErrors([
-                'files' => 'File upload failed. Please ensure your file is smaller than 3MB.'
+                'file' => 'File upload failed. Please ensure your file is smaller than 10MB.'
             ]);
         }
 
         $validated = $request->validate([
             'submission_text' => 'nullable|string|max:50000',
-            'files' => 'nullable|file|max:3072|mimes:pdf,doc,docx,txt,zip,rar,jpg,jpeg,png', // Temporarily increased to 3072 (3MB) for testing
+            'file' => 'nullable|file|max:10240|mimes:pdf,doc,docx,txt,zip,rar,jpg,jpeg,png', // 10MB limit to match backend
         ]);
 
         try {
@@ -120,8 +127,8 @@ class AssignmentController extends Controller
             ];
 
             // Handle file upload
-            if ($request->hasFile('files')) {
-                $submissionData['file'] = $request->file('files');
+            if ($request->hasFile('file')) {
+                $submissionData['file'] = $request->file('file');
             }
 
             $result = $submitAction->execute($assignment, $course, $submissionData);
@@ -196,14 +203,128 @@ class AssignmentController extends Controller
             'score' => 'required|numeric|min:0|max:' . $assignment->total_points,
             'feedback' => 'nullable|string|max:5000',
             'grading_notes' => 'nullable|string|max:2000',
-            'feedback' => 'nullable|string',
         ]);
 
         try {
-            $gradeSubmissionAction->execute($submission, $request->only(['score', 'feedback']));
+            $gradeSubmissionAction->execute($submission, $assignment, $request->only(['score', 'feedback', 'grading_notes']));
             return back()->with('success', 'Grade submitted successfully!');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    /**
+     * List all submissions for a selected course (for instructors/admins).
+     */
+    public function allSubmissions(Request $request): Response
+    {
+        $user = Auth::user();
+
+        // Get courses where user is instructor or admin
+        $availableCourses = Course::where('created_by', $user->id)
+        ->orWhereHas('enrolledUsers', function ($query) use ($user) {
+            $query->where('user_id', $user->id)
+              ->whereIn('enrolled_as', ['instructor', 'admin']);
+            })
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+
+        $courseIds = $availableCourses->pluck('id');
+
+        // Get selected course ID (empty string means all courses)
+        $selectedCourseId = $request->get('course_id', '');
+
+        // Validate selected course is accessible to user (if a specific course is selected)
+        if ($selectedCourseId && !$courseIds->contains($selectedCourseId)) {
+            abort(403, 'Unauthorized access to course submissions.');
+        }
+
+        // Build query for submissions
+        $query = Submission::with([
+            'user:id,name,email',
+            'assignment:id,title,total_points,expired_at,assignment_type',
+            'assignment.moduleItem:id,course_module_id,title,itemable_id,itemable_type',
+            'assignment.moduleItem.courseModule:id,title,course_id',
+            'course:id,name'
+        ])
+        ->whereNotNull('assignment_id'); // Only assignment submissions
+
+        // Filter by course if a specific course is selected
+        if ($selectedCourseId) {
+            $query->where('course_id', $selectedCourseId);
+        } else {
+            // Show submissions from all accessible courses
+            // If no accessible courses, ensure empty result set
+            if ($courseIds->isEmpty()) {
+                $query->whereNull('id');
+            } else {
+                $query->whereIn('course_id', $courseIds);
+            }
+        }
+
+        if ($request->filled('status')) {
+            switch ($request->status) {
+                case 'graded':
+                    $query->whereNotNull('score');
+                    break;
+                case 'ungraded':
+                    $query->whereNull('score');
+                    break;
+                case 'late':
+                    $query->whereHas('assignment', function ($q) {
+                        $q->whereRaw('submissions.created_at > assignments.due_date');
+                    });
+                    break;
+            }
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('user', function ($userQuery) use ($search) {
+                    $userQuery->where('name', 'like', "%{$search}%")
+                             ->orWhere('email', 'like', "%{$search}%");
+                })
+                ->orWhereHas('assignment', function ($assignmentQuery) use ($search) {
+                    $assignmentQuery->where('title', 'like', "%{$search}%");
+                })
+                ->orWhereHas('course', function ($courseQuery) use ($search) {
+                    $courseQuery->where('name', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        $submissions = $query->orderBy('created_at', 'desc')
+                           ->paginate(20)
+                           ->withQueryString();
+
+        // Get statistics - for selected course or all accessible courses
+        $statsQuery = Submission::whereNotNull('assignment_id');
+        if ($selectedCourseId) {
+            $statsQuery->where('course_id', $selectedCourseId);
+        } else {
+            $statsQuery->whereIn('course_id', $courseIds);
+        }
+
+        $stats = [
+            'total' => (clone $statsQuery)->count(),
+            'graded' => (clone $statsQuery)->whereNotNull('score')->count(),
+            'ungraded' => (clone $statsQuery)->whereNull('score')->count(),
+            'late' => (clone $statsQuery)->whereHas('assignment', function ($q) {
+                $q->whereRaw('submissions.created_at > assignments.expired_at');
+            })->count(),
+        ];
+
+        // Get selected course details (null if showing all courses)
+        $selectedCourse = $selectedCourseId ? $availableCourses->firstWhere('id', $selectedCourseId) : null;
+
+        return Inertia::render('Submissions/Index', [
+            'submissions' => $submissions,
+            'courses' => $availableCourses,
+            'selectedCourse' => $selectedCourse,
+            'stats' => $stats,
+            'filters' => $request->only(['course_id', 'status', 'search']),
+        ]);
     }
 }

@@ -240,12 +240,11 @@ export interface Question {
     assignment_id?: number;
     question_number: number;
     points: number;
-    type: 'MCQ' | 'Essay' | 'TrueFalse';
+    type: 'MCQ' | 'TrueFalse' | 'ShortAnswer';
     question_text: string;
     auto_graded: boolean;
     choices?: Record<string, string>;
     answer?: string;
-    keywords?: string[];
     text_match?: boolean;
     created_at: string;
     updated_at: string;
@@ -253,12 +252,11 @@ export interface Question {
 
 export interface QuestionFormData {
     id: string;
-    type: 'MCQ' | 'Essay';
+    type: 'MCQ' | 'TrueFalse' | 'ShortAnswer';
     question_text: string;
     points: number;
     choices?: Record<string, string>;
     answer?: string;
-    keywords?: string[];
 }
 
 export interface Submission {
@@ -273,6 +271,7 @@ export interface Submission {
     finished: boolean;
     score?: number;
     feedback?: string;
+    grading_notes?: string;
     graded_at?: string;
     graded_by?: number;
     submitted_at: string;

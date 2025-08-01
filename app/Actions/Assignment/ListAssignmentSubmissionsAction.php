@@ -9,6 +9,6 @@ class ListAssignmentSubmissionsAction
 {
     public function execute(Assignment $assignment): Collection
     {
-        return $assignment->submissions()->with(['user', 'grade'])->get();
+        return $assignment->submissions()->with(['user', 'grader'])->get();
     }
 }

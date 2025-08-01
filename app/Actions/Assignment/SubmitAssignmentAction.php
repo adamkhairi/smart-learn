@@ -50,29 +50,39 @@ class SubmitAssignmentAction
 
             // Handle file upload - always store in 'files' array for consistency
             $uploadedFiles = [];
-            
-            // Handle single file upload
+            $firstFileData = null; // To store data for file_path, original_filename, etc.
+
+            // Handle single file upload (legacy support, if 'file' key is present)
             if (isset($data['file']) && $data['file'] instanceof UploadedFile) {
                 $fileData = $this->handleFileUpload($assignment, $data['file']);
                 $uploadedFiles[] = $fileData['file_path'];
-                
-                // Also store individual file data for backward compatibility
-                $submissionData = array_merge($submissionData, $fileData);
+                $firstFileData = $fileData; // Capture data for single file
             }
 
-            // Handle multiple files if provided
+            // Handle multiple files if provided via 'files' array (modern approach)
             if (isset($data['files']) && is_array($data['files'])) {
                 foreach ($data['files'] as $file) {
                     if ($file instanceof UploadedFile) {
                         $fileData = $this->handleFileUpload($assignment, $file);
                         $uploadedFiles[] = $fileData['file_path'];
+                        if ($firstFileData === null) { // Capture data for the first file in the array
+                            $firstFileData = $fileData;
+                        }
                     }
                 }
             }
-            
+
             // Always store files array if any files were uploaded
             if (!empty($uploadedFiles)) {
                 $submissionData['files'] = $uploadedFiles;
+            }
+
+            // Populate file_path, original_filename, file_size, file_type from the first uploaded file
+            if ($firstFileData !== null) {
+                $submissionData['file_path'] = $firstFileData['file_path'];
+                $submissionData['original_filename'] = $firstFileData['original_filename'];
+                $submissionData['file_size'] = $firstFileData['file_size'];
+                $submissionData['file_type'] = $firstFileData['file_type'];
             }
 
             // Create or update submission

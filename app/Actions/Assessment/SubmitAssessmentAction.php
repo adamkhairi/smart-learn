@@ -75,7 +75,7 @@ class SubmitAssessmentAction
     private function canAutoGrade(Assessment $assessment): bool
     {
         // Check if assessment has questions that can be auto-graded
-        $autoGradeableTypes = ['MCQ', 'TrueFalse', 'ShortAnswer', 'Essay'];
+        $autoGradeableTypes = ['MCQ', 'TrueFalse', 'ShortAnswer'];
         
         return $assessment->questions()->whereIn('type', $autoGradeableTypes)->exists();
     }

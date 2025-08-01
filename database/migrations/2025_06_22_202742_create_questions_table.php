@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('questions', function (Blueprint $table) {
             $table->id();
-            $table->enum('type', ['MCQ', 'Essay'])->default('MCQ');
+            $table->enum('type', ['MCQ'])->default('MCQ');
             $table->integer('question_number');
             $table->integer('points');
             $table->longText('question_text');
@@ -21,7 +21,7 @@ return new class extends Migration
             $table->foreignId('assessment_id')->constrained('assessments')->cascadeOnDelete();
             $table->json('choices')->nullable(); // For MCQ questions
             $table->text('answer')->nullable(); // For correct answer
-            $table->json('keywords')->nullable(); // For essay questions
+
             $table->boolean('text_match')->default(false);
             $table->timestamps();
             $table->softDeletes();

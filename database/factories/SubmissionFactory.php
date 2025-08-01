@@ -45,7 +45,6 @@ class SubmissionFactory extends Factory
             'answers' => $this->faker->optional()->randomElements([
                 '1' => 'Sample answer for question 1',
                 '2' => 'A',
-                '3' => 'Essay response here',
             ]),
         ];
     }

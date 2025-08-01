@@ -19,7 +19,7 @@ class QuestionFactory extends Factory
     public function definition(): array
     {
         return [
-            'type' => $this->faker->randomElement(['MCQ', 'Essay']),
+            'type' => 'MCQ',
             'question_number' => $this->faker->numberBetween(1, 20),
             'points' => $this->faker->numberBetween(5, 20),
             'question_text' => $this->faker->sentence() . '?',
@@ -27,7 +27,7 @@ class QuestionFactory extends Factory
             'assessment_id' => Assessment::factory(),
             'choices' => null,
             'answer' => null,
-            'keywords' => null,
+
             'text_match' => false,
         ];
     }
@@ -50,18 +50,7 @@ class QuestionFactory extends Factory
         ]);
     }
 
-    /**
-     * Indicate that the question is Essay type.
-     */
-    public function essay(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'type' => 'Essay',
-            'auto_graded' => false,
-            'keywords' => ['keyword1', 'keyword2', 'keyword3'],
-            'text_match' => $this->faker->boolean(),
-        ]);
-    }
+
 
     /**
      * Indicate that the question belongs to a specific assessment.

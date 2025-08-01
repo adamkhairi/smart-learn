@@ -67,12 +67,12 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
             if (assessment.questions && assessment.questions.length > 0) {
                 return assessment.questions.map((question) => ({
                     id: question.id.toString(),
-                    type: question.type as 'MCQ' | 'Essay',
+                    type: question.type as 'MCQ',
                     question_text: question.question_text,
                     points: question.points,
                     choices: question.choices || undefined,
                     answer: question.answer || undefined,
-                    keywords: question.keywords || undefined,
+
                 }));
             }
         }

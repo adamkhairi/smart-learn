@@ -246,7 +246,7 @@ class LMSSeeder extends Seeder
                             // Create questions for assessment
                             $questionCount = rand(5, 15);
                             for ($q = 1; $q <= $questionCount; $q++) {
-                                $questionType = ['MCQ', 'Essay'][array_rand([0, 1])];
+                                $questionType = 'MCQ';
                                 $choices = null;
                                 $answer = null;
 

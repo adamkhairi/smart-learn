@@ -62,7 +62,7 @@ class CreateCourseModuleItemAction
                 ]);
             case 'assessment':
                 $assessment = Assessment::create([
-                    'title' => $data['assessment_title'],
+                    'title' => $data['assessment_title'] ?: $data['title'], // Auto-populate from generic title if empty
                     'type' => $data['assessment_type'] ?? 'Quiz',
                     'max_score' => $data['max_score'] ?? 100,
                     'course_id' => $course->id,
@@ -104,7 +104,7 @@ class CreateCourseModuleItemAction
                 return $assessment;
             case 'assignment':
                 return Assignment::create([
-                    'title' => $data['assignment_title'],
+                    'title' => $data['assignment_title'] ?: $data['title'], // Auto-populate from generic title if empty
                     'assignment_type' => $data['assignment_type'] ?? 'general',
                     'total_points' => $data['total_points'] ?? 100,
                     'course_id' => $course->id,

@@ -112,9 +112,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('courses.modules.items', CourseModuleItemController::class)->middleware(['auth']);
 
     // Assignments
+    Route::get('courses/{course}/assignments/{assignment}', [AssignmentController::class, 'show'])->name('assignments.show')->middleware('auth');
+    Route::get('courses/{course}/assignments/{assignment}/submit', [AssignmentController::class, 'showSubmissionForm'])->name('assignments.submit.form')->middleware('auth');
     Route::post('courses/{course}/assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->middleware('auth');
     Route::get('courses/{course}/assignments/{assignment}/submissions', [AssignmentController::class, 'submissions'])->middleware('auth');
-    Route::post('courses/{course}/assignments/{assignment}/submissions/{submission}/grade', [AssignmentController::class, 'grade'])->middleware('auth');
+    Route::post('courses/{course}/assignments/{assignment}/submissions/{submission}/grade', [AssignmentController::class, 'gradeSubmission'])->middleware('auth');
+    
+    // Global Submissions Management
+    Route::get('submissions', [AssignmentController::class, 'allSubmissions'])->name('submissions.index')->middleware('auth');
 
     // Assessments
     Route::get('courses/{course}/assessments/{assessment}/take', [AssessmentController::class, 'take'])->name('assessments.take');

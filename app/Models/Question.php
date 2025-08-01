@@ -71,13 +71,7 @@ class Question extends Model
         return $this->type === 'MCQ';
     }
 
-    /**
-     * Check if question is Essay type.
-     */
-    public function isEssay(): bool
-    {
-        return $this->type === 'Essay';
-    }
+
 
     /**
      * Check if question is auto-graded.
@@ -106,16 +100,7 @@ class Question extends Model
         return null;
     }
 
-    /**
-     * Get keywords for essay questions.
-     */
-    public function getKeywords(): array
-    {
-        if ($this->isEssay() && $this->keywords) {
-            return $this->keywords;
-        }
-        return [];
-    }
+
 
     /**
      * Get choices for MCQ questions.
@@ -136,13 +121,7 @@ class Question extends Model
         return $query->where('type', 'MCQ');
     }
 
-    /**
-     * Scope to get Essay questions.
-     */
-    public function scopeEssay($query)
-    {
-        return $query->where('type', 'Essay');
-    }
+
 
     /**
      * Scope to get auto-graded questions.

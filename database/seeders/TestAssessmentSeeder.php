@@ -70,14 +70,7 @@ class TestAssessmentSeeder extends Seeder
                 'answer' => 'true',
                 'auto_graded' => true,
             ],
-            [
-                'question_number' => 3,
-                'type' => 'Essay',
-                'question_text' => 'Explain the benefits of renewable energy sources.',
-                'points' => 50,
-                'keywords' => ['solar', 'wind', 'sustainable', 'environment'],
-                'auto_graded' => false,
-            ],
+
         ];
 
         foreach ($questions as $questionData) {
