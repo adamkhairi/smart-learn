@@ -33,7 +33,6 @@ interface AssignmentContentProps {
     userSubmission?: UserSubmission | null;
     isCompleted: boolean;
     isInstructor: boolean;
-    onMarkComplete?: () => void;
     className?: string;
     courseId?: number;
 }
@@ -43,7 +42,6 @@ export default function AssignmentContent({
     userSubmission,
     isCompleted,
     isInstructor,
-    onMarkComplete,
     className = '',
     courseId,
 }: AssignmentContentProps) {
@@ -209,7 +207,7 @@ export default function AssignmentContent({
         setSelectedFile(null);
     };
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, post, processing, errors, reset } = useForm({
         file: null as File | null,
         submission_text: '',
     });
@@ -262,8 +260,6 @@ export default function AssignmentContent({
             });
         }
     }, [selectedFile, courseId, assignment.id, data.submission_text, isSubmitting, post, reset]);
-
-    const statusColors = getStatusColor(assignment.status);
 
     return (
         <div className={`space-y-6 ${className}`}>

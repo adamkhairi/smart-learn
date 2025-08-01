@@ -409,7 +409,7 @@ function Index({ course, modules }: ModulesIndexProps) {
 
                 {/* Search and Filter */}
                 <div className="flex items-center gap-4 rounded-lg border bg-card p-4">
-                    <div className="relative max-w-md flex-1">
+                    <div className="relative w-full flex-1">
                         <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
                         <Input
                             placeholder="Search modules by title or description..."

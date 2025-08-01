@@ -4,17 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CourseModuleItemCreatePageProps, QuestionFormData } from '@/types';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, ClipboardList, Play, BookOpen, Target, FileText, Settings, AlertCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, CheckCircle, FileText, GraduationCap, Play, Settings, Users, ClipboardList, Target, AlertCircle } from 'lucide-react';
 import { ChangeEvent, FormEvent, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
+import { useToast } from '@/hooks/use-toast';
+import AppLayout from '@/layouts/app-layout';
+import { BreadcrumbItem, CourseModuleItemCreatePageProps, QuestionFormData } from '@/types';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 
 function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) {
     const [selectedType, setSelectedType] = useState<'lecture' | 'assessment' | 'assignment' | ''>('');
@@ -671,24 +672,28 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                                         <div>
                                                             <Label htmlFor="started_at" className="text-base font-medium">Start Date *</Label>
-                                                            <Input
-                                                                id="started_at"
-                                                                type="datetime-local"
-                                                                value={data.started_at}
-                                                                onChange={(e) => setData('started_at', e.target.value)}
-                                                                className={`mt-2 h-12 text-base ${errors.started_at ? 'border-destructive' : ''}`}
-                                                            />
+                                                            <div className="mt-2">
+                                                                <DateTimePicker
+                                                                    id="started_at"
+                                                                    value={data.started_at}
+                                                                    onChange={(value) => setData('started_at', value)}
+                                                                    placeholder="Pick start date and time"
+                                                                    className={errors.started_at ? 'border-destructive' : ''}
+                                                                />
+                                                            </div>
                                                             <InputError message={errors.started_at} />
                                                         </div>
                                                         <div>
                                                             <Label htmlFor="expired_at" className="text-base font-medium">Due Date *</Label>
-                                                            <Input
-                                                                id="expired_at"
-                                                                type="datetime-local"
-                                                                value={data.expired_at}
-                                                                onChange={(e) => setData('expired_at', e.target.value)}
-                                                                className={`mt-2 h-12 text-base ${errors.expired_at ? 'border-destructive' : ''}`}
-                                                            />
+                                                            <div className="mt-2">
+                                                                <DateTimePicker
+                                                                    id="expired_at"
+                                                                    value={data.expired_at}
+                                                                    onChange={(value) => setData('expired_at', value)}
+                                                                    placeholder="Pick due date and time"
+                                                                    className={errors.expired_at ? 'border-destructive' : ''}
+                                                                />
+                                                            </div>
                                                             <InputError message={errors.expired_at} />
                                                         </div>
                                                     </div>

@@ -5,13 +5,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { Assessment, Assignment, BreadcrumbItem, CourseModuleItemEditPageProps, Lecture, QuestionFormData } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
 import { Eye, Settings, Target, BookOpen, FileQuestion, Clipboard } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import InputError from '@/components/input-error';
 
 interface ModuleItemFormData {
@@ -46,7 +48,7 @@ interface ModuleItemFormData {
     assessment_instructions_json: string;
     assessment_instructions_html: string;
     questions: string; // JSON string, now always present
-    [key: string]: FormDataConvertible; // Re-added with precise type
+    [key: string]: any; // Allow any additional fields
 }
 
 function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
@@ -366,22 +368,137 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                         This item is a <Badge variant="secondary" className="capitalize">{itemType}</Badge>
                                     </CardDescription>
                                 </CardHeader>
-                                <CardContent>
-                                    {/* Dynamic Form Fields */}
+                                <CardContent className="space-y-6">
+                                    {/* Basic Details - Common to all types */}
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <div>
+                                            <Label htmlFor="title" className="text-base font-medium">Title *</Label>
+                                            <Input
+                                                id="title"
+                                                type="text"
+                                                value={data.title}
+                                                onChange={(e) => {
+                                                    const newTitle = e.target.value;
+                                                    setData({
+                                                        ...data,
+                                                        title: newTitle,
+                                                        // Auto-populate type-specific titles
+                                                        assessment_title: itemType === 'assessment' ? newTitle : data.assessment_title,
+                                                        assignment_title: itemType === 'assignment' ? newTitle : data.assignment_title
+                                                    });
+                                                }}
+                                                placeholder={`e.g., ${getPlaceholderTitle(itemType)}`}
+                                                className={`mt-2 h-12 text-base ${errors.title ? 'border-destructive' : ''}`}
+                                            />
+                                            <InputError message={errors.title} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="description" className="text-base font-medium">Description</Label>
+                                            <Textarea
+                                                id="description"
+                                                value={data.description}
+                                                onChange={(e) => setData('description', e.target.value)}
+                                                placeholder="Briefly describe this module item..."
+                                                className={`mt-2 ${errors.description ? 'border-destructive' : ''}`}
+                                                rows={3}
+                                            />
+                                            <InputError message={errors.description} />
+                                        </div>
+                                    </div>
+
+                                    {/* Type-specific basic fields */}
+                                    {itemType === 'assessment' && (
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                            <div>
+                                                <Label htmlFor="max_score" className="text-base font-medium">Maximum Score</Label>
+                                                <Input
+                                                    id="max_score"
+                                                    type="number"
+                                                    value={data.max_score}
+                                                    onChange={(e) => setData('max_score', e.target.value)}
+                                                    placeholder="100"
+                                                    className={`mt-2 h-12 text-base ${errors.max_score ? 'border-destructive' : ''}`}
+                                                />
+                                                <InputError message={errors.max_score} />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="assessment_type" className="text-base font-medium">Assessment Type</Label>
+                                                <Select
+                                                    value={data.assessment_type}
+                                                    onValueChange={(value) => setData('assessment_type', value as 'Quiz' | 'Exam')}
+                                                >
+                                                    <SelectTrigger id="assessment_type" className="mt-2 h-12 text-base">
+                                                        <SelectValue placeholder="Select assessment type" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Quiz">Quiz</SelectItem>
+                                                        <SelectItem value="Exam">Exam</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <InputError message={errors.assessment_type} />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {itemType === 'assignment' && (
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                            <div>
+                                                <Label htmlFor="total_points" className="text-base font-medium">Total Points</Label>
+                                                <Input
+                                                    id="total_points"
+                                                    type="number"
+                                                    value={data.total_points}
+                                                    onChange={(e) => setData('total_points', e.target.value)}
+                                                    placeholder="100"
+                                                    className={`mt-2 h-12 text-base ${errors.total_points ? 'border-destructive' : ''}`}
+                                                />
+                                                <InputError message={errors.total_points} />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="assignment_type" className="text-base font-medium">Assignment Type</Label>
+                                                <Select
+                                                    value={data.assignment_type}
+                                                    onValueChange={(value) => setData('assignment_type', value as 'essay' | 'project')}
+                                                >
+                                                    <SelectTrigger id="assignment_type" className="mt-2 h-12 text-base">
+                                                        <SelectValue placeholder="Select assignment type" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="essay">Essay</SelectItem>
+                                                        <SelectItem value="project">Project</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <InputError message={errors.assignment_type} />
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {itemType === 'lecture' && (
-                                        <div className="space-y-4 animate-fade-in">
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                             <div>
-                                                <label className="block text-sm font-medium mb-1">Lecture Title</label>
-                                                <Input value={data.title} onChange={e => setData('title', e.target.value)} placeholder="Enter lecture title" required />
+                                                <Label htmlFor="video_url" className="text-base font-medium">Video URL</Label>
+                                                <Input
+                                                    id="video_url"
+                                                    type="url"
+                                                    value={data.video_url}
+                                                    onChange={(e) => setData('video_url', e.target.value)}
+                                                    placeholder="https://youtube.com/watch?v=..."
+                                                    className={`mt-2 h-12 text-base ${errors.video_url ? 'border-destructive' : ''}`}
+                                                />
+                                                <InputError message={errors.video_url} />
                                             </div>
-                                            <RichTextEditor label="Lecture Description" value={data.content_json ? JSON.parse(data.content_json) : ''} onChange={(json, html) => { setData('content_json', json); setData('content_html', html); }} />
                                             <div>
-                                                <label className="block text-sm font-medium mb-1">Video URL</label>
-                                                <Input value={data.video_url} onChange={e => setData('video_url', e.target.value)} placeholder="YouTube/Vimeo URL" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
-                                                <Input type="number" value={data.duration} onChange={e => setData('duration', e.target.value)} min={0} />
+                                                <Label htmlFor="duration" className="text-base font-medium">Duration (minutes)</Label>
+                                                <Input
+                                                    id="duration"
+                                                    type="number"
+                                                    value={data.duration}
+                                                    onChange={(e) => setData('duration', e.target.value)}
+                                                    placeholder="30"
+                                                    className={`mt-2 h-12 text-base ${errors.duration ? 'border-destructive' : ''}`}
+                                                    min={0}
+                                                />
+                                                <InputError message={errors.duration} />
                                             </div>
                                         </div>
                                     )}
@@ -431,10 +548,6 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                     {itemType === 'assignment' && (
                                         <div className="space-y-4 animate-fade-in">
                                             <div>
-                                                <label className="block text-sm font-medium mb-1">Assignment Title</label>
-                                                <Input value={data.assignment_title} onChange={e => setData('assignment_title', e.target.value)} placeholder="Assignment title" required />
-                                            </div>
-                                            <div>
                                                 <label className="block text-sm font-medium mb-1">Total Points</label>
                                                 <Input type="number" value={data.total_points} onChange={e => setData('total_points', e.target.value)} min={1} />
                                             </div>
@@ -454,6 +567,50 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
                                                 </Select>
                                                 <InputError message={errors.assignment_type} />
                                             </div>
+
+                                            {/* Assignment Schedule */}
+                                            <Card>
+                                                <CardHeader>
+                                                    <div className="flex items-center gap-3">
+                                                        <Settings className="h-6 w-6 text-green-500" />
+                                                        <div>
+                                                            <CardTitle>Assignment Schedule</CardTitle>
+                                                            <CardDescription>Set the availability and due dates</CardDescription>
+                                                        </div>
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                        <div>
+                                                            <Label htmlFor="started_at" className="text-base font-medium">Start Date *</Label>
+                                                            <div className="mt-2">
+                                                                <DateTimePicker
+                                                                    id="started_at"
+                                                                    value={data.started_at}
+                                                                    onChange={(value) => setData('started_at', value)}
+                                                                    placeholder="Pick start date and time"
+                                                                    className={errors.started_at ? 'border-destructive' : ''}
+                                                                />
+                                                            </div>
+                                                            <InputError message={errors.started_at} />
+                                                        </div>
+                                                        <div>
+                                                            <Label htmlFor="expired_at" className="text-base font-medium">Due Date *</Label>
+                                                            <div className="mt-2">
+                                                                <DateTimePicker
+                                                                    id="expired_at"
+                                                                    value={data.expired_at}
+                                                                    onChange={(value) => setData('expired_at', value)}
+                                                                    placeholder="Pick due date and time"
+                                                                    className={errors.expired_at ? 'border-destructive' : ''}
+                                                                />
+                                                            </div>
+                                                            <InputError message={errors.expired_at} />
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+
                                             <RichTextEditor label="Instructions" value={data.assignment_instructions_json ? JSON.parse(data.assignment_instructions_json) : ''} onChange={(json, html) => { setData('assignment_instructions_json', json); setData('assignment_instructions_html', html); }} />
                                             <RichTextEditor label="Rubric (optional)" value={data.assignment_rubric_json ? JSON.parse(data.assignment_rubric_json) : ''} onChange={(json, html) => { setData('assignment_rubric_json', json); setData('assignment_rubric_html', html); }} />
                                         </div>
@@ -592,5 +749,19 @@ function Edit({ course, module, item }: CourseModuleItemEditPageProps) {
         </AppLayout>
     );
 }
+
+// Helper function to get placeholder titles based on item type
+const getPlaceholderTitle = (type: string) => {
+    switch (type) {
+        case 'lecture':
+            return 'Introduction to Algebra';
+        case 'assessment':
+            return 'Chapter 1 Quiz';
+        case 'assignment':
+            return 'Research Paper';
+        default:
+            return 'Module Item';
+    }
+};
 
 export default Edit;
