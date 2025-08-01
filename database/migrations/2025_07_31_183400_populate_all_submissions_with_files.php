@@ -18,9 +18,7 @@ return new class extends Migration
 
         // Get template data from first submission that has files
         $templateSubmission = Submission::whereNotNull('files')
-            ->where('files', '!=', '[]')
-            ->where('files', '!=', 'null')
-            ->where('files', '!=', '')
+            ->whereRaw('jsonb_array_length(files) > 0') // Check for non-empty JSON array
             ->first();
 
         if (!$templateSubmission) {
@@ -40,9 +38,7 @@ return new class extends Migration
         // Get all submissions that don't have files
         $submissionsToUpdate = Submission::where(function ($query) {
             $query->whereNull('files')
-                  ->orWhere('files', '[]')
-                  ->orWhere('files', 'null')
-                  ->orWhere('files', '');
+                  ->orWhereRaw('jsonb_array_length(files) = 0'); // Check for empty JSON array
         })->get();
 
         Log::info('Found submissions to update', ['count' => $submissionsToUpdate->count()]);

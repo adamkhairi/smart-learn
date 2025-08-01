@@ -148,7 +148,7 @@ class CourseController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
             'background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
             'status' => 'required|in:published,archived,draft',
             'is_private' => 'boolean', // Add validation for is_private
@@ -324,7 +324,7 @@ class CourseController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
             'background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
             'status' => 'required|in:published,archived,draft',
             'is_private' => 'boolean', // Add validation for is_private

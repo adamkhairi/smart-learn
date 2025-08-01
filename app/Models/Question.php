@@ -26,7 +26,7 @@ class Question extends Model
         'assignment_id',
         'choices',
         'answer',
-        'keywords',
+
         'text_match',
     ];
 
@@ -43,7 +43,7 @@ class Question extends Model
             'auto_graded' => 'boolean',
             'text_match' => 'boolean',
             'choices' => 'array',
-            'keywords' => 'array',
+
         ];
     }
 

@@ -95,7 +95,7 @@ class CreateCourseModuleItemAction
                             'auto_graded' => $questionData['type'] === 'MCQ',
                             'choices' => $questionData['choices'] ?? null,
                             'answer' => $questionData['answer'] ?? null,
-                            'keywords' => $questionData['keywords'] ?? null,
+
                             'text_match' => false,
                         ]);
                     }

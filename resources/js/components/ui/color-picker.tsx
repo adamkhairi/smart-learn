@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './button';
 import { Input } from './input';
 import { Label } from './label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from './dialog';
 import { Palette, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -94,6 +94,9 @@ export function ColorPicker({ value, onChange, label, error, className }: ColorP
                     <DialogContent className="w-80">
                         <DialogHeader>
                             <DialogTitle>Choose Color</DialogTitle>
+                            <DialogDescription>
+                                Select a color for the course icon or enter a custom hex code.
+                            </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">

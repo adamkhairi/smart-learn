@@ -19,6 +19,7 @@ use App\Actions\Course\EnrollUserAction;
 use App\Actions\Course\UnenrollUserAction;
 use App\Actions\Course\GetCourseStatsAction;
 use App\Actions\Course\EnrollmentRequestAction;
+use Illuminate\Support\Facades\Log;
 
 class CourseController extends Controller
 {
@@ -57,6 +58,13 @@ class CourseController extends Controller
             return redirect()->route('courses.show', $course)
                 ->with('success', 'Course created successfully!');
         } catch (\Exception $e) {
+            Log::error('Course creation failed', [
+                'error' => $e->getMessage(),
+                'stack' => $e->getTraceAsString(),
+                'request' => $request->all(),
+                'user_id' => $request->user()?->id,
+            ]);
+
             return back()
                 ->withInput()
                 ->with('error', 'Failed to create course. Please try again.');
