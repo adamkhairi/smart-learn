@@ -49,12 +49,24 @@ class GradeSubmissionAction
                 $actionUrl = "/courses/{$assignment->course_id}/modules/{$moduleItem->course_module_id}/items/{$moduleItem->id}";
             }
 
-            $this->createNotificationAction->createGradeNotification(
+            // Send real-time notification for assignment grading
+            $this->createNotificationAction->executeWithBroadcast(
                 user: $submission->user,
-                itemTitle: $assignment->title,
-                score: (float) ($data['score'] ?? 0),
-                maxScore: $assignment->total_points ? (float) $assignment->total_points : null,
-                itemType: 'assignment',
+                title: 'Assignment Graded',
+                message: "Your assignment \"{$assignment->title}\" has been graded. Score: " . 
+                    ($assignment->total_points ? 
+                        (float) ($data['score'] ?? 0) . "/" . (float) $assignment->total_points . 
+                        " (" . round(((float) ($data['score'] ?? 0) / (float) $assignment->total_points) * 100, 1) . "%)"
+                        : (float) ($data['score'] ?? 0)
+                    ),
+                type: 'success',
+                data: [
+                    'item_title' => $assignment->title,
+                    'item_type' => 'assignment',
+                    'score' => (float) ($data['score'] ?? 0),
+                    'max_score' => $assignment->total_points ? (float) $assignment->total_points : null,
+                    'percentage' => $assignment->total_points ? round(((float) ($data['score'] ?? 0) / (float) $assignment->total_points) * 100, 1) : null,
+                ],
                 actionUrl: $actionUrl
             );
         }

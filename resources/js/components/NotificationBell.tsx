@@ -3,6 +3,7 @@ import { Bell, X, Check, Clock, AlertCircle, CheckCircle, AlertTriangle, XCircle
 import { Link, router } from '@inertiajs/react';
 import { Notification } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
+import { useRealTimeNotifications } from '@/hooks/use-real-time-notifications';
 
 interface NotificationBellProps {
     className?: string;
@@ -19,6 +20,34 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) =
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    
+    // Use real-time notifications hook
+    const {
+        notifications: realtimeNotifications,
+        unreadCount: realtimeUnreadCount,
+        markAsRead: markRealtimeAsRead,
+        markAllAsRead: markAllRealtimeAsRead,
+    } = useRealTimeNotifications();
+
+    // Listen for new real-time notifications
+    useEffect(() => {
+        const handleNewNotification = (event: CustomEvent) => {
+            const newNotification = event.detail;
+            console.log('📱 NotificationBell received new notification:', newNotification);
+            
+            // Add to notifications list immediately
+            setNotifications(prev => [newNotification, ...prev]);
+            setUnreadCount(prev => prev + 1);
+        };
+
+        // Add event listener for custom notification events
+        window.addEventListener('newNotification', handleNewNotification as EventListener);
+
+        // Cleanup
+        return () => {
+            window.removeEventListener('newNotification', handleNewNotification as EventListener);
+        };
+    }, []);
 
     // Fetch recent notifications
     const fetchNotifications = async () => {
@@ -38,23 +67,25 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) =
     // Mark notification as read
     const markAsRead = async (notificationId: number) => {
         try {
-            await fetch(`/notifications/${notificationId}/read`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            // Use Inertia router for proper CSRF handling
+            router.patch(`/notifications/${notificationId}/read`, {}, {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    // Update local state
+                    setNotifications(prev => 
+                        prev.map(notification => 
+                            notification.id === notificationId 
+                                ? { ...notification, read_at: new Date().toISOString() }
+                                : notification
+                        )
+                    );
+                    setUnreadCount(prev => Math.max(0, prev - 1));
                 },
+                onError: (error) => {
+                    console.error('Failed to mark notification as read:', error);
+                }
             });
-            
-            // Update local state
-            setNotifications(prev => 
-                prev.map(notification => 
-                    notification.id === notificationId 
-                        ? { ...notification, read_at: new Date().toISOString() }
-                        : notification
-                )
-            );
-            setUnreadCount(prev => Math.max(0, prev - 1));
         } catch (error) {
             console.error('Failed to mark notification as read:', error);
         }
@@ -63,19 +94,21 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) =
     // Mark all as read
     const markAllAsRead = async () => {
         try {
-            await fetch('/notifications/mark-all-read', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            // Use Inertia router for proper CSRF handling
+            router.patch('/notifications/mark-all-read', {}, {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    // Update local state
+                    setNotifications(prev => 
+                        prev.map(notification => ({ ...notification, read_at: new Date().toISOString() }))
+                    );
+                    setUnreadCount(0);
                 },
+                onError: (error) => {
+                    console.error('Failed to mark all notifications as read:', error);
+                }
             });
-            
-            // Update local state
-            setNotifications(prev => 
-                prev.map(notification => ({ ...notification, read_at: new Date().toISOString() }))
-            );
-            setUnreadCount(0);
         } catch (error) {
             console.error('Failed to mark all notifications as read:', error);
         }

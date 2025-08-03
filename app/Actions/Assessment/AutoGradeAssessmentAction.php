@@ -73,12 +73,20 @@ class AutoGradeAssessmentAction
                 $actionUrl = "/courses/{$assessment->course_id}/modules/{$moduleItem->course_module_id}/items/{$moduleItem->id}";
             }
 
-            $this->createNotificationAction->createGradeNotification(
+            // Send real-time notification for assessment auto-grading
+            $percentage = $maxScore > 0 ? round(($totalScore / $maxScore) * 100, 1) : 0;
+            $this->createNotificationAction->executeWithBroadcast(
                 user: $submission->user,
-                itemTitle: $assessment->title,
-                score: (float) $totalScore,
-                maxScore: (float) $maxScore,
-                itemType: 'assessment',
+                title: 'Assessment Graded',
+                message: "Your assessment \"{$assessment->title}\" has been automatically graded. Score: {$totalScore}/{$maxScore} ({$percentage}%)",
+                type: 'success',
+                data: [
+                    'item_title' => $assessment->title,
+                    'item_type' => 'assessment',
+                    'score' => (float) $totalScore,
+                    'max_score' => (float) $maxScore,
+                    'percentage' => $percentage,
+                ],
                 actionUrl: $actionUrl
             );
         }

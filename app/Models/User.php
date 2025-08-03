@@ -398,6 +398,16 @@ class User extends Authenticatable
     }
 
     /**
+     * The channels the user receives notification broadcasts on.
+     *
+     * @return string
+     */
+    public function receiveBroadcastNotificationsOn()
+    {
+        return 'App.Models.User.' . $this->id;
+    }
+
+    /**
      * Generate a unique username from the given name.
      */
     private static function generateUsername(string $name): string

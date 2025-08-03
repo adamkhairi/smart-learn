@@ -25,10 +25,16 @@ class ApproveEnrollmentRequestAction
             // Send notification to user about enrollment approval
             $user = \App\Models\User::find($enrollmentRequest->user_id);
             if ($user) {
-                $this->createNotificationAction->createEnrollmentNotification(
+                // Send real-time notification for enrollment approval
+                $this->createNotificationAction->executeWithBroadcast(
                     user: $user,
-                    courseTitle: $enrollmentRequest->course->name,
-                    status: 'approved',
+                    title: 'Enrollment Approved',
+                    message: "Your enrollment request for \"{$enrollmentRequest->course->name}\" has been approved. You can now access the course content.",
+                    type: 'success',
+                    data: [
+                        'course_title' => $enrollmentRequest->course->name,
+                        'enrollment_status' => 'approved',
+                    ],
                     actionUrl: "/courses/{$enrollmentRequest->course->id}"
                 );
             }

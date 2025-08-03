@@ -8,6 +8,7 @@ use App\Http\Controllers\AssessmentController;
 use App\Http\Controllers\ProgressController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 use Inertia\Inertia;
 
 // Static pages
@@ -43,6 +44,11 @@ Route::get('/unauthorized', function () {
 
 // Public course detail page
 Route::get('courses/{course}/public', [CourseController::class, 'publicShow'])->name('courses.public_show');
+
+// Broadcasting authentication routes (must be within auth middleware)
+Route::middleware(['auth'])->group(function () {
+    Broadcast::routes();
+});
 
 // Dashboard
 Route::middleware(['auth', 'verified'])->group(function () {

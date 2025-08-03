@@ -262,14 +262,14 @@ export default function AdminDashboard({ userStats, courseStats, pendingEnrollme
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-2">
                         {userStats.top_instructors.map((instructor, index) => (
                             <div key={instructor.id} className="flex items-center justify-between rounded-lg border p-4">
                                 <div className="flex items-center space-x-3">
                                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                                         {index + 1}
                                     </div>
-                                    <div>
+                                    <div className="flex-1 min-w-0">
                                         <div className="line-clamp-1 font-medium">{instructor.name}</div>
                                         <div className="line-clamp-1 text-sm text-muted-foreground">{instructor.email}</div>
                                     </div>

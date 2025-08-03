@@ -8,7 +8,7 @@ use App\Models\User;
 class CreateNotificationAction
 {
     /**
-     * Create a new notification for a user.
+     * Create a new notification for a user (database only).
      */
     public function execute(
         User $user,
@@ -26,6 +26,75 @@ class CreateNotificationAction
             'data' => $data,
             'action_url' => $actionUrl,
         ]);
+    }
+
+    /**
+     * Send a real-time notification using direct broadcasting.
+     */
+    public function executeWithBroadcast(
+        User $user,
+        string $title,
+        string $message,
+        string $type = 'info',
+        ?array $data = null,
+        ?string $actionUrl = null
+    ): Notification {
+        // First, create the database notification using existing system
+        $notification = $this->execute(
+            user: $user,
+            title: $title,
+            message: $message,
+            type: $type,
+            data: $data,
+            actionUrl: $actionUrl
+        );
+
+        // Then broadcast the notification if broadcasting is enabled
+        if ($this->shouldBroadcast()) {
+            try {
+                $this->broadcastNotification($user, $notification);
+            } catch (\Exception $e) {
+                // Log the error but don't fail the notification creation
+                \Log::warning('Failed to broadcast notification: ' . $e->getMessage());
+            }
+        }
+
+        return $notification;
+    }
+
+    /**
+     * Check if broadcasting should be attempted.
+     */
+    private function shouldBroadcast(): bool
+    {
+        return config('broadcasting.default') === 'pusher' && 
+               config('broadcasting.connections.pusher.key') && 
+               config('broadcasting.connections.pusher.secret');
+    }
+
+    /**
+     * Broadcast the notification to the user's private channel.
+     */
+    private function broadcastNotification(User $user, Notification $notification): void
+    {
+        $channelName = 'App.Models.User.' . $user->id;
+        
+        $broadcastData = [
+            'id' => $notification->id,
+            'title' => $notification->title,
+            'message' => $notification->message,
+            'type' => $notification->type,
+            'data' => $notification->data,
+            'action_url' => $notification->action_url,
+            'created_at' => $notification->created_at->toISOString(),
+        ];
+
+        // Use Laravel's broadcasting event system
+        event(new \Illuminate\Broadcasting\BroadcastEvent(
+            new \Illuminate\Broadcasting\PrivateChannel($channelName),
+            'notification',
+            $broadcastData
+        ));
     }
 
     /**

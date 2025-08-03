@@ -41,11 +41,17 @@ class CreateCourseModuleItemAction
                 $enrolledStudents = $course->enrolledUsers()->where('pivot.enrolled_as', 'student')->get();
                 
                 foreach ($enrolledStudents as $student) {
-                    $this->createNotificationAction->createNewContentNotification(
+                    // Send real-time notification for new content
+                    $this->createNotificationAction->executeWithBroadcast(
                         user: $student,
-                        courseTitle: $course->name,
-                        contentTitle: $data['title'],
-                        contentType: $data['item_type'],
+                        title: 'New Course Content',
+                        message: "New {$data['item_type']} \"{$data['title']}\" has been added to \"{$course->name}\".",
+                        type: 'info',
+                        data: [
+                            'course_title' => $course->name,
+                            'content_title' => $data['title'],
+                            'content_type' => $data['item_type'],
+                        ],
                         actionUrl: "/courses/{$course->id}/modules/{$module->id}/items/{$moduleItem->id}"
                     );
                 }

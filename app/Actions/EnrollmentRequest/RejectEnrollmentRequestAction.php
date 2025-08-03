@@ -23,10 +23,16 @@ class RejectEnrollmentRequestAction
         if ($updated) {
             $user = \App\Models\User::find($enrollmentRequest->user_id);
             if ($user) {
-                $this->createNotificationAction->createEnrollmentNotification(
+                // Send real-time notification for enrollment rejection
+                $this->createNotificationAction->executeWithBroadcast(
                     user: $user,
-                    courseTitle: $enrollmentRequest->course->name,
-                    status: 'rejected',
+                    title: 'Enrollment Rejected',
+                    message: "Your enrollment request for \"{$enrollmentRequest->course->name}\" has been rejected.",
+                    type: 'error',
+                    data: [
+                        'course_title' => $enrollmentRequest->course->name,
+                        'enrollment_status' => 'rejected',
+                    ],
                     actionUrl: "/courses/{$enrollmentRequest->course->id}/public"
                 );
             }

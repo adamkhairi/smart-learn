@@ -9,7 +9,7 @@ import { BreadcrumbItem, CourseModuleEditPageProps } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, BookOpen, Eye, EyeOff, Save } from 'lucide-react';
 import InputError from '@/components/input-error';
-import RichTextEditor from '@/components/ui/rich-text-editor';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 
 function Edit({ course, module }: CourseModuleEditPageProps) {
     const { data, setData, put, processing, errors } = useForm({
@@ -82,9 +82,8 @@ function Edit({ course, module }: CourseModuleEditPageProps) {
                                     <div className="space-y-2">
                                         <Label htmlFor="description">Description</Label>
                                         <RichTextEditor
-                                            content={data.description}
-                                            onContentChange={(newContent) => setData('description', newContent)}
-                                            placeholder="Describe what students will learn in this module..."
+                                            value={data.description}
+                                            onChange={(jsonContent, htmlContent) => setData('description', jsonContent)}
                                             className={errors.description ? 'border-red-500' : ''}
                                         />
                                         <InputError message={errors.description} />
