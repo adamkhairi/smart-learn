@@ -46,34 +46,7 @@ class AutoGradeSubmissionAction
                         }
                         break;
 
-                    case 'Essay':
-                        if ($question->usesTextMatch() && $question->keywords) {
-                            $keywords = $question->keywords;
-                            $answerText = strtolower($userAnswer);
-                            $matchedKeywords = 0;
 
-                            foreach ($keywords as $keyword) {
-                                if (str_contains($answerText, strtolower($keyword))) {
-                                    $matchedKeywords++;
-                                }
-                            }
-
-                            $matchPercentage = count($keywords) > 0 ? $matchedKeywords / count($keywords) : 0;
-                            $pointsAwarded = $question->points * $matchPercentage;
-                            $totalScore += $pointsAwarded;
-
-                            Log::debug('Grading Essay question - Detailed', [
-                                'question_id' => $question->id,
-                                'user_answer' => $userAnswer,
-                                'defined_keywords' => $keywords,
-                                'matched_keywords_count' => $matchedKeywords,
-                                'total_keywords_count' => count($keywords),
-                                'match_percentage' => $matchPercentage,
-                                'points_for_question' => $question->points,
-                                'points_awarded' => $pointsAwarded,
-                            ]);
-                        }
-                        break;
                 }
             }
         }

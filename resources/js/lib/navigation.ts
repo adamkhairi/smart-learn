@@ -1,5 +1,5 @@
 import { type NavItem } from '@/types';
-import { BookOpen, Folder, GraduationCap, LayoutGrid, Users, ClipboardList } from 'lucide-react';
+import { BookOpen, Folder, GraduationCap, LayoutGrid, Users, ClipboardList, FileText } from 'lucide-react';
 
 export const mainNavItems: NavItem[] = [
     {
@@ -26,7 +26,12 @@ export const adminNavItems: NavItem[] = [
         icon: GraduationCap,
     },
     {
-        title: 'Enrollment Requests',
+        title: 'Submissions',
+        href: '/submissions',
+        icon: FileText,
+    },
+    {
+        title: 'Enrollments',
         href: '/admin/enrollment-requests',
         icon: ClipboardList,
     },

@@ -8,6 +8,17 @@ import { Course, Assessment, Submission, CourseModule } from '@/types';
 import { Link } from '@inertiajs/react';
 import { ArrowLeft, Award, CheckCircle, XCircle, Clock, FileText, TrendingUp, Info, Download, Share } from 'lucide-react';
 
+interface GradingDetail {
+    question_id: number;
+    is_correct: boolean;
+    question_text: string;
+    score: number;
+    max_score: number;
+    feedback?: string;
+    user_answer: string | number | null;
+    correct_answer: string | number | null;
+}
+
 interface AssessmentResultsProps {
     course: Course;
     assessment: Assessment;
@@ -15,7 +26,7 @@ interface AssessmentResultsProps {
         score?: number;
         max_score?: number;
         percentage?: number;
-        grading_details?: Record<string, any>;
+        grading_details?: Record<string, GradingDetail>;
         time_spent?: number;
         graded_at?: string;
     };
@@ -36,7 +47,7 @@ export default function AssessmentResults({ course, assessment, submission, modu
 
     // Calculate correct answers from grading details if available
     const correctAnswers = Object.keys(gradingDetails).length > 0
-        ? Object.values(gradingDetails).filter((detail: any) => detail.is_correct).length
+        ? Object.values(gradingDetails).filter((detail: GradingDetail) => detail.is_correct).length
         : 0; // Will be calculated from score if grading details are missing
 
     const getGradeColor = (percentage: number) => {
@@ -92,7 +103,7 @@ export default function AssessmentResults({ course, assessment, submission, modu
                         </Link>
                     </Button>
                     <h1 className="text-3xl font-bold">{assessment.title} - Results</h1>
-                    <p className="text-muted-foreground">{course.title}</p>
+                    <p className="text-muted-foreground">{course.title ?? ''}</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Badge variant="outline" className="text-lg px-4 py-2">
@@ -163,7 +174,7 @@ export default function AssessmentResults({ course, assessment, submission, modu
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {Object.values(gradingDetails).map((detail: any, index: number) => (
+                        {Object.values(gradingDetails).map((detail: GradingDetail, index: number) => (
                             <div key={detail.question_id} className="border rounded-lg p-4 space-y-3">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
@@ -200,8 +211,10 @@ export default function AssessmentResults({ course, assessment, submission, modu
                                                 const question = assessment.questions?.find(q => q.id.toString() === detail.question_id.toString());
                                                 if (question && question.type === 'MCQ' && question.choices) {
                                                     const answerKey = detail.user_answer.toString();
-                                                    if (question.choices[answerKey]) {
-                                                        return `(${answerKey}) ${question.choices[answerKey]}`;
+                                                    const choices = Object.values(question.choices);
+                                                    const choiceIndex = parseInt(answerKey);
+                                                    if (!isNaN(choiceIndex) && choices[choiceIndex]) {
+                                                        return `(${answerKey}) ${choices[choiceIndex]}`;
                                                     }
                                                 }
                                                 return detail.user_answer;
@@ -215,15 +228,15 @@ export default function AssessmentResults({ course, assessment, submission, modu
                                                 {(() => {
                                                     const question = assessment.questions?.find(q => q.id.toString() === detail.question_id.toString());
                                                     if (question && question.type === 'MCQ' && question.choices) {
-                                                        // For MCQ, the correct answer is stored as the choice text (e.g., "Option A")
-                                                        // We need to find its index in the choices array
-                                                        const correctAnswerText = detail.correct_answer ? detail.correct_answer.toString() : '';
-                                                        const correctIndex = question.choices.findIndex((choice: string) => choice === correctAnswerText);
-                                                        if (correctIndex !== -1) {
-                                                            return `(${correctIndex}) ${correctAnswerText}`;
+                                                        // For MCQ, the correct answer is now stored as choice key (e.g., "0")
+                                                        const correctAnswerKey = detail.correct_answer ? detail.correct_answer.toString() : '';
+                                                        const choices = Object.values(question.choices);
+                                                        const choiceIndex = parseInt(correctAnswerKey);
+                                                        if (!isNaN(choiceIndex) && choices[choiceIndex]) {
+                                                            return `(${correctAnswerKey}) ${choices[choiceIndex]}`;
                                                         }
-                                                        // Fallback: just return the correct answer text
-                                                        return correctAnswerText;
+                                                        // Fallback: return the correct answer as is
+                                                        return correctAnswerKey;
                                                     }
                                                     return detail.correct_answer;
                                                 })()}
@@ -302,7 +315,7 @@ export default function AssessmentResults({ course, assessment, submission, modu
                     <Download className="mr-2 h-4 w-4" />
                     Download Results
                 </Button>
-                {(assessment as any).allow_result_sharing && (
+                {assessment.allow_result_sharing && (
                     <Button variant="outline" onClick={shareResults}>
                         <Share className="mr-2 h-4 w-4" />
                         Share Results

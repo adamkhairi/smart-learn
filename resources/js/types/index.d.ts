@@ -56,6 +56,45 @@ export interface User {
     [key: string]: unknown;
 }
 
+export interface Notification {
+    id: number;
+    title: string;
+    message: string;
+    type: 'info' | 'success' | 'warning' | 'error';
+    user_id: number;
+    data?: Record<string, unknown>;
+    read_at?: string;
+    action_url?: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at?: string;
+}
+
+export interface NotificationCounts {
+    all: number;
+    unread: number;
+    read: number;
+}
+
+export interface NotificationTypeCounts {
+    info: number;
+    success: number;
+    warning: number;
+    error: number;
+}
+
+export interface NotificationFilters {
+    type: string;
+    status: string;
+}
+
+export interface NotificationsPageProps extends PageProps {
+    notifications: PaginatedResponse<Notification>;
+    counts: NotificationCounts;
+    typeCounts: NotificationTypeCounts;
+    filters: NotificationFilters;
+}
+
 export interface Category {
     id: number;
     name: string;
@@ -231,6 +270,7 @@ export interface Assessment {
     // Computed properties
     total_points?: number; // Alias for max_score
     duration?: number;
+    allow_result_sharing?: boolean;
 }
 
 export interface Question {
@@ -239,12 +279,11 @@ export interface Question {
     assignment_id?: number;
     question_number: number;
     points: number;
-    type: 'MCQ' | 'Essay' | 'TrueFalse';
+    type: 'MCQ' | 'TrueFalse' | 'ShortAnswer';
     question_text: string;
     auto_graded: boolean;
     choices?: Record<string, string>;
     answer?: string;
-    keywords?: string[];
     text_match?: boolean;
     created_at: string;
     updated_at: string;
@@ -252,12 +291,11 @@ export interface Question {
 
 export interface QuestionFormData {
     id: string;
-    type: 'MCQ' | 'Essay';
+    type: 'MCQ' | 'TrueFalse' | 'ShortAnswer';
     question_text: string;
     points: number;
     choices?: Record<string, string>;
     answer?: string;
-    keywords?: string[];
 }
 
 export interface Submission {
@@ -272,6 +310,7 @@ export interface Submission {
     finished: boolean;
     score?: number;
     feedback?: string;
+    grading_notes?: string;
     graded_at?: string;
     graded_by?: number;
     submitted_at: string;

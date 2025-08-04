@@ -9,12 +9,17 @@ use App\Models\Lecture;
 use App\Models\Assessment;
 use App\Models\Assignment;
 use App\Models\Question;
+use App\Actions\Notification\CreateNotificationAction;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 class CreateCourseModuleItemAction
 {
+    public function __construct(
+        private CreateNotificationAction $createNotificationAction
+    ) {}
+
     public function execute(Course $course, CourseModule $module, array $data): CourseModuleItem
     {
         return DB::transaction(function () use ($course, $module, $data) {
@@ -30,6 +35,27 @@ class CreateCourseModuleItemAction
                 'is_required' => $data['is_required'] ?? false,
                 'status' => $data['status'] ?? 'published',
             ]);
+
+            // Send notifications to enrolled students about new content
+            if ($data['status'] === 'published') {
+                $enrolledStudents = $course->enrolledUsers()->where('pivot.enrolled_as', 'student')->get();
+                
+                foreach ($enrolledStudents as $student) {
+                    // Send real-time notification for new content
+                    $this->createNotificationAction->executeWithBroadcast(
+                        user: $student,
+                        title: 'New Course Content',
+                        message: "New {$data['item_type']} \"{$data['title']}\" has been added to \"{$course->name}\".",
+                        type: 'info',
+                        data: [
+                            'course_title' => $course->name,
+                            'content_title' => $data['title'],
+                            'content_type' => $data['item_type'],
+                        ],
+                        actionUrl: "/courses/{$course->id}/modules/{$module->id}/items/{$moduleItem->id}"
+                    );
+                }
+            }
 
             return $moduleItem;
         });
@@ -62,7 +88,7 @@ class CreateCourseModuleItemAction
                 ]);
             case 'assessment':
                 $assessment = Assessment::create([
-                    'title' => $data['assessment_title'],
+                    'title' => $data['assessment_title'] ?: $data['title'], // Auto-populate from generic title if empty
                     'type' => $data['assessment_type'] ?? 'Quiz',
                     'max_score' => $data['max_score'] ?? 100,
                     'course_id' => $course->id,
@@ -95,7 +121,7 @@ class CreateCourseModuleItemAction
                             'auto_graded' => $questionData['type'] === 'MCQ',
                             'choices' => $questionData['choices'] ?? null,
                             'answer' => $questionData['answer'] ?? null,
-                            'keywords' => $questionData['keywords'] ?? null,
+
                             'text_match' => false,
                         ]);
                     }
@@ -104,7 +130,7 @@ class CreateCourseModuleItemAction
                 return $assessment;
             case 'assignment':
                 return Assignment::create([
-                    'title' => $data['assignment_title'],
+                    'title' => $data['assignment_title'] ?: $data['title'], // Auto-populate from generic title if empty
                     'assignment_type' => $data['assignment_type'] ?? 'general',
                     'total_points' => $data['total_points'] ?? 100,
                     'course_id' => $course->id,

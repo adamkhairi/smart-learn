@@ -1,4 +1,3 @@
-import { ContentPreview, QuestionPreview } from '@/components/content-preview';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -100,52 +99,38 @@ export const ModuleItemCard = React.memo<ModuleItemCardProps>(function ModuleIte
     // Memoize completion status for assessments
     const completionStatus = useMemo(() => {
         if (itemType !== 'assessment' || isInstructor) return null;
-        
+
         // Check multiple possible sources for completion data
         const submission = item.user_submission;
         const isCompleted = item.is_completed;
-        const itemData = item as any;
-        
+
         // Debug log to see what data is available
         if (itemType === 'assessment') {
             console.log('Assessment completion data:', {
                 itemId: item.id,
                 user_submission: submission,
                 is_completed: isCompleted,
-                itemData: itemData
+                itemData: item
             });
         }
-        
+
         // Try different data sources for completion status
         if (submission) {
             if (submission.finished && submission.submitted_at) {
-                return { 
-                    completed: true, 
+                return {
+                    completed: true,
                     label: 'Completed',
                     score: submission.score
                 };
             }
             return { completed: false, label: 'In Progress' };
         }
-        
+
         // Fallback to is_completed flag if available
         if (isCompleted === true) {
             return { completed: true, label: 'Completed' };
         }
-        
-        // Check if there's completion data in the itemable object
-        if (itemData.itemable && itemData.itemable.user_submission) {
-            const itemSubmission = itemData.itemable.user_submission;
-            if (itemSubmission.finished && itemSubmission.submitted_at) {
-                return { 
-                    completed: true, 
-                    label: 'Completed',
-                    score: itemSubmission.score
-                };
-            }
-            return { completed: false, label: 'In Progress' };
-        }
-        
+
         // Default to not started
         return { completed: false, label: 'Not Started' };
     }, [itemType, item.user_submission, item.is_completed, item, isInstructor]);
@@ -200,11 +185,11 @@ export const ModuleItemCard = React.memo<ModuleItemCardProps>(function ModuleIte
                                     <div className="flex items-center gap-2">
                                         {/* Assessment Completion Status */}
                                         {completionStatus && (
-                                            <Badge 
+                                            <Badge
                                                 variant={completionStatus.completed ? "default" : "outline"}
                                                 className={`text-xs flex items-center gap-1 ${
-                                                    completionStatus.completed 
-                                                        ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-800' 
+                                                    completionStatus.completed
+                                                        ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-800'
                                                         : completionStatus.label === 'In Progress'
                                                             ? 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-200 dark:border-yellow-800'
                                                             : 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900 dark:text-gray-200 dark:border-gray-800'
@@ -225,24 +210,24 @@ export const ModuleItemCard = React.memo<ModuleItemCardProps>(function ModuleIte
                                                 )}
                                             </Badge>
                                         )}
-                                        
+
                                         {/* Required Badge - Enhanced styling */}
                                         {item.is_required && (
-                                            <Badge 
-                                                variant="outline" 
+                                            <Badge
+                                                variant="outline"
                                                 className="text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800"
                                             >
                                                 Required
                                             </Badge>
                                         )}
-                                        
+
                                         {/* Draft Badge - Enhanced styling - Only show to instructors */}
-                                        {!(item as any).is_published && isInstructor && (
-                                            <Badge 
-                                                variant="secondary" 
-                                                className="text-xs bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                                        {isInstructor && (
+                                            <Badge
+                                                variant="secondary"
+                                                className={`text-xs ${item.status === 'published' ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700' : 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'}`}
                                             >
-                                                Draft
+                                                {item.status === 'published' ? 'Published' : 'Draft'}
                                             </Badge>
                                         )}
                                     </div>
@@ -252,34 +237,6 @@ export const ModuleItemCard = React.memo<ModuleItemCardProps>(function ModuleIte
                                     <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                                         {item.description}
                                     </p>
-                                )}
-
-                                {/* Lazy-loaded content preview */}
-                                {item.itemable && itemType !== 'unknown' && (
-                                    <>
-                                        <ContentPreview
-                                            content={{
-                                                content_html: (item.itemable as unknown as Record<string, unknown>).content_html as string,
-                                                content_json: (item.itemable as unknown as Record<string, unknown>).content_json as string | object,
-                                                content: (item.itemable as unknown as Record<string, unknown>).content as string,
-                                            }}
-                                            type={itemType as 'lecture' | 'assessment' | 'assignment'}
-                                        />
-
-                                        {/* Assessment Questions Preview */}
-                                        {itemType === 'assessment' && (item.itemable as unknown as Record<string, unknown>).questions && (
-                                            <QuestionPreview
-                                                questions={
-                                                    (item.itemable as unknown as Record<string, unknown>).questions as Array<{
-                                                        id: number;
-                                                        question_text: string;
-                                                        type: string;
-                                                        points: number;
-                                                    }>
-                                                }
-                                            />
-                                        )}
-                                    </>
                                 )}
 
                                 <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
@@ -319,7 +276,7 @@ export const ModuleItemCard = React.memo<ModuleItemCardProps>(function ModuleIte
 
                         {/* External Link - Only if exists */}
                         {externalUrl && (
-                            <div className="mt-3 flex items-center gap-2">
+                            <div className="mt-3 flex items-center justify-end gap-2">
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button variant="outline" size="sm" asChild>

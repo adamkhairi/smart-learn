@@ -15,7 +15,9 @@ class ListCourseModulesAction
 
         $course->load([
             'modules' => function ($query) use ($isInstructor) {
-                $query->ordered()->withCount('moduleItems');
+                $query->ordered()->with(['moduleItems' => function ($query) {
+                    $query->ordered()->with('itemable');
+                }]);
                 if (!$isInstructor) {
                     $query->where('is_published', true);
                 }

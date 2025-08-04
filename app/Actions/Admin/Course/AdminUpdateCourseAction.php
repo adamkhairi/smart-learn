@@ -16,7 +16,7 @@ class AdminUpdateCourseAction
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'created_by' => 'required|exists:users,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
             'background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
             'status' => 'required|in:draft,published,archived',
             'files' => 'nullable|array',

@@ -10,12 +10,11 @@ import { useState } from 'react';
 
 interface Question {
     id: string;
-    type: 'MCQ' | 'Essay';
+    type: 'MCQ' | 'TrueFalse' | 'ShortAnswer';
     question_text: string;
     points: number;
     choices?: Record<string, string>;
     answer?: string;
-    keywords?: string[];
 }
 
 interface QuestionBuilderProps {
@@ -26,15 +25,14 @@ interface QuestionBuilderProps {
 export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
     const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
 
-    const addQuestion = (type: 'MCQ' | 'Essay') => {
+    const addQuestion = (type: 'MCQ' | 'TrueFalse' | 'ShortAnswer') => {
         const newQuestion: Question = {
             id: Math.random().toString(36).substr(2, 9),
             type,
             question_text: '',
             points: 10,
             choices: type === 'MCQ' ? { A: '', B: '', C: '', D: '' } : undefined,
-            answer: type === 'MCQ' ? 'A' : undefined,
-            keywords: type === 'Essay' ? [] : undefined,
+            answer: type === 'MCQ' ? 'A' : type === 'TrueFalse' ? 'true' : '',
         };
 
         onChange([...questions, newQuestion]);
@@ -59,13 +57,7 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
         }
     };
 
-    const updateKeywords = (questionId: string, keywords: string) => {
-        const keywordArray = keywords
-            .split(',')
-            .map((k) => k.trim())
-            .filter((k) => k);
-        updateQuestion(questionId, { keywords: keywordArray });
-    };
+
 
     const getTotalPoints = () => {
         return questions.reduce((total, q) => total + q.points, 0);
@@ -74,6 +66,8 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
     const getQuestionStatus = (question: Question) => {
         if (!question.question_text.trim()) return 'incomplete';
         if (question.type === 'MCQ' && (!question.answer || !question.choices)) return 'incomplete';
+        if (question.type === 'TrueFalse' && (!question.answer || !['true', 'false'].includes(question.answer))) return 'incomplete';
+        if (question.type === 'ShortAnswer' && !question.answer?.trim()) return 'incomplete';
         return 'complete';
     };
 
@@ -117,12 +111,23 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => addQuestion('Essay')}
+                        onClick={() => addQuestion('TrueFalse')}
                         className="flex items-center gap-2"
                     >
                         <Plus className="h-4 w-4" />
-                        <span>Essay</span>
-                        <Badge variant="secondary" className="ml-1">Text Answer</Badge>
+                        <span>True/False</span>
+                        <Badge variant="secondary" className="ml-1">True or False</Badge>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addQuestion('ShortAnswer')}
+                        className="flex items-center gap-2"
+                    >
+                        <Plus className="h-4 w-4" />
+                        <span>Short Answer</span>
+                        <Badge variant="secondary" className="ml-1">Text Input</Badge>
                     </Button>
                 </div>
             </div>
@@ -135,8 +140,8 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                             <Target className="mb-4 h-16 w-16 text-muted-foreground" />
                             <h4 className="mb-2 text-xl font-semibold">No questions yet</h4>
                             <p className="mb-6 text-center text-muted-foreground max-w-md">
-                                Start building your assessment by adding multiple choice or essay questions.
-                                Each question can be configured with points and auto-grading options.
+                                Start building your assessment by adding questions.
+                                Choose from multiple choice, true/false, or short answer questions.
                             </p>
                             <div className="flex gap-3">
                                 <Button
@@ -146,16 +151,25 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                                     className="flex items-center gap-2"
                                 >
                                     <Plus className="h-4 w-4" />
-                                    Add MCQ Question
+                                    Add MCQ
                                 </Button>
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    onClick={() => addQuestion('Essay')}
+                                    onClick={() => addQuestion('TrueFalse')}
                                     className="flex items-center gap-2"
                                 >
                                     <Plus className="h-4 w-4" />
-                                    Add Essay Question
+                                    Add True/False
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => addQuestion('ShortAnswer')}
+                                    className="flex items-center gap-2"
+                                >
+                                    <Plus className="h-4 w-4" />
+                                    Add Short Answer
                                 </Button>
                             </div>
                         </CardContent>
@@ -181,7 +195,8 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                                                     </CardTitle>
                                                     <div className="flex items-center gap-2 mt-1">
                                                         <Badge variant={question.type === 'MCQ' ? 'default' : 'secondary'}>
-                                                            {question.type === 'MCQ' ? 'Multiple Choice' : 'Essay'}
+                                                            {question.type === 'MCQ' ? 'Multiple Choice' : 
+                                                             question.type === 'TrueFalse' ? 'True/False' : 'Short Answer'}
                                                         </Badge>
                                                         <Badge variant="outline">{question.points} points</Badge>
                                                         {status === 'incomplete' && (
@@ -316,24 +331,67 @@ export function QuestionBuilder({ questions, onChange }: QuestionBuilderProps) {
                                             </div>
                                         )}
 
-                                        {/* Essay Keywords */}
-                                        {question.type === 'Essay' && (
+                                        {/* True/False Options */}
+                                        {question.type === 'TrueFalse' && (
                                             <div>
-                                                <Label htmlFor={`keywords-${question.id}`} className="text-base font-medium">
-                                                    Keywords (optional)
-                                                </Label>
-                                                <Input
-                                                    id={`keywords-${question.id}`}
-                                                    value={question.keywords?.join(', ') || ''}
-                                                    onChange={(e) => updateKeywords(question.id, e.target.value)}
-                                                    placeholder="keyword1, keyword2, keyword3"
-                                                    className="mt-2"
-                                                />
+                                                <Label className="text-base font-medium">Correct Answer</Label>
+                                                <div className="mt-3 space-y-3">
+                                                    <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors">
+                                                        <input
+                                                            type="radio"
+                                                            name={`correct-answer-${question.id}`}
+                                                            checked={question.answer === 'true'}
+                                                            onChange={() => updateQuestion(question.id, { answer: 'true' })}
+                                                            className="h-4 w-4 text-primary"
+                                                        />
+                                                        <Label className="text-sm font-medium">
+                                                            True
+                                                        </Label>
+                                                        {question.answer === 'true' && (
+                                                            <CheckCircle className="h-4 w-4 text-green-500" />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors">
+                                                        <input
+                                                            type="radio"
+                                                            name={`correct-answer-${question.id}`}
+                                                            checked={question.answer === 'false'}
+                                                            onChange={() => updateQuestion(question.id, { answer: 'false' })}
+                                                            className="h-4 w-4 text-primary"
+                                                        />
+                                                        <Label className="text-sm font-medium">
+                                                            False
+                                                        </Label>
+                                                        {question.answer === 'false' && (
+                                                            <CheckCircle className="h-4 w-4 text-green-500" />
+                                                        )}
+                                                    </div>
+                                                </div>
                                                 <p className="mt-2 text-xs text-muted-foreground">
-                                                    Comma-separated keywords for auto-grading assistance
+                                                    Select the correct answer for this true/false question
                                                 </p>
                                             </div>
                                         )}
+
+                                        {/* Short Answer */}
+                                        {question.type === 'ShortAnswer' && (
+                                            <div>
+                                                <Label htmlFor={`answer-${question.id}`} className="text-base font-medium">
+                                                    Correct Answer *
+                                                </Label>
+                                                <Input
+                                                    id={`answer-${question.id}`}
+                                                    value={question.answer || ''}
+                                                    onChange={(e) => updateQuestion(question.id, { answer: e.target.value })}
+                                                    placeholder="Enter the correct answer..."
+                                                    className="mt-2"
+                                                />
+                                                <p className="mt-2 text-xs text-muted-foreground">
+                                                    Enter the expected answer. The system will provide partial credit for similar answers.
+                                                </p>
+                                            </div>
+                                        )}
+
                                     </CardContent>
                                 )}
                             </Card>

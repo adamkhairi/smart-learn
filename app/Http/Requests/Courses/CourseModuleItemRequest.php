@@ -43,7 +43,7 @@ class CourseModuleItemRequest extends FormRequest
                 break;
 
             case 'assessment':
-                $rules['assessment_title'] = 'required|string|min:3|max:255';
+                $rules['assessment_title'] = 'nullable|string|min:3|max:255';
                 $rules['max_score'] = 'nullable|integer|min:1|max:1000';
                 $rules['assessment_type'] = ['nullable', Rule::in(['Quiz', 'Exam'])];
                 $rules['questions_type'] = ['nullable', Rule::in(['online', 'file'])];
@@ -54,17 +54,16 @@ class CourseModuleItemRequest extends FormRequest
                 $rules['assessment_instructions_html'] = 'nullable|string|max:200000';
                 $rules['questions'] = 'nullable|array';
                 $rules['questions.*.id'] = 'required|string';
-                $rules['questions.*.type'] = ['required', Rule::in(['MCQ', 'Essay'])];
+                $rules['questions.*.type'] = ['required', Rule::in(['MCQ', 'TrueFalse', 'ShortAnswer'])];
                 $rules['questions.*.question_text'] = 'required|string|max:10000';
                 $rules['questions.*.points'] = 'required|integer|min:1|max:100';
                 $rules['questions.*.choices'] = 'nullable|array';
                 $rules['questions.*.answer'] = 'nullable|string|max:500';
-                $rules['questions.*.keywords'] = 'nullable|array';
-                $rules['questions.*.keywords.*'] = 'string|max:100';
+
                 break;
 
             case 'assignment':
-                $rules['assignment_title'] = 'required|string|min:3|max:255';
+                $rules['assignment_title'] = 'nullable|string|min:3|max:255';
                 $rules['total_points'] = 'nullable|integer|min:1|max:1000';
                 $rules['assignment_type'] = ['nullable', Rule::in(array_column(AssignmentType::cases(), 'value'))];
                 $rules['started_at'] = 'nullable|date';

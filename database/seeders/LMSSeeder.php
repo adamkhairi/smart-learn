@@ -21,6 +21,7 @@ use App\Models\UserProgress;
 use Illuminate\Support\Facades\Hash;
 use Faker\Factory as Faker;
 use App\Models\GradesSummary;
+use App\Models\Category;
 
 class LMSSeeder extends Seeder
 {
@@ -156,11 +157,27 @@ class LMSSeeder extends Seeder
         $itemTypes = ['lecture', 'assessment', 'assignment'];
 
         // Create 30 courses
+        $categories = collect(); // Initialize a collection to store created categories
+
+        foreach ($courseCategories as $categoryName => $topics) {
+            $category = Category::firstOrCreate(
+                ['name' => $categoryName],
+                ['slug' => \Illuminate\Support\Str::slug($categoryName)]
+            );
+            $categories->put($categoryName, $category);
+
+            foreach ($topics as $topicName) {
+                // Create subcategories or tags if your schema supports it, or simply use topic as course name
+                // For now, we'll just ensure the main category is created and use topics for course names
+            }
+        }
+
         for ($courseIndex = 1; $courseIndex <= 30; $courseIndex++) {
             // Select random category and topic
-            $category = array_rand($courseCategories);
-            $topics = $courseCategories[$category];
+            $categoryName = array_rand($courseCategories);
+            $topics = $courseCategories[$categoryName];
             $topic = $topics[array_rand($topics)];
+            $category = $categories->get($categoryName); // Retrieve the actual Category model
 
             // Select random instructor
             $instructor = $instructors[array_rand($instructors)];
@@ -169,6 +186,7 @@ class LMSSeeder extends Seeder
                 'name' => $topic,
                 'description' => $faker->paragraphs(3, true),
                 'created_by' => $instructor->id,
+                'category_id' => $category->id, // Assign the category_id here
                 'background_color' => '#' . str_pad(dechex(mt_rand(0, 0xFFFFFF)), 6, '0', STR_PAD_LEFT),
                 'status' => 'published',
                 'files' => null,
@@ -246,7 +264,7 @@ class LMSSeeder extends Seeder
                             // Create questions for assessment
                             $questionCount = rand(5, 15);
                             for ($q = 1; $q <= $questionCount; $q++) {
-                                $questionType = ['MCQ', 'Essay'][array_rand([0, 1])];
+                                $questionType = 'MCQ';
                                 $choices = null;
                                 $answer = null;
 

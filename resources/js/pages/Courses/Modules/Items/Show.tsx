@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 // Import new components
 import AssessmentContent from '@/components/course-item/AssessmentContent';
 import AssignmentContent from '@/components/course-item/AssignmentContent';
+import GradingStatus from '@/components/course-item/GradingStatus';
 import ItemContentCard from '@/components/course-item/ItemContentCard';
 import ItemHeader from '@/components/course-item/ItemHeader';
 import ItemNavigation from '@/components/course-item/ItemNavigation';
@@ -123,6 +124,7 @@ function Show({ course, module, item, userSubmission, completedItems = [] }: Sho
                         isCompleted={isCompleted}
                         isInstructor={isInstructor}
                         onMarkComplete={handleMarkComplete}
+                        courseId={course.id}
                     />
                 );
             }
@@ -163,6 +165,15 @@ function Show({ course, module, item, userSubmission, completedItems = [] }: Sho
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
                     {/* Main Content Area */}
                     <div className="space-y-6 lg:col-span-3">
+                        {/* Grading Status for Students - Moved to top, only after submission */}
+                        {!isInstructor && userSubmission && (itemType === 'assignment' || itemType === 'assessment') && (
+                            <GradingStatus 
+                                userSubmission={userSubmission} 
+                                itemType={itemType}
+                                maxScore={itemType === 'assessment' ? (item.itemable as Assessment)?.max_score : undefined}
+                            />
+                        )}
+
                         {/* Content Card */}
                         <ItemContentCard item={item} itemType={itemType} duration={getDuration()}>
                             {renderContent()}

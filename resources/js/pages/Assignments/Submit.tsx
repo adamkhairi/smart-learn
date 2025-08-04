@@ -5,18 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Course, Assignment } from '@/types';
 import { Link } from '@inertiajs/react';
-import { 
-    ArrowLeft, 
-    Upload, 
-    FileText, 
-    Clock, 
-    AlertTriangle, 
-    CheckCircle, 
-    X, 
+import {
+    ArrowLeft,
+    Upload,
+    FileText,
+    Clock,
+    CheckCircle,
+    X,
     Paperclip,
     Calendar,
     User
@@ -41,23 +39,23 @@ interface AssignmentSubmitProps {
 export default function AssignmentSubmit({ course, assignment, existingSubmission }: AssignmentSubmitProps) {
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [dragActive, setDragActive] = useState(false);
-    
+
     const { data, setData, post, processing, errors, reset } = useForm({
         submission_text: existingSubmission?.submission_text || '',
         files: [] as File[],
     });
 
     const isOverdue = assignment.due_date && new Date(assignment.due_date) < new Date();
-    const timeUntilDue = assignment.due_date ? 
+    const timeUntilDue = assignment.due_date ?
         Math.max(0, new Date(assignment.due_date).getTime() - new Date().getTime()) : 0;
-    
+
     const formatTimeRemaining = (milliseconds: number) => {
         if (milliseconds <= 0) return 'Overdue';
-        
+
         const days = Math.floor(milliseconds / (1000 * 60 * 60 * 24));
         const hours = Math.floor((milliseconds % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60));
-        
+
         if (days > 0) return `${days}d ${hours}h remaining`;
         if (hours > 0) return `${hours}h ${minutes}m remaining`;
         return `${minutes}m remaining`;
@@ -75,7 +73,7 @@ export default function AssignmentSubmit({ course, assignment, existingSubmissio
                 alert(`File ${file.name} is too large. Maximum size is 10MB.`);
                 return false;
             }
-            
+
             // Check file type
             const allowedTypes = [
                 'application/pdf',
@@ -88,12 +86,12 @@ export default function AssignmentSubmit({ course, assignment, existingSubmissio
                 'image/png',
                 'image/jpg'
             ];
-            
+
             if (!allowedTypes.includes(file.type)) {
                 alert(`File ${file.name} is not an allowed type.`);
                 return false;
             }
-            
+
             return true;
         });
 
@@ -121,14 +119,14 @@ export default function AssignmentSubmit({ course, assignment, existingSubmissio
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
-        
+
         const files = Array.from(e.dataTransfer.files);
         handleFiles(files);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!data.submission_text.trim() && selectedFiles.length === 0) {
             alert('Please provide either text submission or upload files.');
             return;
@@ -176,8 +174,8 @@ export default function AssignmentSubmit({ course, assignment, existingSubmissio
             {/* Due Date Alert */}
             {assignment.due_date && (
                 <Alert className={`border-l-4 ${
-                    isOverdue ? 'border-l-red-500 bg-red-50' : 
-                    timeUntilDue < 24 * 60 * 60 * 1000 ? 'border-l-orange-500 bg-orange-50' : 
+                    isOverdue ? 'border-l-red-500 bg-red-50' :
+                    timeUntilDue < 24 * 60 * 60 * 1000 ? 'border-l-orange-500 bg-orange-50' :
                     'border-l-blue-500 bg-blue-50'
                 }`}>
                     <Clock className="h-4 w-4" />
@@ -216,7 +214,7 @@ export default function AssignmentSubmit({ course, assignment, existingSubmissio
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div 
+                        <div
                             className="prose prose-sm max-w-none"
                             dangerouslySetInnerHTML={{ __html: assignment.instructions }}
                         />
@@ -336,7 +334,7 @@ export default function AssignmentSubmit({ course, assignment, existingSubmissio
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div 
+                            <div
                                 className="prose prose-sm max-w-none"
                                 dangerouslySetInnerHTML={{ __html: assignment.rubric }}
                             />

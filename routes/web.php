@@ -8,6 +8,7 @@ use App\Http\Controllers\AssessmentController;
 use App\Http\Controllers\ProgressController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 use Inertia\Inertia;
 
 // Static pages
@@ -43,6 +44,11 @@ Route::get('/unauthorized', function () {
 
 // Public course detail page
 Route::get('courses/{course}/public', [CourseController::class, 'publicShow'])->name('courses.public_show');
+
+// Broadcasting authentication routes (must be within auth middleware)
+Route::middleware(['auth'])->group(function () {
+    Broadcast::routes();
+});
 
 // Dashboard
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -112,9 +118,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('courses.modules.items', CourseModuleItemController::class)->middleware(['auth']);
 
     // Assignments
-    Route::post('assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->middleware('auth');
-    Route::get('assignments/{assignment}/submissions', [AssignmentController::class, 'submissions'])->middleware('auth');
-    Route::post('submissions/{submission}/grade', [AssignmentController::class, 'grade'])->middleware('auth');
+    Route::get('courses/{course}/assignments/{assignment}', [AssignmentController::class, 'show'])->name('assignments.show')->middleware('auth');
+    Route::get('courses/{course}/assignments/{assignment}/submit', [AssignmentController::class, 'showSubmissionForm'])->name('assignments.submit.form')->middleware('auth');
+    Route::post('courses/{course}/assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->middleware('auth');
+    Route::get('courses/{course}/assignments/{assignment}/submissions', [AssignmentController::class, 'submissions'])->middleware('auth');
+    Route::post('courses/{course}/assignments/{assignment}/submissions/{submission}/grade', [AssignmentController::class, 'gradeSubmission'])->middleware('auth');
+    
+    // Global Submissions Management
+    Route::get('submissions', [AssignmentController::class, 'allSubmissions'])->name('submissions.index')->middleware('auth');
 
     // Assessments
     Route::get('courses/{course}/assessments/{assessment}/take', [AssessmentController::class, 'take'])->name('assessments.take');
@@ -131,6 +142,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('courses/{course}/progress/mark-started', [ProgressController::class, 'markAsStarted'])->name('courses.progress.mark-started');
     Route::post('courses/{course}/progress/mark-completed', [ProgressController::class, 'markAsCompleted'])->name('courses.progress.mark-completed');
     Route::post('courses/{course}/progress/update-time', [ProgressController::class, 'updateTimeSpent'])->name('courses.progress.update-time');
+
+    // Notifications
+    Route::get('notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/recent', [\App\Http\Controllers\NotificationController::class, 'recent'])->name('notifications.recent');
+    Route::get('notifications/stats', [\App\Http\Controllers\NotificationController::class, 'stats'])->name('notifications.stats');
+    Route::patch('notifications/{notification}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::patch('notifications/{notification}/unread', [\App\Http\Controllers\NotificationController::class, 'markAsUnread'])->name('notifications.mark-unread');
+    Route::patch('notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    Route::delete('notifications/{notification}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
+    Route::delete('notifications/delete-all-read', [\App\Http\Controllers\NotificationController::class, 'deleteAllRead'])->name('notifications.delete-all-read');
 });
 
 require __DIR__.'/settings.php';

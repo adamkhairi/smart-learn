@@ -171,12 +171,12 @@ function Index({ courses, userRole, filters }: CoursesPageProps) {
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-semibold">My Enrolled Courses</h2>
                             <Badge variant="secondary" className="text-xs">
-                                {enrolledCourses.length} {enrolledCourses.length === 1 ? 'course' : 'courses'}
+                                {enrolledCourses.slice(0, 4).length} {enrolledCourses.slice(0, 4).length === 1 ? 'course' : 'courses'}
                             </Badge>
                         </div>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {enrolledCourses.slice(0, 4).map((course) => (
-                                <Card key={course.id} className="group flex flex-col overflow-hidden border-2 border-primary/20">
+                                <Card key={course.id} className="group flex flex-col overflow-hidden border-2 border-green-500/50">
                                     <Link href={route('courses.public_show', course.id)} className="relative block h-32 overflow-hidden" tabIndex={-1}>
                                         {course.image ? (
                                             <AspectRatio ratio={16 / 9}>

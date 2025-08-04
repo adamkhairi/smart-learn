@@ -17,11 +17,11 @@ interface TakeAssessmentProps {
         questions: Array<{
             id: number;
             question_number: number;
-            type: 'MCQ' | 'Essay' | 'TrueFalse';
+            type: 'MCQ' | 'TrueFalse' | 'ShortAnswer';
             question_text: string;
             points: number;
             choices?: Record<string, string>;
-            keywords?: string[];
+
         }>;
     };
     submission: Submission;
@@ -248,15 +248,18 @@ export default function TakeAssessment({ course, assessment, submission, module,
                             </div>
                         )}
 
-                        {currentQuestion.type === 'Essay' && (
-                            <textarea
-                                value={answers[currentQuestion.id] || ''}
-                                onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                                placeholder="Enter your answer here..."
-                                className="w-full h-32 p-3 border rounded-md resize-none"
-                                rows={6}
-                            />
+                        {currentQuestion.type === 'ShortAnswer' && (
+                            <div>
+                                <input
+                                    type="text"
+                                    value={answers[currentQuestion.id] || ''}
+                                    onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                                    placeholder="Enter your answer here..."
+                                    className="w-full p-3 border rounded-md"
+                                />
+                            </div>
                         )}
+
                     </div>
                 </CardContent>
             </Card>

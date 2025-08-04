@@ -4,17 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem, CourseModuleItemCreatePageProps, QuestionFormData } from '@/types';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, ClipboardList, Play, BookOpen, Target, FileText, Settings, AlertCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, CheckCircle, FileText, GraduationCap, Play, Settings, Users, ClipboardList, Target, AlertCircle } from 'lucide-react';
 import { ChangeEvent, FormEvent, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
+import { useToast } from '@/hooks/use-toast';
+import AppLayout from '@/layouts/app-layout';
+import { BreadcrumbItem, CourseModuleItemCreatePageProps, QuestionFormData } from '@/types';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 
 function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) {
     const [selectedType, setSelectedType] = useState<'lecture' | 'assessment' | 'assignment' | ''>('');
@@ -223,7 +224,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
             setData({
                 ...data,
                 item_type: type,
-                assessment_title: '',
+                assessment_title: data.title, // Auto-populate from generic title
                 max_score: 100,
                 assessment_type: 'Quiz',
                 assessment_content_json: '',
@@ -252,7 +253,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
             setData({
                 ...data,
                 item_type: type,
-                assignment_title: '',
+                assignment_title: data.title, // Auto-populate from generic title
                 total_points: 100,
                 assignment_type: 'essay' as 'essay' | 'project',
                 started_at: '',
@@ -399,14 +400,23 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                         </div>
                                     </CardHeader>
                                     <CardContent className="space-y-6">
-                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                             <div>
                                                 <Label htmlFor="title" className="text-base font-medium">Title *</Label>
                                                 <Input
                                                     id="title"
                                                     type="text"
                                                     value={data.title}
-                                                    onChange={(e) => setData('title', e.target.value)}
+                                                    onChange={(e) => {
+                                                        const newTitle = e.target.value;
+                                                        setData({
+                                                            ...data,
+                                                            title: newTitle,
+                                                            // Auto-populate type-specific titles
+                                                            assessment_title: selectedType === 'assessment' ? newTitle : data.assessment_title,
+                                                            assignment_title: selectedType === 'assignment' ? newTitle : data.assignment_title
+                                                        });
+                                                    }}
                                                     placeholder={`e.g., ${getPlaceholderTitle(selectedType)}`}
                                                     className={`mt-2 h-12 text-base ${errors.title ? 'border-destructive' : ''}`}
                                                 />
@@ -426,21 +436,9 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                             </div>
                                         </div>
 
-                                        {/* Type-specific basic fields */}
-                                        {selectedType === 'assessment' && (
-                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                                <div>
-                                                    <Label htmlFor="assessment_title" className="text-base font-medium">Assessment Title *</Label>
-                                                    <Input
-                                                        id="assessment_title"
-                                                        type="text"
-                                                        value={data.assessment_title}
-                                                        onChange={(e) => setData('assessment_title', e.target.value)}
-                                                        placeholder="e.g., Chapter 1 Quiz"
-                                                        className={`mt-2 h-12 text-base ${errors.assessment_title ? 'border-destructive' : ''}`}
-                                                    />
-                                                    <InputError message={errors.assessment_title} />
-                                                </div>
+                                         {/* Type-specific basic fields */}
+                                         {selectedType === 'assessment' && (
+                                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                                 <div>
                                                     <Label htmlFor="max_score" className="text-base font-medium">Maximum Score</Label>
                                                     <Input
@@ -474,20 +472,8 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                             </div>
                                         )}
 
-                                        {selectedType === 'assignment' && (
-                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                                <div>
-                                                    <Label htmlFor="assignment_title" className="text-base font-medium">Assignment Title *</Label>
-                                                    <Input
-                                                        id="assignment_title"
-                                                        type="text"
-                                                        value={data.assignment_title}
-                                                        onChange={(e) => setData('assignment_title', e.target.value)}
-                                                        placeholder="e.g., Research Paper"
-                                                        className={`mt-2 h-12 text-base ${errors.assignment_title ? 'border-destructive' : ''}`}
-                                                    />
-                                                    <InputError message={errors.assignment_title} />
-                                                </div>
+                                         {selectedType === 'assignment' && (
+                                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                                 <div>
                                                     <Label htmlFor="total_points" className="text-base font-medium">Total Points</Label>
                                                     <Input
@@ -686,24 +672,28 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
                                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                                         <div>
                                                             <Label htmlFor="started_at" className="text-base font-medium">Start Date *</Label>
-                                                            <Input
-                                                                id="started_at"
-                                                                type="datetime-local"
-                                                                value={data.started_at}
-                                                                onChange={(e) => setData('started_at', e.target.value)}
-                                                                className={`mt-2 h-12 text-base ${errors.started_at ? 'border-destructive' : ''}`}
-                                                            />
+                                                            <div className="mt-2">
+                                                                <DateTimePicker
+                                                                    id="started_at"
+                                                                    value={data.started_at}
+                                                                    onChange={(value) => setData('started_at', value)}
+                                                                    placeholder="Pick start date and time"
+                                                                    className={errors.started_at ? 'border-destructive' : ''}
+                                                                />
+                                                            </div>
                                                             <InputError message={errors.started_at} />
                                                         </div>
                                                         <div>
                                                             <Label htmlFor="expired_at" className="text-base font-medium">Due Date *</Label>
-                                                            <Input
-                                                                id="expired_at"
-                                                                type="datetime-local"
-                                                                value={data.expired_at}
-                                                                onChange={(e) => setData('expired_at', e.target.value)}
-                                                                className={`mt-2 h-12 text-base ${errors.expired_at ? 'border-destructive' : ''}`}
-                                                            />
+                                                            <div className="mt-2">
+                                                                <DateTimePicker
+                                                                    id="expired_at"
+                                                                    value={data.expired_at}
+                                                                    onChange={(value) => setData('expired_at', value)}
+                                                                    placeholder="Pick due date and time"
+                                                                    className={errors.expired_at ? 'border-destructive' : ''}
+                                                                />
+                                                            </div>
                                                             <InputError message={errors.expired_at} />
                                                         </div>
                                                     </div>

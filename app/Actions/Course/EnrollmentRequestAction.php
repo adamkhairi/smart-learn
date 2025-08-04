@@ -4,12 +4,17 @@ namespace App\Actions\Course;
 
 use App\Models\Course;
 use App\Models\EnrollmentRequest;
+use App\Actions\Notification\CreateNotificationAction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class EnrollmentRequestAction
 {
+    public function __construct(
+        private CreateNotificationAction $createNotificationAction
+    ) {}
+
     public function execute(Request $request, Course $course): array
     {
         $user = Auth::user();
@@ -52,15 +57,34 @@ class EnrollmentRequestAction
         ]);
 
         try {
-            EnrollmentRequest::create([
+            $enrollmentRequest = EnrollmentRequest::create([
                 'user_id' => $user->id,
                 'course_id' => $course->id,
                 'status' => 'pending',
                 'message' => $validated['message'] ?? null,
             ]);
 
-            // Optionally, notify admin/instructor about the new request
-            // Notification::send(User::where('role', 'admin')->get(), new NewEnrollmentRequest($request));
+            // Send notification to user confirming request submission
+            $this->createNotificationAction->createEnrollmentNotification(
+                user: $user,
+                courseTitle: $course->name,
+                status: 'pending',
+                actionUrl: "/courses/{$course->id}/public"
+            );
+
+            // Send notifications to course instructors about the new enrollment request
+            $courseInstructors = $course->enrolledUsers()
+                ->wherePivot('enrolled_as', 'instructor')
+                ->get();
+
+            foreach ($courseInstructors as $instructor) {
+                $this->createNotificationAction->createEnrollmentRequestNotification(
+                    user: $instructor,
+                    studentName: $user->name,
+                    courseTitle: $course->name,
+                    actionUrl: "/admin/enrollment-requests"
+                );
+            }
 
             return [
                 'success' => true,

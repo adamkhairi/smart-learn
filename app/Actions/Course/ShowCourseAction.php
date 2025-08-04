@@ -48,7 +48,7 @@ class ShowCourseAction
                 }]);
             },
             'assignments:id,title,course_id,expired_at,total_points,status',
-            'assessments:id,title,course_id,expired_at,total_points,status',
+            'assessments:id,title,course_id,max_score,type',
             'announcements' => function ($query) {
                 $query->select('id', 'title', 'course_id', 'created_at')
                     ->latest()

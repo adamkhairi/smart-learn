@@ -242,32 +242,6 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                             </CardContent>
                         </Card>
 
-                        {/* Quick Access to Modules */}
-                        {visibleModules.length > 0 && (
-                            <Card>
-                                <CardHeader className="pb-3 sm:pb-4">
-                                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                                        <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-                                        Modules
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="grid gap-4">
-                                    {visibleModules.map((module) => (
-                                        <Link
-                                            key={module.id}
-                                            href={route('courses.modules.show', [course.id, module.id])}
-                                            className="block rounded-md p-3 transition-colors hover:bg-muted"
-                                        >
-                                            <h3 className="font-semibold">{module.title}</h3>
-                                            <p className="line-clamp-2 text-sm text-muted-foreground">
-                                                {module.description || 'No description provided.'}
-                                            </p>
-                                        </Link>
-                                    ))}
-                                </CardContent>
-                            </Card>
-                        )}
-
                         {/* Tabs for Course Content (Modules, Assignments, Discussions, Assessments) */}
                         <Tabs defaultValue="modules" className="w-full">
                             <TabsList className="grid w-full grid-cols-4">
@@ -278,9 +252,45 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                             </TabsList>
                             <TabsContent value="modules" className="mt-4">
                                 <Card>
+                                    <CardHeader className="pb-3 sm:pb-4">
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+                                                Course Modules
+                                            </CardTitle>
+                                            {isInstructor && (
+                                                <Button size="sm" asChild>
+                                                    <Link href={route('courses.modules.create', { course: course.id })}>
+                                                        <Plus className="mr-2 h-4 w-4" />
+                                                        Add Module
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </CardHeader>
                                     <CardContent className="grid gap-4">
                                         {visibleModules.length > 0 ? (
-                                            <ModuleProgress course={course} userEnrollment={userEnrollment} modules={visibleModules} />
+                                            <>
+                                                {visibleModules.map((module) => (
+                                                    <Link
+                                                        key={module.id}
+                                                        href={route('courses.modules.show', [course.id, module.id])}
+                                                        className="block rounded-md p-3 transition-colors hover:bg-muted"
+                                                    >
+                                                        <h3 className="font-semibold">{module.title}</h3>
+                                                        <p className="line-clamp-2 text-sm text-muted-foreground">
+                                                            {module.description || 'No description provided.'}
+                                                        </p>
+                                                    </Link>
+                                                ))}
+                                                <div className="flex justify-center pt-4">
+                                                    <Button asChild variant="outline">
+                                                        <Link href={route('courses.modules.index', { course: course.id })}>
+                                                            View All Modules
+                                                        </Link>
+                                                    </Button>
+                                                </div>
+                                            </>
                                         ) : (
                                             <p className="text-sm text-muted-foreground italic sm:text-base">No modules available.</p>
                                         )}
@@ -290,48 +300,75 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
 
                             <TabsContent value="assignments" className="mt-4">
                                 <Card>
+                                    <CardHeader className="pb-3 sm:pb-4">
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+                                                Assignments
+                                            </CardTitle>
+                                            {isInstructor && (
+                                                <Button size="sm" variant="outline">
+                                                    <Plus className="mr-2 h-4 w-4" />
+                                                    Add Assignment
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </CardHeader>
                                     <CardContent className="grid gap-4">
                                         {visibleAssignments.length > 0 ? (
-                                            <div>
+                                            <>
                                                 {visibleAssignments.map((assignment) => (
-                                                    <Card key={assignment.id} className="mb-4">
-                                                        <CardHeader className="pb-3 sm:pb-4">
-                                                            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                                                                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
-                                                                {assignment.title}
-                                                            </CardTitle>
-                                                        </CardHeader>
-                                                        <CardContent>
-                                                            <p
-                                                                className={
-                                                                    isAssignmentExpanded(assignment.id)
-                                                                        ? 'text-sm text-muted-foreground'
-                                                                        : 'line-clamp-3 text-sm text-muted-foreground'
-                                                                }
-                                                            >
+                                                    <Link
+                                                        key={assignment.id}
+                                                        href={route('assignments.show', [course.id, assignment.id])}
+                                                        className="block rounded-md border p-4 transition-colors hover:bg-muted"
+                                                    >
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center justify-between">
+                                                                <h3 className="font-semibold flex items-center gap-2">
+                                                                    <FileText className="h-4 w-4 text-blue-600" />
+                                                                    {assignment.title}
+                                                                </h3>
+                                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                    {assignment.total_points && (
+                                                                        <span className="flex items-center gap-1">
+                                                                            <Star className="h-3 w-3" />
+                                                                            {assignment.total_points} pts
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="flex items-center gap-1">
+                                                                        <Calendar className="h-3 w-3" />
+                                                                        {assignment.due_date ? new Date(assignment.due_date).toLocaleDateString() : 'No due date'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <p className="line-clamp-2 text-sm text-muted-foreground">
                                                                 {assignment.description || 'No description provided.'}
                                                             </p>
-                                                            {assignment.description && assignment.description.length > 150 && (
-                                                                <Button
-                                                                    variant="link"
-                                                                    onClick={() => toggleAssignmentExpansion(assignment.id)}
-                                                                    className="px-0"
-                                                                >
-                                                                    {isAssignmentExpanded(assignment.id) ? 'Show Less' : 'Read More'}
-                                                                </Button>
-                                                            )}
-                                                            <p className="mt-2 text-xs text-muted-foreground">
-                                                                <span className="flex items-center gap-1">
-                                                                    <Calendar className="h-3 w-3" /> Due:{' '}
-                                                                    {assignment.due_date ? new Date(assignment.due_date).toLocaleDateString() : 'N/A'}
-                                                                </span>
-                                                            </p>
-                                                        </CardContent>
-                                                    </Card>
+                                                        </div>
+                                                    </Link>
                                                 ))}
-                                            </div>
+                                                <div className="flex justify-center pt-4">
+                                                    <Button asChild variant="outline">
+                                                        <Link href={`/courses/${course.id}/assignments`}>
+                                                            View All Assignments
+                                                        </Link>
+                                                    </Button>
+                                                </div>
+                                            </>
                                         ) : (
-                                            <p className="text-sm text-muted-foreground italic sm:text-base">No assignments available.</p>
+                                            <div className="py-8 text-center">
+                                                <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                                                <p className="mb-4 text-sm text-muted-foreground italic sm:text-base">
+                                                    No assignments available for this course.
+                                                </p>
+                                                {isInstructor && (
+                                                    <Button>
+                                                        <Plus className="mr-2 h-4 w-4" />
+                                                        Create First Assignment
+                                                    </Button>
+                                                )}
+                                            </div>
                                         )}
                                     </CardContent>
                                 </Card>
@@ -468,28 +505,6 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                 </CardContent>
                             </Card>
                         )}
-                        {/* Instructor Info Card */}
-                        {isInstructor && (
-                            <Card>
-                                <CardHeader className="pb-3 sm:pb-4">
-                                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                                        <Bell className="h-5 w-5" />
-                                        Course Management
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="grid gap-3 text-sm">
-                                    <p className="text-muted-foreground">
-                                        As an instructor, you can manage course details, modules, assignments, and track student progress.
-                                    </p>
-                                    <Button variant="outline" asChild>
-                                        <Link href={route('admin.courses.analytics', { course: course.id })}>
-                                            <BarChart3 className="mr-2 h-4 w-4" />
-                                            View Course Analytics
-                                        </Link>
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        )}
                     </div>
 
                     {/* Sidebar/Right Column - Takes 1/3 on desktop, full width on mobile */}
@@ -533,6 +548,29 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {/* Instructor Info Card (moved) */}
+                        {isInstructor && (
+                            <Card>
+                                <CardHeader className="pb-3 sm:pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                        <Bell className="h-5 w-5" />
+                                        Course Management
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-3 text-sm">
+                                    <p className="text-muted-foreground">
+                                        As an instructor, you can manage course details, modules, assignments, and track student progress.
+                                    </p>
+                                    <Button variant="outline" asChild>
+                                        <Link href={route('admin.courses.analytics', { course: course.id })}>
+                                            <BarChart3 className="mr-2 h-4 w-4" />
+                                            View Course Analytics
+                                        </Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Enrollment/Progress Card */}
                         {isStudent && userEnrollment && (
