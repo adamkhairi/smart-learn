@@ -152,6 +152,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     Route::delete('notifications/{notification}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
     Route::delete('notifications/delete-all-read', [\App\Http\Controllers\NotificationController::class, 'deleteAllRead'])->name('notifications.delete-all-read');
+    
+    // Test notification routes (for development/testing)
+    Route::get('test/notifications', [\App\Http\Controllers\TestNotificationController::class, 'showTestPage'])->name('test.notifications');
+    Route::post('test/notifications/send', [\App\Http\Controllers\TestNotificationController::class, 'sendTest'])->name('test.notifications.send');
 });
 
 require __DIR__.'/settings.php';

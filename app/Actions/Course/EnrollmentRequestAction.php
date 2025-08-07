@@ -86,6 +86,18 @@ class EnrollmentRequestAction
                 );
             }
 
+            // Send notifications to all admin users about the new enrollment request
+            $adminUsers = \App\Models\User::where('role', 'admin')->get();
+            
+            foreach ($adminUsers as $admin) {
+                $this->createNotificationAction->createEnrollmentRequestNotification(
+                    user: $admin,
+                    studentName: $user->name,
+                    courseTitle: $course->name,
+                    actionUrl: "/admin/enrollment-requests"
+                );
+            }
+
             return [
                 'success' => true,
                 'message' => 'Enrollment request sent successfully! You will be notified once it\'s reviewed.',

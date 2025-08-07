@@ -5,7 +5,6 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
 import { Course, User } from '@/types';
 import { router, useForm } from '@inertiajs/react';
 import { Search, UserMinus, UserPlus, Users } from 'lucide-react';
@@ -23,7 +22,6 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
 
     // Initialize confirmation dialog and toast
     const { confirm, confirmDialog } = useConfirmDialog();
-    const { error: showError } = useToast();
 
     const { data, setData, post, processing, errors } = useForm({
         user_id: '',
@@ -40,7 +38,7 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                 setData({ user_id: '', role: 'student' });
             },
             onError: () => {
-                showError('Failed to enroll user. Please try again.');
+                // Backend will provide flash message, no need for manual toast
             },
         });
     };
@@ -58,7 +56,7 @@ export function CourseEnrollment({ course, userRole }: CourseEnrollmentProps) {
                         // Backend will provide flash message, no need for manual toast
                     },
                     onError: () => {
-                        showError('Failed to remove user from course. Please try again.');
+                        // Backend will provide flash message, no need for manual toast
                     },
                     onFinish: () => setUnenrollingUserId(null),
                 });

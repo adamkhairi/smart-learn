@@ -56,20 +56,18 @@ if (!import.meta.env.VITE_PUSHER_APP_KEY) {
             broadcaster: 'pusher',
             key: import.meta.env.VITE_PUSHER_APP_KEY,
             cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER ?? 'mt1',
-            // Use default Pusher endpoints unless custom host is specified
-            wsHost: import.meta.env.VITE_PUSHER_HOST || undefined,
-            wsPort: import.meta.env.VITE_PUSHER_PORT ? parseInt(import.meta.env.VITE_PUSHER_PORT) : 80,
-            wssPort: import.meta.env.VITE_PUSHER_PORT ? parseInt(import.meta.env.VITE_PUSHER_PORT) : 443,
+            // Don't specify wsHost for standard Pusher endpoints - let Pusher handle it automatically
+            // Only use custom wsHost for self-hosted Pusher instances
             forceTLS: (import.meta.env.VITE_PUSHER_SCHEME ?? 'https') === 'https',
             enabledTransports: ['ws', 'wss'],
             enableLogging: true, // Enable Pusher logging for debugging
             
-            // Authentication configuration
+            // Authentication configuration - simplified approach
             auth: {
                 headers: {
                     'X-CSRF-TOKEN': getCsrfToken(),
                     'Accept': 'application/json',
-                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
             },
             authEndpoint: '/broadcasting/auth',
