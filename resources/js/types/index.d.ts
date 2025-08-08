@@ -57,17 +57,15 @@ export interface User {
 }
 
 export interface Notification {
-    id: number;
+    id: string;
     title: string;
     message: string;
     type: 'info' | 'success' | 'warning' | 'error';
-    user_id: number;
     data?: Record<string, unknown>;
-    read_at?: string;
-    action_url?: string;
+    read_at?: string | null;
+    action_url?: string | null;
     created_at: string;
-    updated_at: string;
-    deleted_at?: string;
+    updated_at?: string;
 }
 
 export interface NotificationCounts {

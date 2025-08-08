@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use App\Enums\CourseLevel;
 use App\Traits\StatusTrait;
+use App\Models\UserProgress;
 
 class Course extends Model
 {
@@ -145,6 +146,33 @@ class Course extends Model
     public function gradesSummaries(): HasMany
     {
         return $this->hasMany(GradesSummary::class);
+    }
+
+    /**
+     * Get user progress for this course.
+     */
+    public function getUserProgress(int $userId): array
+    {
+        $totalItems = $this->modules->flatMap->moduleItems->count();
+        $completedItems = UserProgress::where('user_id', $userId)
+            ->where('course_id', $this->id)
+            ->where('status', 'completed')
+            ->count();
+
+        $inProgressItems = UserProgress::where('user_id', $userId)
+            ->where('course_id', $this->id)
+            ->where('status', 'in_progress')
+            ->count();
+
+        $notStartedItems = max(0, $totalItems - $completedItems - $inProgressItems);
+
+        return [
+            'total_items' => $totalItems,
+            'completed_items' => $completedItems,
+            'in_progress_items' => $inProgressItems,
+            'not_started_items' => $notStartedItems,
+            'completion_percentage' => $totalItems > 0 ? round(($completedItems / $totalItems) * 100, 2) : 0,
+        ];
     }
 
     /**
@@ -442,6 +470,7 @@ class Course extends Model
         return UserProgress::where('user_id', $userId)
             ->where('course_id', $this->id)
             ->with(['courseModule', 'courseModuleItem'])
+            ->orderBy('updated_at', 'desc')
             ->get();
     }
 }

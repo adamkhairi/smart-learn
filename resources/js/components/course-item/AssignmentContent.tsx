@@ -35,6 +35,7 @@ interface AssignmentContentProps {
     isInstructor: boolean;
     className?: string;
     courseId?: number;
+    onMarkComplete?: () => void;
 }
 
 export default function AssignmentContent({
@@ -44,6 +45,7 @@ export default function AssignmentContent({
     isInstructor,
     className = '',
     courseId,
+    onMarkComplete,
 }: AssignmentContentProps) {
     const isOpen = assignment.status === 'open';
     const isEnded = assignment.status === 'ended';

@@ -38,7 +38,7 @@ export function useRealTimeNotifications() {
         }
 
         const userId = props.auth.user.id;
-        const channelName = `App.Models.User.${userId}`;
+        const channelName = `user.${userId}`;
         console.log('🎯 Setting up real-time notifications for user:', userId);
         console.log('📡 Listening on channel:', channelName);
         
@@ -52,9 +52,63 @@ export function useRealTimeNotifications() {
         const channel = window.Echo.private(channelName);
         console.log('✅ Private channel created:', channel);
 
-        // Listen for new notifications
-        channel.notification((notification: NotificationData) => {
-            console.log('🔔 Real-time notification received:', notification);
+        // Add test event listener for debugging broadcast functionality
+        channel.listen('.test.event', (data: any) => {
+            console.log('🧪 TEST EVENT RECEIVED:', data);
+            toast.success('Test Broadcast Working!', { description: data.message });
+        });
+
+        // Add global event listener to debug what events are actually being received
+        if (channel.pusher) {
+            channel.pusher.bind_global((eventName: string, data: any) => {
+                console.log('🌐 Global event received:', eventName, data);
+                if (eventName.includes('notification') || eventName.includes('test')) {
+                    console.log('🎯 IMPORTANT EVENT DETECTED:', eventName, data);
+                }
+            });
+        }
+
+        // Listen for Laravel notification events (Laravel broadcasts notifications differently)
+        channel.notification((notification: any) => {
+            console.log('📨 Laravel notification received:', notification);
+            
+            // Handle Laravel notification format
+            const notificationData = {
+                id: notification.id || Date.now().toString(),
+                title: notification.title || 'Notification',
+                message: notification.message || '',
+                type: notification.type || 'info',
+                action_url: notification.action_url || null,
+                data: notification.data || null,
+                created_at: notification.created_at || new Date().toISOString(),
+                read_at: null
+            };
+            
+            // Show toast notification
+            switch (notificationData.type) {
+                case 'success':
+                    toast.success(notificationData.title, { description: notificationData.message });
+                    break;
+                case 'error':
+                    toast.error(notificationData.title, { description: notificationData.message });
+                    break;
+                case 'warning':
+                    toast.warning(notificationData.title, { description: notificationData.message });
+                    break;
+                default:
+                    toast.info(notificationData.title, { description: notificationData.message });
+                    break;
+            }
+            
+            // Trigger custom event for NotificationBell component
+            window.dispatchEvent(new CustomEvent('newNotification', {
+                detail: notificationData
+            }));
+        });
+        
+        // Also listen for custom broadcast events (backup method)
+        channel.listen('.notification.created', (notification: NotificationData) => {
+            console.log('📨 Custom notification received:', notification);
             
             // Convert to proper notification format for compatibility
             const formattedNotification: NotificationData = {
@@ -62,9 +116,8 @@ export function useRealTimeNotifications() {
                 title: notification.title || 'Notification',
                 message: notification.message || '',
                 type: notification.type || 'info',
-                data: notification.data || {},
                 action_url: notification.action_url || undefined,
-                read: false, // New notifications are unread
+                data: notification.data || {},
                 created_at: notification.created_at || new Date().toISOString(),
             };
             
@@ -101,7 +154,7 @@ export function useRealTimeNotifications() {
         return () => {
             console.log('🧹 Cleaning up real-time notifications channel');
             try {
-                channel.stopListening('notification');
+                channel.stopListening('.notification.created');
                 window.Echo.leaveChannel(`private-${channelName}`);
             } catch (e) {
                 console.warn('Error cleaning up channel:', e);

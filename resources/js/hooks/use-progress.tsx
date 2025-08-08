@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { router } from '@inertiajs/react';
 
 interface ProgressTrackingOptions {
     courseId: number;
@@ -7,83 +8,59 @@ interface ProgressTrackingOptions {
 }
 
 export function useProgressTracking({ courseId, moduleId, itemId }: ProgressTrackingOptions) {
-    const markAsStarted = useCallback(async () => {
+    const markAsStarted = useCallback(() => {
         console.log('Marking as started:', { courseId, moduleId, itemId });
 
-        try {
-            const response = await fetch(`/courses/${courseId}/progress/mark-started`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify({
-                    course_module_id: moduleId,
-                    course_module_item_id: itemId,
-                }),
-            });
-
-            if (response.ok) {
+        router.post(`/courses/${courseId}/progress/mark-started`, {
+            course_module_id: moduleId,
+            course_module_item_id: itemId,
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
                 console.log('Successfully marked as started');
-            } else {
-                console.error('Failed to mark as started:', response.statusText);
-            }
-        } catch (error) {
-            console.error('Failed to mark as started:', error);
-        }
+            },
+            onError: (errors) => {
+                console.error('Failed to mark as started:', errors);
+            },
+        });
     }, [courseId, moduleId, itemId]);
 
-    const markAsCompleted = useCallback(async () => {
+    const markAsCompleted = useCallback(() => {
         console.log('Marking as completed:', { courseId, moduleId, itemId });
 
-        try {
-            const response = await fetch(`/courses/${courseId}/progress/mark-completed`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify({
-                    course_module_id: moduleId,
-                    course_module_item_id: itemId,
-                }),
-            });
-
-            if (response.ok) {
+        router.post(`/courses/${courseId}/progress/mark-completed`, {
+            course_module_id: moduleId,
+            course_module_item_id: itemId,
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
                 console.log('Successfully marked as completed');
-            } else {
-                console.error('Failed to mark as completed:', response.statusText);
-            }
-        } catch (error) {
-            console.error('Failed to mark as completed:', error);
-        }
+            },
+            onError: (errors) => {
+                console.error('Failed to mark as completed:', errors);
+            },
+        });
     }, [courseId, moduleId, itemId]);
 
-    const updateTimeSpent = useCallback(async (seconds: number) => {
+    const updateTimeSpent = useCallback((seconds: number) => {
         console.log('Updating time spent:', { courseId, moduleId, itemId, seconds });
 
-        try {
-            const response = await fetch(`/courses/${courseId}/progress/update-time`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify({
-                    course_module_id: moduleId,
-                    course_module_item_id: itemId,
-                    time_spent_seconds: seconds,
-                }),
-            });
-
-            if (response.ok) {
+        router.post(`/courses/${courseId}/progress/update-time`, {
+            course_module_id: moduleId,
+            course_module_item_id: itemId,
+            time_spent_seconds: seconds,
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
                 console.log('Successfully updated time spent');
-            } else {
-                console.error('Failed to update time spent:', response.statusText);
-            }
-        } catch (error) {
-            console.error('Failed to update time spent:', error);
-        }
+            },
+            onError: (errors) => {
+                console.error('Failed to update time spent:', errors);
+            },
+        });
     }, [courseId, moduleId, itemId]);
 
     return {

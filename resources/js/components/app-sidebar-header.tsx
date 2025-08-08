@@ -1,6 +1,6 @@
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import NotificationBell from '@/components/NotificationBell';
+import SimpleNotificationBell from '@/components/SimpleNotificationBell';
 import { type BreadcrumbItem as BreadcrumbItemType } from '@/types';
 import AppearanceToggleDropdown from '@/components/appearance-dropdown';
 
@@ -16,7 +16,7 @@ export function AppSidebarHeader({ breadcrumbs = [] }: { breadcrumbs?: Breadcrum
                 {/* Appearance Toggle */}
                 <AppearanceToggleDropdown />
 
-                <NotificationBell />
+                <SimpleNotificationBell />
             </div>
         </header>
     );

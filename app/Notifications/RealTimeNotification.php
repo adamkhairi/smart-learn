@@ -6,7 +6,6 @@ use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\DatabaseMessage;
 use Illuminate\Notifications\Notification;
@@ -101,9 +100,18 @@ class RealTimeNotification extends Notification implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
+        // Laravel will automatically resolve {id} with the notifiable's ID
         return [
-            new PrivateChannel('App.Models.User.' . $this->notifiable->id),
+            new PrivateChannel('App.Models.User.{id}'),
         ];
+    }
+
+    /**
+     * Get the channels the event should broadcast on for a specific notifiable.
+     */
+    public function broadcastAs(): string
+    {
+        return 'notification';
     }
 
     /**

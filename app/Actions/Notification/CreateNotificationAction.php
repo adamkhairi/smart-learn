@@ -2,13 +2,17 @@
 
 namespace App\Actions\Notification;
 
-use App\Models\Notification;
 use App\Models\User;
+use App\Models\Notification;
+use App\Notifications\SmartLearnNotification;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class CreateNotificationAction
 {
     /**
      * Create a new notification for a user (database only).
+     * Uses hybrid approach: stores in custom table and optionally broadcasts.
      */
     public function execute(
         User $user,
@@ -18,18 +22,34 @@ class CreateNotificationAction
         ?array $data = null,
         ?string $actionUrl = null
     ): Notification {
-        return Notification::create([
-            'user_id' => $user->id,
-            'title' => $title,
-            'message' => $message,
-            'type' => $type,
-            'data' => $data,
-            'action_url' => $actionUrl,
-        ]);
+        try {
+            // Store in our custom notifications table
+            $notification = Notification::create([
+                'user_id' => $user->id,
+                'notifiable_type' => 'App\\Models\\User',
+                'notifiable_id' => $user->id,
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+                'data' => $data,
+                'action_url' => $actionUrl,
+            ]);
+
+            return $notification;
+        } catch (\Exception $e) {
+            Log::error('Failed to create notification: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'title' => $title,
+                'exception' => $e,
+            ]);
+            // Re-throw the exception or handle it as appropriate for your application
+            // For now, we'll re-throw to ensure the error is propagated
+            throw $e;
+        }
     }
 
     /**
-     * Send a real-time notification using direct broadcasting.
+     * Send a real-time notification using both database storage and broadcasting.
      */
     public function executeWithBroadcast(
         User $user,
@@ -38,28 +58,36 @@ class CreateNotificationAction
         string $type = 'info',
         ?array $data = null,
         ?string $actionUrl = null
-    ): Notification {
-        // First, create the database notification using existing system
-        $notification = $this->execute(
-            user: $user,
-            title: $title,
-            message: $message,
-            type: $type,
-            data: $data,
-            actionUrl: $actionUrl
-        );
+    ): ?Notification {
+        try {
+            // First store in database using our custom table
+            $dbNotification = $this->execute($user, $title, $message, $type, $data, $actionUrl);
 
-        // Then broadcast the notification if broadcasting is enabled
-        if ($this->shouldBroadcast()) {
-            try {
-                $this->broadcastNotification($user, $notification);
-            } catch (\Exception $e) {
-                // Log the error but don't fail the notification creation
-                \Log::warning('Failed to broadcast notification: ' . $e->getMessage());
+            if (!$dbNotification) {
+                return null;
             }
-        }
 
-        return $notification;
+            // Then broadcast using Laravel's notification system
+            $broadcastNotification = new SmartLearnNotification(
+                $title,
+                $message,
+                $type,
+                $actionUrl,
+                $data
+            );
+
+            // Send via broadcast only (database already handled above)
+            $user->notify($broadcastNotification);
+
+            return $dbNotification;
+        } catch (\Exception $e) {
+            Log::error('Failed to create/broadcast notification: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'title' => $title,
+                'exception' => $e,
+            ]);
+            return null;
+        }
     }
 
     /**
@@ -67,8 +95,8 @@ class CreateNotificationAction
      */
     private function shouldBroadcast(): bool
     {
-        return config('broadcasting.default') === 'pusher' && 
-               config('broadcasting.connections.pusher.key') && 
+        return config('broadcasting.default') === 'pusher' &&
+               config('broadcasting.connections.pusher.key') &&
                config('broadcasting.connections.pusher.secret');
     }
 
@@ -78,7 +106,7 @@ class CreateNotificationAction
     private function broadcastNotification(User $user, Notification $notification): void
     {
         $channelName = 'App.Models.User.' . $user->id;
-        
+
         $broadcastData = [
             'id' => $notification->id,
             'title' => $notification->title,
@@ -111,10 +139,15 @@ class CreateNotificationAction
         $notifications = [];
 
         foreach ($users as $user) {
-            $notifications[] = $this->execute($user, $title, $message, $type, $data, $actionUrl);
+            try {
+                $notifications[] = $this->execute($user, $title, $message, $type, $data, $actionUrl);
+            } catch (\Exception $e) {
+                Log::error('Failed to create notification for user ' . $user->id . ': ' . $e->getMessage());
+                $notifications[] = null; // Or handle as appropriate
+            }
         }
 
-        return $notifications;
+        return array_filter($notifications);
     }
 
     /**
@@ -158,7 +191,7 @@ class CreateNotificationAction
         ?string $actionUrl = null
     ): Notification {
         $daysUntilDue = (int) $dueDate->diff(now())->format('%r%a');
-        
+
         if ($daysUntilDue < 0) {
             $message = "Assignment \"{$assignmentTitle}\" is overdue.";
             $type = 'error';
@@ -195,7 +228,7 @@ class CreateNotificationAction
         string $courseTitle,
         string $status, // 'approved', 'rejected', 'pending'
         ?string $actionUrl = null
-    ): Notification {
+    ): ?Notification {
         $titles = [
             'approved' => 'Enrollment Approved',
             'rejected' => 'Enrollment Rejected',
@@ -214,17 +247,32 @@ class CreateNotificationAction
             'pending' => 'info',
         ];
 
-        return $this->execute(
-            user: $user,
-            title: $titles[$status],
-            message: $messages[$status],
-            type: $types[$status],
-            data: [
+        try {
+            // Create notification and return the actual object
+            $notification = Notification::create([
+                'user_id' => $user->id,
+                'notifiable_type' => 'App\\Models\\User',
+                'notifiable_id' => $user->id,
+                'title' => $titles[$status],
+                'message' => $messages[$status],
+                'type' => $types[$status],
+                'data' => [
+                    'course_title' => $courseTitle,
+                    'enrollment_status' => $status,
+                ],
+                'action_url' => $actionUrl,
+            ]);
+
+            return $notification;
+        } catch (\Exception $e) {
+            Log::error('Failed to create enrollment notification: ' . $e->getMessage(), [
+                'user_id' => $user->id,
                 'course_title' => $courseTitle,
-                'enrollment_status' => $status,
-            ],
-            actionUrl: $actionUrl
-        );
+                'status' => $status,
+                'exception' => $e,
+            ]);
+            return null;
+        }
     }
 
     /**

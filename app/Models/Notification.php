@@ -21,6 +21,8 @@ class Notification extends Model
         'message',
         'type',
         'user_id',
+        'notifiable_type',
+        'notifiable_id',
         'data',
         'read_at',
         'action_url',

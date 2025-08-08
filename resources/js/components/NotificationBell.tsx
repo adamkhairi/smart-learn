@@ -1,9 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, X, Check, Clock, AlertCircle, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
-import { Link, router } from '@inertiajs/react';
-import { Notification } from '@/types';
+import { Bell, Check, Trash2, CheckCircle, AlertTriangle, XCircle, AlertCircle, Clock, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { useRealTimeNotifications } from '@/hooks/use-real-time-notifications';
+import { Notification } from '@/types';
+import { Link, router } from '@inertiajs/react';
 
 interface NotificationBellProps {
     className?: string;
@@ -65,7 +74,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) =
     };
 
     // Mark notification as read
-    const markAsRead = async (notificationId: number) => {
+    const markAsRead = async (notificationId: string) => {
         try {
             // Use Inertia router for proper CSRF handling
             router.patch(`/notifications/${notificationId}/read`, {}, {

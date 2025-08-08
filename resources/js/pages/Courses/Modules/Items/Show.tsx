@@ -34,7 +34,7 @@ function Show({ course, module, item, userSubmission, completedItems = [] }: Sho
     // Track when user starts viewing content
     useEffect(() => {
         if (!isInstructor) {
-            markAsStarted().catch(console.error);
+            markAsStarted();
         }
     }, [isInstructor, markAsStarted]);
 
@@ -70,7 +70,7 @@ function Show({ course, module, item, userSubmission, completedItems = [] }: Sho
     // Handle completion marking
     const handleMarkComplete = () => {
         if (!isInstructor) {
-            markAsCompleted().catch(console.error);
+            markAsCompleted();
         }
     };
 

@@ -37,7 +37,7 @@ class ProgressController extends Controller
 
         $markCourseItemAsStartedAction->execute($course, $validated['course_module_item_id']);
 
-        return response()->json(['message' => 'Item marked as started']);
+        return back();
     }
 
     /**
@@ -51,7 +51,7 @@ class ProgressController extends Controller
 
         $markCourseItemAsCompletedAction->execute($course, $validated['course_module_item_id']);
 
-        return response()->json(['message' => 'Item marked as completed']);
+        return back()->with('success', 'Item marked as completed');
     }
 
     /**
@@ -66,7 +66,7 @@ class ProgressController extends Controller
 
         $updateUserTimeSpentOnCourseItemAction->execute($course, $validated['course_module_item_id'], $validated['time_spent_seconds']);
 
-        return response()->json(['message' => 'Time spent updated']);
+        return back()->with('success', 'Time spent updated');
     }
 
     /**
