@@ -236,7 +236,7 @@ export default function Analytics({ course, stats, recentActivity, enrollmentTre
                                                 </Badge>
                                             </div>
                                             <p className="text-sm text-muted-foreground">
-                                                by {activity.user.name} • {formatDate(activity.created_at)}
+                                                by {activity.user?.name ?? 'System'}{activity.created_at ? ` • ${formatDate(activity.created_at)}` : ''}
                                             </p>
                                         </div>
                                     </div>
