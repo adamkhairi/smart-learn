@@ -196,7 +196,9 @@ export default function Show({ course, stats, recentActivity }: Props) {
                                     <h1 className="text-3xl font-bold tracking-tight">{course.name}</h1>
                                     <CourseStatusBadge status={course.status} />
                                 </div>
-                                <p className="max-w-2xl text-muted-foreground">{course.description}</p>
+                                <p className="max-w-2xl text-muted-foreground line-clamp-3" title={course.description}>
+                                    {course.description}
+                                </p>
                                 <div className="flex items-center gap-2 pt-1 text-sm text-muted-foreground">
                                     <Avatar className="h-5 w-5">
                                         <AvatarFallback className="text-xs">{course.creator ? getInitials(course.creator.name) : '?'}</AvatarFallback>

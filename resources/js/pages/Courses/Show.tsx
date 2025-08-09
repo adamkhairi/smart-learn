@@ -114,6 +114,12 @@ function Show({ course, userEnrollment }: CourseShowPageProps) {
                                             Edit Course
                                         </Link>
                                     </Button>
+                                    <Button variant="outline" asChild>
+                                        <Link href={route('courses.progress.analytics', { course: course.id })}>
+                                            <BarChart3 className="mr-2 h-4 w-4" />
+                                            Analytics
+                                        </Link>
+                                    </Button>
                                     <Button asChild variant="outline">
                                         <Link href={`/admin/courses/${course.id}/enrollments`}>
                                             <Users className="mr-2 h-4 w-4" />

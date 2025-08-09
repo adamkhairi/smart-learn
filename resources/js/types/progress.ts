@@ -27,6 +27,11 @@ export interface ProgressSummary {
     total_time_spent: number;
 }
 
+// New: per-module progress summary
+export interface ModuleProgressSummary extends ProgressSummary {
+    module_id: number;
+}
+
 export interface CourseProgress {
     course: Course;
     progress: ProgressSummary;

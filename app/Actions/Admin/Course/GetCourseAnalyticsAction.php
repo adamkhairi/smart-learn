@@ -3,6 +3,7 @@
 namespace App\Actions\Admin\Course;
 
 use App\Models\Course;
+use Illuminate\Support\Facades\DB;
 
 class GetCourseAnalyticsAction
 {
@@ -12,9 +13,11 @@ class GetCourseAnalyticsAction
         $recentActivity = $course->getRecentActivity(50);
 
         // Get enrollment trends (last 30 days)
-        $enrollmentTrends = $course->enrolledUsers()
-            ->wherePivot('created_at', '>=', now()->subDays(30))
-            ->selectRaw('DATE(course_user_enrollments.created_at) as date, COUNT(*) as count')
+        // Query the pivot table directly to avoid implicit pivot/user column selection
+        $enrollmentTrends = DB::table('course_user_enrollments')
+            ->where('course_id', $course->id)
+            ->where('created_at', '>=', now()->subDays(30))
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
             ->groupBy('date')
             ->orderBy('date')
             ->get();
