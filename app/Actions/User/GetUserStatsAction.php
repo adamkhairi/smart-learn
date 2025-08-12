@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Actions\User;
 
@@ -6,6 +7,16 @@ use App\Models\User;
 
 class GetUserStatsAction
 {
+    /**
+     * @return array{
+     *   total_users: int,
+     *   active_users: int,
+     *   inactive_users: int,
+     *   role_distribution: array{admin:int,instructor:int,student:int},
+     *   recent_registrations: \Illuminate\Support\Collection,
+     *   top_instructors: \Illuminate\Support\Collection,
+     * }
+     */
     public function execute(): array
     {
         return [

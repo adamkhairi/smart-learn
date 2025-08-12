@@ -7,7 +7,6 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/layouts/app-layout';
 import { Course, User } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
@@ -37,8 +36,7 @@ export default function EditUser({ user, availableCourses }: Props) {
     const [newCourseRole, setNewCourseRole] = useState<string>('student');
     const [searchTerm, setSearchTerm] = useState<string>('');
 
-    // Initialize toast notifications
-    const { success, error } = useToast();
+
     const { confirm, confirmDialog } = useConfirmDialog();
 
     const {
@@ -66,8 +64,6 @@ export default function EditUser({ user, availableCourses }: Props) {
     const handleAssignCourse = () => {
         if (!newCourseId || !newCourseRole) return;
 
-        const courseName = availableCourses.find((c) => c.id.toString() === newCourseId)?.name || 'course';
-
         router.post(
             route('admin.users.assign-course', user.id),
             {
@@ -79,10 +75,10 @@ export default function EditUser({ user, availableCourses }: Props) {
                     setNewCourseId('');
                     setNewCourseRole('student');
                     setSearchTerm('');
-                    success(`${user.name} has been assigned to ${courseName} successfully!`);
+                    //
                 },
                 onError: () => {
-                    error('Failed to assign user to course. Please try again.');
+                    //
                 },
             },
         );
@@ -98,10 +94,10 @@ export default function EditUser({ user, availableCourses }: Props) {
                 router.delete(route('admin.users.remove-course', user.id), {
                     data: { course_id: courseId },
                     onSuccess: () => {
-                        success(`${user.name} has been removed from ${courseName} successfully.`);
+                        //
                     },
                     onError: () => {
-                        error('Failed to remove user from course. Please try again.');
+                        //
                     },
                 });
             },
@@ -109,7 +105,6 @@ export default function EditUser({ user, availableCourses }: Props) {
     };
 
     const handleUpdateCourseRole = (courseId: number, role: string) => {
-        const courseName = user.enrollments.find((c) => c.id === courseId)?.name || 'course';
 
         router.patch(
             route('admin.users.update-course-role', user.id),
@@ -119,10 +114,10 @@ export default function EditUser({ user, availableCourses }: Props) {
             },
             {
                 onSuccess: () => {
-                    success(`${user.name}'s role in ${courseName} has been updated to ${role}.`);
+                    //
                 },
                 onError: () => {
-                    error('Failed to update user role. Please try again.');
+                    //
                 },
             },
         );

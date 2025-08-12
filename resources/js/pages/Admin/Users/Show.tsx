@@ -8,7 +8,6 @@ import { Course, User } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Calendar, Edit, Mail, Phone, X } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
-import { useToast } from '@/hooks/use-toast';
 import { UserRoleBadge } from '@/components/user-role-badge';
 import { UserStatusBadge } from '@/components/user-status-badge';
 
@@ -29,7 +28,6 @@ interface Props {
 
 export default function ShowUser({ user, stats }: Props) {
     const { confirm, confirmDialog } = useConfirmDialog();
-    const { success, error } = useToast();
 
     const breadcrumbs = [
         { title: 'Admin', href: '/admin/dashboard' },
@@ -48,10 +46,10 @@ export default function ShowUser({ user, stats }: Props) {
                 router.delete(route('admin.users.remove-course', user.id), {
                     data: { course_id: courseId },
                     onSuccess: () => {
-                        success(`${user.name} has been removed from ${courseName} successfully.`);
+                        // success(`${user.name} has been removed from ${courseName} successfully.`);
                     },
                     onError: () => {
-                        error('Failed to remove user from course. Please try again.');
+                        // error('Failed to remove user from course. Please try again.');
                     },
                 });
             },
@@ -64,10 +62,10 @@ export default function ShowUser({ user, stats }: Props) {
             role: role,
         }, {
             onSuccess: () => {
-                success(`${user.name}'s role in ${courseName} has been updated to ${role}.`);
+                // success(`${user.name}'s role in ${courseName} has been updated to ${role}.`);
             },
             onError: () => {
-                error('Failed to update user role. Please try again.');
+                // error('Failed to update user role. Please try again.');
             },
         });
     };

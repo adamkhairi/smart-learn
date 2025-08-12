@@ -119,7 +119,7 @@ export default function TakeAssessment({ course, assessment, submission, module,
             },
             onError: (errors: Record<string, string>) => {
                 console.error('Submission errors:', errors);
-                showError('Failed to submit assessment. Please try again.');
+                // showError('Failed to submit assessment. Please try again.');
             },
         });
     };
@@ -147,7 +147,7 @@ export default function TakeAssessment({ course, assessment, submission, module,
                     {module ? 'Back to Module' : 'Back to Course'}
                 </Link>
             </Button>
-            
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>

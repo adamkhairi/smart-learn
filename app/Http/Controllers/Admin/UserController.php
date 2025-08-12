@@ -7,6 +7,9 @@ use App\Http\Requests\Admin\UserRequest;
 use App\Models\User;
 use App\Models\Course;
 use Illuminate\Http\Request;
+use App\Http\Requests\Admin\AssignUserToCourseRequest;
+use App\Http\Requests\Admin\RemoveUserFromCourseRequest;
+use App\Http\Requests\Admin\UpdateUserCourseRoleRequest;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Actions\User\ListUsersAction;
@@ -148,12 +151,9 @@ class UserController extends Controller
     /**
      * Assign user to course.
      */
-    public function assignToCourse(Request $request, User $user, ManageUserCoursesAction $manageCoursesAction)
+    public function assignToCourse(AssignUserToCourseRequest $request, User $user, ManageUserCoursesAction $manageCoursesAction)
     {
-        $validated = $request->validate([
-            'course_id' => 'required|exists:courses,id',
-            'role' => ['required', Rule::in(['student', 'instructor', 'admin'])],
-        ]);
+        $validated = $request->validated();
 
         try {
             $manageCoursesAction->assignToCourse($user, $validated['course_id'], $validated['role']);
@@ -167,11 +167,9 @@ class UserController extends Controller
     /**
      * Remove user from course.
      */
-    public function removeFromCourse(Request $request, User $user, ManageUserCoursesAction $manageCoursesAction)
+    public function removeFromCourse(RemoveUserFromCourseRequest $request, User $user, ManageUserCoursesAction $manageCoursesAction)
     {
-        $validated = $request->validate([
-            'course_id' => 'required|exists:courses,id',
-        ]);
+        $validated = $request->validated();
 
         try {
             $manageCoursesAction->removeFromCourse($user, $validated['course_id']);
@@ -185,12 +183,9 @@ class UserController extends Controller
     /**
      * Update user role in a specific course.
      */
-    public function updateCourseRole(Request $request, User $user, ManageUserCoursesAction $manageCoursesAction)
+    public function updateCourseRole(UpdateUserCourseRoleRequest $request, User $user, ManageUserCoursesAction $manageCoursesAction)
     {
-        $validated = $request->validate([
-            'course_id' => 'required|exists:courses,id',
-            'role' => ['required', Rule::in(['student', 'instructor', 'admin'])],
-        ]);
+        $validated = $request->validated();
 
         try {
             $manageCoursesAction->updateCourseRole($user, $validated['course_id'], $validated['role']);

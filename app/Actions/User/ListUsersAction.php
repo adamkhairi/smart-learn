@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Actions\User;
 
@@ -12,21 +13,19 @@ class ListUsersAction
     {
         $query = User::withCount(['enrollments', 'createdCourses', 'submissions']);
 
-        if ($request->filled('search')) {
-            $query->search($request->search);
-        }
+        $query->when($request->filled('search'), function ($q) use ($request) {
+            $q->search($request->string('search'));
+        });
 
-        if ($request->filled('role') && $request->role !== 'all') {
-            $query->role($request->role);
-        }
+        $query->when($request->filled('role') && $request->input('role') !== 'all', function ($q) use ($request) {
+            $q->role((string) $request->input('role'));
+        });
 
-        if ($request->filled('status') && $request->status !== 'all') {
-            if ($request->status === 'active') {
-                $query->active();
-            } else {
-                $query->where('is_active', false);
-            }
-        }
+        $query->when($request->filled('status') && $request->input('status') !== 'all', function ($q) use ($request) {
+            $request->input('status') === 'active'
+                ? $q->active()
+                : $q->where('is_active', false);
+        });
 
         return $query->orderBy('created_at', 'desc')
                      ->paginate(15)

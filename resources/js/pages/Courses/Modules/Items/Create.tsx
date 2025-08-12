@@ -8,11 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, BookOpen, CheckCircle, FileText, GraduationCap, Play, Settings, Users, ClipboardList, Target, AlertCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileText, Play, Settings, ClipboardList, Target, AlertCircle } from 'lucide-react';
 import { ChangeEvent, FormEvent, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem, CourseModuleItemCreatePageProps, QuestionFormData } from '@/types';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
@@ -22,8 +21,7 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
     const [questions, setQuestions] = useState<QuestionFormData[]>([]);
     const [activeStep, setActiveStep] = useState<'type' | 'details' | 'content'>('type');
 
-    // Initialize flash toast notifications
-    const { loading: showLoading, dismiss: dismissToast } = useToast();
+
 
     const { data, setData, processing, errors, setError, clearErrors } = useForm({
         title: '',
@@ -142,9 +140,6 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
             }
         }
 
-        // Show loading notification and store the toast ID
-        const loadingToastId = showLoading('Adding module item...');
-
         // Create submission data with questions if this is an assessment
         const submitData = { ...data }; // Start with a copy of the current form data
 
@@ -155,13 +150,9 @@ function Create({ course, module, nextOrder }: CourseModuleItemCreatePageProps) 
         // Use the manual URL for now until we debug the route issue
         router.post(`/courses/${course.id}/modules/${module.id}/items`, submitData, {
             onSuccess: () => {
-                // Dismiss the loading toast
-                dismissToast(loadingToastId);
-                // Backend will provide flash message, no need for manual toast
+                //
             },
             onError: (formErrors) => {
-                // Dismiss the loading toast
-                dismissToast(loadingToastId);
                 console.error('Submission errors:', formErrors);
 
                 // Debug: Log the errors object to see what we're getting

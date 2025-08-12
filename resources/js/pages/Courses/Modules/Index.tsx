@@ -32,7 +32,6 @@ import {
     ClipboardList,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -52,7 +51,6 @@ function Index({ course, modules }: ModulesIndexProps) {
     const { patch } = useForm(); // setData is no longer needed from useForm
     const { canManageCourse } = useAuth();
     const { confirm, confirmDialog } = useConfirmDialog();
-    const { success: showSuccess, error: showError } = useToast();
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Courses', href: '/courses' },
@@ -70,7 +68,7 @@ function Index({ course, modules }: ModulesIndexProps) {
         setProcessingActions((prev) => ({ ...prev, [moduleId]: true }));
         patch(`/courses/${course.id}/modules/${moduleId}/toggle-published`, {
             onSuccess: () => {
-                showSuccess(`Module "${moduleTitle}" ${isPublished ? 'unpublished' : 'published'} successfully.`);
+                // showSuccess(`Module "${moduleTitle}" ${isPublished ? 'unpublished' : 'published'} successfully.`);
                 // Update local state directly after success
                 setLocalModules((prevModules) =>
                     prevModules.map((m) =>
@@ -79,7 +77,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                 );
             },
             onError: () => {
-                showError(`Failed to ${isPublished ? 'unpublish' : 'publish'} module "${moduleTitle}". Please try again.`);
+               // showError(`Failed to ${isPublished ? 'unpublish' : 'publish'} module "${moduleTitle}". Please try again.`);
             },
             onFinish: () => {
                 setProcessingActions((prev) => ({ ...prev, [moduleId]: false }));
@@ -97,7 +95,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                 setProcessingActions((prev) => ({ ...prev, [moduleId]: true }));
                 router.delete(`/courses/${course.id}/modules/${moduleId}`, {
                     onSuccess: () => {
-                        showSuccess(`Module "${moduleTitle}" deleted successfully.`);
+                        // showSuccess(`Module "${moduleTitle}" deleted successfully.`);
                         setLocalModules((prevModules) => prevModules.filter((m) => m.id !== moduleId));
                     },
                     onFinish: () => {
@@ -120,14 +118,14 @@ function Index({ course, modules }: ModulesIndexProps) {
                     module_ids: Array.from(selectedModuleIds),
                 }, {
                     onSuccess: () => {
-                        showSuccess(`Successfully deleted ${selectedModuleIds.size} modules.`);
+                        // showSuccess(`Successfully deleted ${selectedModuleIds.size} modules.`);
                         setLocalModules((prevModules) =>
                             prevModules.filter((m) => !selectedModuleIds.has(m.id))
                         );
                         setSelectedModuleIds(new Set()); // Clear selection
                     },
                     onError: () => {
-                        showError('Failed to bulk delete modules. Please try again.');
+                        // showError('Failed to bulk delete modules. Please try again.');
                     },
                 });
             },
@@ -141,12 +139,12 @@ function Index({ course, modules }: ModulesIndexProps) {
             {},
             {
                 onSuccess: () => {
-                    showSuccess(`Module "${moduleTitle}" duplicated successfully.`);
+                    // showSuccess(`Module "${moduleTitle}" duplicated successfully.`);
                     // Fetch modules again to get the duplicated one, or add it manually if the backend returns it
                     router.reload({ only: ['modules'] }); // This will refetch modules from backend
                 },
                 onError: () => {
-                    showError(`Failed to duplicate module "${moduleTitle}". Please try again.`);
+                    // showError(`Failed to duplicate module "${moduleTitle}". Please try again.`);
                 },
                 onFinish: () => {
                     setProcessingActions((prev) => ({ ...prev, [moduleId]: false }));
@@ -191,7 +189,7 @@ function Index({ course, modules }: ModulesIndexProps) {
             modules: modulesWithNewOrder,
         }, {
             onSuccess: () => {
-                showSuccess('Module order updated successfully!');
+                //showSuccess('Module order updated successfully!');
                 setLocalModules(reorderedModules.map((m, index) => ({ ...m, order: index + 1 }))); // Update local state
             },
             onFinish: () => {
@@ -247,7 +245,7 @@ function Index({ course, modules }: ModulesIndexProps) {
             items: itemsWithNewOrder,
         }, {
             onSuccess: () => {
-                showSuccess('Module item order updated successfully!');
+                // showSuccess('Module item order updated successfully!');
                 // Manually update module items in the local state to reflect the new order immediately
                 setLocalModules((prevModules) =>
                     prevModules.map((m) =>
@@ -258,7 +256,7 @@ function Index({ course, modules }: ModulesIndexProps) {
                 );
             },
             onError: () => {
-                showError('Failed to update module item order. Please try again.');
+                // showError('Failed to update module item order. Please try again.');
             },
             onFinish: () => {
                 setDraggedItem(null);

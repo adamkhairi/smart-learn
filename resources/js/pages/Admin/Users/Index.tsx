@@ -9,7 +9,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/layouts/app-layout';
 import { SimplePaginatedResponse, User } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
@@ -47,8 +46,6 @@ interface Props {
 }
 
 export default function UsersIndex({ users, filters, stats, flash, errors }: Props) {
-    // Initialize toast notifications
-    const { success: showSuccess, error: showError } = useToast();
 
     // Initialize confirmation dialog
     const { confirm, confirmDialog } = useConfirmDialog();
@@ -86,7 +83,6 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
 
     const handleToggleActive = (userId: number, userName: string, isActive: boolean) => {
         const action = isActive ? 'deactivate' : 'activate';
-        const actionPast = isActive ? 'deactivated' : 'activated';
         confirm({
             title: `${action.charAt(0).toUpperCase() + action.slice(1)} User`,
             description: `Are you sure you want to ${action} ${userName}?`,
@@ -99,10 +95,10 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
                     {},
                     {
                         onSuccess: () => {
-                            showSuccess(`User ${actionPast} successfully.`);
+                            //
                         },
                         onError: () => {
-                            showError('Failed to update user status. Please try again.');
+                           //
                         },
                         onFinish: () => setTogglingUserId(null),
                     },
@@ -121,10 +117,10 @@ export default function UsersIndex({ users, filters, stats, flash, errors }: Pro
                 setDeletingUserId(userId);
                 router.delete(route('admin.users.destroy', userId), {
                     onSuccess: () => {
-                        showSuccess('User deleted successfully.');
+                        //
                     },
                     onError: () => {
-                        showError('Failed to delete user. Please try again.');
+                       //
                     },
                     onFinish: () => setDeletingUserId(null),
                 });
