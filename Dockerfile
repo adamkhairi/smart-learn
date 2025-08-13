@@ -46,5 +46,3 @@ COPY deploy/nginx.conf /opt/docker/etc/nginx/vhost.common.d/laravel.conf
 # Expose port (the base image exposes 80 by default)
 EXPOSE 80
 
-# The base image runs supervisord to start php-fpm and nginx
-CMD ["/entrypoint"]
